@@ -1,0 +1,35 @@
+# Thư mục môi trường ảo và cache Python
+.venv/
+__pycache__/
+*.pyc
+
+# Thư mục của IDE
+.idea/
+.vscode/
+.claude/
+.serena/
+.omx/
+
+# Thư mục Node.js
+node_modules/
+
+# Cache sơ đồ và media
+mermaid_cache/
+diagram_cache/
+extracted_media/
+
+# Các thư mục tạm thời khi xử lý DOCX
+unpacked_report/
+unpacked_report_probe/
+
+# Tệp tin báo cáo đầu ra (Generated files)
+Bao_Cao_Tieu_Luan_NMCNPM.docx
+Bao_Cao_Tieu_Luan_NMCNPM_new.docx
+Bao_Cao_Tieu_Luan_NMCNPM.md
+Bao_Cao_Tieu_Luan_NMCNPM_from_docx.md
+
+# Tệp tin tạm của Office
+~$*.docx
+
+# Thư mục test
+tests/

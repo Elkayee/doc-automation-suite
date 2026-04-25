@@ -31,7 +31,7 @@ Nhằm đảm bảo tiến độ và chất lượng, nhóm thực hiện phân 
 | Thành | Bán hàng, Quản lý khách hàng, Quản lý bàn phục vụ | hoa_don, hoa_don_chi_tiet, ban, khu_vuc, order_item_topping | UC1 |
 | Tạ Bảo Anh Ngọc | Quản lý menu (sản phẩm) và công thức pha chế | do_uong, nhom_do_uong, topping, cong_thuc, nguyen_lieu | UC2 |
 | Nguyễn Quang Đạo | Quản lý nguyên liệu và tồn kho | Cửa hàng, tồn kho, đơn hàng, sản phẩm, công thức, nguyên liệu, chi tiết công thức, giao dịch kho, chi tiết giao dịch kho | UC3 |
-| Nguyễn Viết Tùng | Quản lý nhân viên, ca làm việc và chấm công | nhan_vien, tai_khoan, shift_template, shift, shift_assignment, attendance | UC4 |
+| Nguyễn Viết Tùng | Usecase quản lý chấm công và nhân sự | nhan_vien, tai_khoan, shift_template, shift, shift_assignment, attendance | UC4 |
 | Ngô Thị Hồng Nhung | Báo cáo doanh thu / chi phí và quản lý danh sách cửa hàng | bao_cao_doanh_thu, chi_phi, danh_sach_cua_hang, hoa_don | UC5 + UC6 |
 
 ***Lưu ý****: Mỗi phân hệ UC liên quan đến 3–4 bảng dữ liệu, do đó mức độ phức tạp kỹ thuật của từng phần là tương đương nhau. Việc phân công theo phân hệ giúp tránh xung đột mã nguồn khi làm việc song song trên hệ thống quản lý phiên bản Git.*

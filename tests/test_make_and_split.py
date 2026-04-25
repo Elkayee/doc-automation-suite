@@ -16,6 +16,27 @@ PNG_DATA = base64.b64decode(
 
 
 class MakeAndSplitTests(unittest.TestCase):
+    def test_add_formatted_run_handles_nested_emphasis_without_breaking_identifiers(self) -> None:
+        doc = Document()
+        paragraph = doc.add_paragraph()
+
+        make.add_formatted_run(
+            paragraph,
+            "_Ghi chú: **ShiftTemplate** lưu mẫu ca tái sử dụng; **Shift** là ca thực tế theo ngày; "
+            "**ShiftAssignment** là kế hoạch phân công; **Attendance** ghi thực tế check_in, "
+            "check_out và working_hours._",
+        )
+
+        self.assertEqual(
+            paragraph.text,
+            "Ghi chú: ShiftTemplate lưu mẫu ca tái sử dụng; Shift là ca thực tế theo ngày; "
+            "ShiftAssignment là kế hoạch phân công; Attendance ghi thực tế check_in, "
+            "check_out và working_hours.",
+        )
+        self.assertFalse(any("**" in run.text for run in paragraph.runs))
+        self.assertTrue(any(run.text == "ShiftTemplate" and run.bold and run.italic for run in paragraph.runs))
+        self.assertTrue(any(run.text == "Attendance" and run.bold and run.italic for run in paragraph.runs))
+
     def test_make_pipeline_uses_explicit_paths(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
@@ -118,6 +139,78 @@ class MakeAndSplitTests(unittest.TestCase):
             self.assertEqual(rendered_paragraphs[0].text.strip(), "BÁO CÁO BÀI TẬP LỚN")
             self.assertEqual(rendered_paragraphs[0].alignment, make.WD_ALIGN_PARAGRAPH.CENTER)
             self.assertEqual(len(doc.inline_shapes), 1)
+
+    def test_parse_and_write_preserves_italic_note_with_bold_terms_and_identifiers(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            markdown_path = root / "note.md"
+            markdown_path.write_text(
+                "_Ghi chú: **ShiftTemplate** lưu mẫu ca tái sử dụng; **Shift** là ca thực tế theo ngày; "
+                "**ShiftAssignment** là kế hoạch phân công; **Attendance** ghi thực tế check_in, "
+                "check_out và working_hours._\n",
+                encoding="utf-8",
+            )
+
+            doc = Document()
+            make.parse_and_write(doc, str(markdown_path))
+
+            paragraph = next(p for p in doc.paragraphs if "ShiftTemplate" in p.text)
+            self.assertEqual(
+                paragraph.text,
+                "Ghi chú: ShiftTemplate lưu mẫu ca tái sử dụng; Shift là ca thực tế theo ngày; "
+                "ShiftAssignment là kế hoạch phân công; Attendance ghi thực tế check_in, "
+                "check_out và working_hours.",
+            )
+            self.assertTrue(any(run.text == "ShiftTemplate" and run.bold and run.italic for run in paragraph.runs))
+            self.assertTrue(any("working_hours." in run.text and run.italic for run in paragraph.runs))
+
+    def test_markdown_to_preview_text_removes_raw_markdown_markers_in_fallback(self) -> None:
+        markdown_content = (
+            "## CHƯƠNG 2: Xây dựng Biểu đồ lớp thực thể\n\n"
+            "Các lớp cốt lõi theo nguyên tắc **Separation of Concerns**.\n\n"
+            "| **Tên thực thể** | **Mô tả** |\n"
+            "| --- | --- |\n"
+            "| Store | Cửa hàng |\n"
+            "| Order | Đơn hàng |\n"
+        )
+
+        preview_text = make.markdown_to_preview_text(markdown_content)
+
+        self.assertIn("CHƯƠNG 2: Xây dựng Biểu đồ lớp thực thể", preview_text)
+        self.assertIn("Separation of Concerns", preview_text)
+        self.assertIn("Tên thực thể | Mô tả", preview_text)
+        self.assertIn("Store | Cửa hàng", preview_text)
+        self.assertNotIn("##", preview_text)
+        self.assertNotIn("**", preview_text)
+        self.assertNotIn("| --- | --- |", preview_text)
+
+    def test_markdown_to_preview_blocks_parses_heading_quote_and_table_for_fallback_renderer(self) -> None:
+        markdown_content = (
+            "## CHƯƠNG 1\n\n"
+            "> **Mục tiêu** chương này.\n\n"
+            "Các lớp cốt lõi theo nguyên tắc **Separation of Concerns**.\n\n"
+            "| **Tên thực thể** | **Mô tả** |\n"
+            "| --- | --- |\n"
+            "| Store | Cửa hàng |\n"
+        )
+
+        blocks = make.markdown_to_preview_blocks(markdown_content)
+
+        self.assertEqual(blocks[0]["type"], "heading")
+        self.assertEqual(blocks[0]["level"], 2)
+        self.assertEqual("".join(text for text, _ in blocks[0]["segments"]), "CHƯƠNG 1")
+
+        self.assertEqual(blocks[1]["type"], "quote")
+        self.assertTrue(any(text == "Mục tiêu" and "bold" in styles for text, styles in blocks[1]["segments"]))
+
+        self.assertEqual(blocks[2]["type"], "paragraph")
+        self.assertTrue(
+            any(text == "Separation of Concerns" and "bold" in styles for text, styles in blocks[2]["segments"])
+        )
+
+        self.assertEqual(blocks[3]["type"], "table")
+        self.assertEqual(blocks[3]["rows"][0], ["Tên thực thể", "Mô tả"])
+        self.assertEqual(blocks[3]["rows"][1], ["Store", "Cửa hàng"])
 
     def test_parse_and_write_resolves_repo_relative_image_paths(self) -> None:
         relative_asset = Path("extracted_media/test_ui_logo.png")

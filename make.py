@@ -5,6 +5,7 @@ Usage: uv run python make.py
 import argparse
 import base64
 import glob
+import html as html_lib
 import os
 import re
 import struct
@@ -12,6 +13,7 @@ import sys
 import time
 from pathlib import Path
 from urllib.parse import quote
+from html.parser import HTMLParser
 
 import requests
 import split_chapters
@@ -193,6 +195,110 @@ def strip_md_markup(text):
     text = re.sub(r'`([^`]+)`',       r'\1', text)
     return text
 
+
+def is_inline_word_char(char):
+    return bool(char) and (char.isalnum() or char == '_')
+
+
+def can_open_inline_marker(text, idx, marker):
+    marker_len = len(marker)
+    prev_char = text[idx - 1] if idx > 0 else ''
+    next_char = text[idx + marker_len] if idx + marker_len < len(text) else ''
+
+    if not next_char or next_char.isspace():
+        return False
+
+    if marker.startswith('_') and is_inline_word_char(prev_char):
+        return False
+
+    return True
+
+
+def can_close_inline_marker(text, idx, marker):
+    marker_len = len(marker)
+    prev_char = text[idx - 1] if idx > 0 else ''
+    next_char = text[idx + marker_len] if idx + marker_len < len(text) else ''
+
+    if not prev_char or prev_char.isspace():
+        return False
+
+    if marker.startswith('_') and is_inline_word_char(next_char):
+        return False
+
+    return True
+
+
+def append_inline_segment(segments, text, style):
+    if not text:
+        return
+
+    if segments and segments[-1][1] == style:
+        segments[-1] = (segments[-1][0] + text, style)
+        return
+
+    segments.append((text, style.copy()))
+
+
+def collect_inline_segments(text, start=0, end_marker=None, style=None):
+    if style is None:
+        style = {'bold': False, 'italic': False, 'code': False}
+
+    segments = []
+    buffer = []
+    i = start
+
+    while i < len(text):
+        if end_marker and text.startswith(end_marker, i) and can_close_inline_marker(text, i, end_marker):
+            append_inline_segment(segments, ''.join(buffer), style)
+            return segments, i + len(end_marker), True
+
+        if text[i] == '`':
+            close_idx = text.find('`', i + 1)
+            if close_idx != -1:
+                append_inline_segment(segments, ''.join(buffer), style)
+                buffer = []
+                append_inline_segment(
+                    segments,
+                    text[i + 1:close_idx],
+                    {'bold': False, 'italic': False, 'code': True},
+                )
+                i = close_idx + 1
+                continue
+
+        matched_marker = False
+        for marker, style_key in (('**', 'bold'), ('__', 'bold'), ('*', 'italic'), ('_', 'italic')):
+            if not text.startswith(marker, i):
+                continue
+            if not can_open_inline_marker(text, i, marker):
+                continue
+
+            nested_style = style.copy()
+            nested_style[style_key] = True
+            nested_segments, new_idx, closed = collect_inline_segments(
+                text,
+                start=i + len(marker),
+                end_marker=marker,
+                style=nested_style,
+            )
+            if not closed:
+                continue
+
+            append_inline_segment(segments, ''.join(buffer), style)
+            buffer = []
+            segments.extend(nested_segments)
+            i = new_idx
+            matched_marker = True
+            break
+
+        if matched_marker:
+            continue
+
+        buffer.append(text[i])
+        i += 1
+
+    append_inline_segment(segments, ''.join(buffer), style)
+    return segments, i, False
+
 def normalize_punctuation(text):
     """Chuẩn hóa dấu câu theo NĐ30: dấu sát từ trước, space sau dấu."""
     # Xóa khoảng trắng TRƯỚC dấu câu ngắt (., , : ; ! ? )
@@ -202,7 +308,7 @@ def normalize_punctuation(text):
     # Xóa khoảng trắng TRƯỚC dấu đóng ngoặc
     text = re.sub(r'\s+([)\]}])', r'\1', text)
     # Đảm bảo có đúng 1 space SAU dấu câu (bỏ qua số thập phân và URL)
-    text = re.sub(r'([.,;:!?])([^\s\d.,;:!?)\]}\'"\\])', r'\1 \2', text)
+    text = re.sub(r'([.,;:!?])([^\s\d.,;:!?)\]}\'"\\`*_])', r'\1 \2', text)
     return text
 
 def resolve_media_path(md_path, asset_path):
@@ -276,34 +382,269 @@ def get_heading_indent(text):
 
 def add_formatted_run(para, text):
     text = strip_md_links(text)
-    # Hỗ trợ: **bold**, __bold__, *italic*, _italic_, `code`
-    tokens = re.split(
-        r'(\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_|`[^`]+`)',
-        text
-    )
-    for token in tokens:
+    segments, _, _ = collect_inline_segments(text)
+    for token, style in segments:
         if not token:
             continue
-        run = para.add_run()
-        if (token.startswith('**') and token.endswith('**')):
-            run.text = token[2:-2]
-            run.bold = True
-        elif (token.startswith('__') and token.endswith('__')):
-            run.text = token[2:-2]
-            run.bold = True
-        elif (token.startswith('*') and token.endswith('*')):
-            run.text = token[1:-1]
-            run.italic = True
-        elif (token.startswith('_') and token.endswith('_')):
-            run.text = token[1:-1]
-            run.italic = True
-        elif (token.startswith('`') and token.endswith('`')):
-            run.text = token[1:-1]
-            run.font.name  = 'Courier New'
-            run.font.size  = Pt(9)
+
+        run = para.add_run(token)
+        if style['code']:
+            run.font.name = 'Courier New'
+            run.font.size = Pt(9)
             run.font.color.rgb = RGBColor(0xC7, 0x25, 0x4E)
+            continue
+
+        if style['bold']:
+            run.bold = True
+        if style['italic']:
+            run.italic = True
+
+
+class PreviewTextExtractor(HTMLParser):
+    BLOCK_TAGS = {
+        'p', 'div', 'section', 'article', 'header', 'footer', 'aside',
+        'ul', 'ol', 'li', 'pre', 'blockquote', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+    }
+
+    def __init__(self):
+        super().__init__()
+        self.parts = []
+        self._cells_in_row = 0
+
+    def handle_starttag(self, tag, attrs):
+        if tag == 'br':
+            self.parts.append('\n')
+        elif tag == 'tr':
+            if self.parts and not self.parts[-1].endswith('\n'):
+                self.parts.append('\n')
+            self._cells_in_row = 0
+        elif tag in {'td', 'th'}:
+            if self._cells_in_row > 0:
+                self.parts.append(' | ')
+            self._cells_in_row += 1
+
+    def handle_endtag(self, tag):
+        if tag == 'tr':
+            self._cells_in_row = 0
+            self.parts.append('\n')
+        elif tag in self.BLOCK_TAGS:
+            self.parts.append('\n\n')
+
+    def handle_data(self, data):
+        if not data or not data.strip():
+            return
+        self.parts.append(re.sub(r'\s+', ' ', data))
+
+    def get_text(self):
+        text = ''.join(self.parts)
+        text = text.replace('\n| ', ' | ')
+        text = re.sub(r'\n{3,}', '\n\n', text)
+        text = re.sub(r'[ \t]+\n', '\n', text)
+        text = re.sub(r'\n[ \t]+', '\n', text)
+        lines = [line.strip() for line in text.splitlines()]
+        lines = [line for line in lines if line]
+        return '\n'.join(lines)
+
+
+def markdown_to_html_body(md_content):
+    """Chuyển Markdown sang HTML body, dùng placeholder để giữ PlantUML block."""
+    lines = md_content.splitlines()
+    out = []
+    placeholders = {}
+    idx = 0
+    i = 0
+    while i < len(lines):
+        ln = lines[i]
+        if ln.strip().startswith('```plantuml'):
+            buf = []
+            i += 1
+            while i < len(lines) and not lines[i].strip().startswith('```'):
+                buf.append(lines[i])
+                i += 1
+            key = f'PLANTUMLBLOCK{idx}PLACEHOLDER'
+            img_url = plantuml_png_url('\n'.join(buf))
+            placeholders[key] = f'<p class="diagram"><img src="{quote(img_url, safe=":/?=~")}" alt="PlantUML diagram"></p>'
+            out.append(key)
+            idx += 1
         else:
-            run.text = token
+            out.append(ln)
+        i += 1
+    raw_md = '\n'.join(out)
+    try:
+        import markdown
+        body = markdown.markdown(
+            raw_md,
+            extensions=['tables', 'fenced_code'],
+            output_format='html'
+        )
+    except ImportError:
+        body = '<pre>' + html_lib.escape(raw_md) + '</pre>'
+    for key, html_block in placeholders.items():
+        body = body.replace('<p>' + key + '</p>', html_block)
+        body = body.replace(key, html_block)
+    return body
+
+
+def markdown_to_preview_text(md_content):
+    body = markdown_to_html_body(md_content)
+    extractor = PreviewTextExtractor()
+    extractor.feed(body)
+    return extractor.get_text()
+
+
+def inline_segments_to_preview_spans(text):
+    spans = []
+    segments, _, _ = collect_inline_segments(text)
+    for token, style in segments:
+        style_names = set()
+        if style['bold']:
+            style_names.add('bold')
+        if style['italic']:
+            style_names.add('italic')
+        if style['code']:
+            style_names.add('code')
+        spans.append((token, style_names))
+    return spans
+
+
+def parse_markdown_table_row(line):
+    if not line.strip().startswith('|'):
+        return None
+    cells = [strip_md_markup(cell.strip()) for cell in line.strip().strip('|').split('|')]
+    return cells
+
+
+def is_markdown_table_separator(line):
+    cells = [cell.strip() for cell in line.strip().strip('|').split('|')]
+    return bool(cells) and all(c and set(c) <= {'-', ':'} for c in cells)
+
+
+def markdown_to_preview_blocks(md_content):
+    lines = md_content.splitlines()
+    blocks = []
+    i = 0
+
+    while i < len(lines):
+        line = lines[i].rstrip()
+        stripped = line.strip()
+
+        if not stripped:
+            i += 1
+            continue
+
+        heading = re.match(r'^(#{1,6})\s+(.*)', stripped)
+        if heading:
+            blocks.append(
+                {
+                    'type': 'heading',
+                    'level': len(heading.group(1)),
+                    'segments': inline_segments_to_preview_spans(heading.group(2).strip()),
+                }
+            )
+            i += 1
+            continue
+
+        if stripped.startswith('>'):
+            quote_lines = []
+            while i < len(lines) and lines[i].strip().startswith('>'):
+                quote_lines.append(lines[i].strip().lstrip('> ').strip())
+                i += 1
+            blocks.append(
+                {
+                    'type': 'quote',
+                    'segments': inline_segments_to_preview_spans(' '.join(quote_lines)),
+                }
+            )
+            continue
+
+        if stripped.startswith('|'):
+            rows = []
+            while i < len(lines) and lines[i].strip().startswith('|'):
+                row = parse_markdown_table_row(lines[i])
+                if row and not is_markdown_table_separator(lines[i]):
+                    rows.append(row)
+                i += 1
+            if rows:
+                blocks.append({'type': 'table', 'rows': rows})
+            continue
+
+        if re.match(r'^---+\s*$', stripped):
+            blocks.append({'type': 'rule'})
+            i += 1
+            continue
+
+        paragraph_lines = [stripped]
+        i += 1
+        while i < len(lines):
+            candidate = lines[i].strip()
+            if not candidate:
+                break
+            if candidate.startswith(('>', '|', '```')) or re.match(r'^(#{1,6})\s+', candidate):
+                break
+            if re.match(r'^---+\s*$', candidate):
+                break
+            paragraph_lines.append(candidate)
+            i += 1
+        blocks.append(
+            {
+                'type': 'paragraph',
+                'segments': inline_segments_to_preview_spans(' '.join(paragraph_lines)),
+            }
+        )
+
+    return blocks
+
+
+def configure_preview_text_tags(preview_text):
+    preview_text.tag_configure('paragraph', spacing1=2, spacing3=10, lmargin1=0, lmargin2=0)
+    preview_text.tag_configure('quote_block', lmargin1=18, lmargin2=18, spacing1=4, spacing3=10, foreground='#555')
+    preview_text.tag_configure('table_row', lmargin1=10, lmargin2=10, spacing1=1, spacing3=1)
+    preview_text.tag_configure('rule', foreground='#999', spacing1=4, spacing3=8)
+    preview_text.tag_configure('bold', font=('Georgia', 10, 'bold'))
+    preview_text.tag_configure('italic', font=('Georgia', 10, 'italic'))
+    preview_text.tag_configure('code', font=('Consolas', 10), background='#f0f0f0', foreground='#9c2f52')
+    preview_text.tag_configure('h1', font=('Georgia', 16, 'bold'), foreground='#1A3A5C', spacing1=8, spacing3=8)
+    preview_text.tag_configure('h2', font=('Georgia', 14, 'bold'), foreground='#1F619E', spacing1=8, spacing3=7)
+    preview_text.tag_configure('h3', font=('Georgia', 13, 'bold'), foreground='#2E86AB', spacing1=7, spacing3=6)
+    preview_text.tag_configure('h4', font=('Georgia', 12, 'bold'), foreground='#449DD1', spacing1=6, spacing3=5)
+    preview_text.tag_configure('h5', font=('Georgia', 11, 'bold'), foreground='#449DD1', spacing1=5, spacing3=4)
+    preview_text.tag_configure('h6', font=('Georgia', 10, 'bold'), foreground='#449DD1', spacing1=4, spacing3=4)
+
+
+def insert_preview_segments(preview_text, segments, block_tags):
+    for token, style_names in segments:
+        tags = list(block_tags) + sorted(style_names)
+        preview_text.insert('end', token, tuple(tags))
+
+
+def render_markdown_to_preview_widget(preview_text, md_content):
+    preview_text.config(state='normal')
+    preview_text.delete('1.0', 'end')
+
+    for block in markdown_to_preview_blocks(md_content):
+        if block['type'] == 'heading':
+            heading_tag = f"h{min(block['level'], 6)}"
+            insert_preview_segments(preview_text, block['segments'], [heading_tag])
+            preview_text.insert('end', '\n\n')
+        elif block['type'] == 'quote':
+            preview_text.insert('end', '▌ ', ('quote_block',))
+            insert_preview_segments(preview_text, block['segments'], ['quote_block'])
+            preview_text.insert('end', '\n\n')
+        elif block['type'] == 'table':
+            for row_index, row in enumerate(block['rows']):
+                row_text = ' | '.join(row)
+                tags = ('table_row', 'bold') if row_index == 0 else ('table_row',)
+                preview_text.insert('end', row_text, tags)
+                preview_text.insert('end', '\n')
+            preview_text.insert('end', '\n')
+        elif block['type'] == 'rule':
+            preview_text.insert('end', '─' * 42, ('rule',))
+            preview_text.insert('end', '\n\n')
+        else:
+            insert_preview_segments(preview_text, block['segments'], ['paragraph'])
+            preview_text.insert('end', '\n\n')
+
+    preview_text.config(state='disabled')
 
 # ── Parser MD → DOCX ─────────────────────────────────────────────────────────
 def parse_and_write(doc, md_path, img_cache=IMG_CACHE):
@@ -697,11 +1038,13 @@ def launch_workflow_ui():
     notebook.add(convert_tab, text='DOCX → MD')
 
     # ── Kiểm tra tkinterweb ──────────────────────────────────────────────────
+    _htmlframe_error = None
     try:
         from tkinterweb import HtmlFrame as _HtmlFrame
         _has_htmlframe = True
-    except ImportError:
+    except Exception as exc:
         _has_htmlframe = False
+        _htmlframe_error = str(exc)
 
     # --- EDITOR TAB ---
     # Bố cục: [Listbox file | Editor text | Preview panel]
@@ -750,18 +1093,21 @@ def launch_workflow_ui():
             bg='#fffdf8', fg='#2b241b', state='disabled'
         )
         preview_text.pack(fill='both', expand=True)
+        configure_preview_text_tags(preview_text)
         ttk.Label(
             preview_frame,
-            text='Cài tkinterweb để xem preview đẹp hơn:\npip install tkinterweb',
+            text=(
+                'Đang dùng fallback preview trong ứng dụng.\n'
+                'Muốn render HTML đầy đủ: cài `tkinterweb` vào đúng Python đang chạy UI.\n'
+                f'Python hiện tại: {sys.executable}\n'
+                + (f'Lý do không tải được HtmlFrame: {_htmlframe_error}' if _htmlframe_error else '')
+            ),
             foreground='#888', font=('Consolas', 9)
         ).pack(anchor='w', padx=6)
 
         def _update_preview_widget(html_content):
-            # Fallback: chỉ hiện nội dung Markdown thô
-            preview_text.config(state='normal')
-            preview_text.delete(1.0, tk.END)
-            preview_text.insert(tk.END, editor_text.get(1.0, tk.END))
-            preview_text.config(state='disabled')
+            # Fallback: render markdown có style ngay trong Text widget
+            render_markdown_to_preview_widget(preview_text, editor_text.get(1.0, tk.END))
 
     # -- Debounce timer cho live preview --
     _preview_after_id = [None]  # dùng list để có thể thay đổi trong closure
@@ -770,7 +1116,7 @@ def launch_workflow_ui():
         """Tạo HTML đầy đủ từ nội dung editor hiện tại."""
         content = editor_text.get(1.0, tk.END)
         filepath = current_file.get()
-        body = _md_to_html_body(content)
+        body = markdown_to_html_body(content)
         fname = os.path.basename(filepath) if filepath else 'Preview'
         css = """
 body { font-family: 'Segoe UI', Arial, sans-serif; padding: 20px 32px;
@@ -849,45 +1195,6 @@ img { max-width: 100%; height: auto; display: block; margin: 8px auto; }
             except Exception as e:
                 log(f'Lỗi lưu file: {e}')
 
-    def _md_to_html_body(md_content):
-        """Chuyển Markdown sang HTML body, dùng placeholder để giữ PlantUML block."""
-        import html as html_lib
-        lines = md_content.splitlines()
-        out = []
-        placeholders = {}
-        idx = 0
-        i = 0
-        while i < len(lines):
-            ln = lines[i]
-            if ln.strip().startswith('```plantuml'):
-                buf = []
-                i += 1
-                while i < len(lines) and not lines[i].strip().startswith('```'):
-                    buf.append(lines[i])
-                    i += 1
-                key = f'PLANTUMLBLOCK{idx}PLACEHOLDER'
-                img_url = plantuml_png_url('\n'.join(buf))
-                placeholders[key] = f'<p class="diagram"><img src="{quote(img_url, safe=":/?=~")}" alt="PlantUML diagram"></p>'
-                out.append(key)
-                idx += 1
-            else:
-                out.append(ln)
-            i += 1
-        raw_md = '\n'.join(out)
-        try:
-            import markdown
-            body = markdown.markdown(
-                raw_md,
-                extensions=['tables', 'fenced_code'],
-                output_format='html'
-            )
-        except ImportError:
-            body = '<pre>' + html_lib.escape(raw_md) + '</pre>'
-        for key, html_block in placeholders.items():
-            body = body.replace('<p>' + key + '</p>', html_block)
-            body = body.replace(key, html_block)
-        return body
-
     def preview_file():
         filepath = current_file.get()
         if not filepath:
@@ -895,7 +1202,7 @@ img { max-width: 100%; height: auto; display: block; margin: 8px auto; }
             return
         import webbrowser, tempfile
         content = editor_text.get(1.0, tk.END)
-        body = _md_to_html_body(content)
+        body = markdown_to_html_body(content)
         css = """
 body { font-family: 'Segoe UI', Arial, sans-serif; padding: 28px 48px;
        line-height: 1.7; color: #222; max-width: 860px; margin: auto; }

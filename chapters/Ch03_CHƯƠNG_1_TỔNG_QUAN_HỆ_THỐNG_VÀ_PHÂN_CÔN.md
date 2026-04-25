@@ -59,7 +59,7 @@ Customer ..> UC02 : gián tiếp
 |   UC03   | Thanh toán & Hóa đơn    | Xử lý thanh toán đa kênh (tiền mặt/thẻ/QR), in hóa đơn                                            | Thành                |           Tóm tắt            |
 |   UC05   | Kho & Nguyên liệu       | Nhập kho, trừ tồn theo công thức pha chế, cảnh báo ngưỡng                                          | Nguyễn Quang Đạo     |           Tóm tắt            |
 |   UC06   | Báo cáo & Cửa hàng      | Thống kê doanh thu, top sản phẩm, quản lý chi nhánh                                               | Hồng Nhung           |           Tóm tắt            |
-| **UC04** | **Nhân sự & Chấm công** | **Hồ sơ nhân viên, phân ca sáng/tối, chấm công bằng GPS, tính lương theo ca với hệ số cuối tuần/lễ, RBAC** | **Nguyễn Viết Tùng** | **Chuyên sâu (Chương 3)** |
+| **UC04** | **Nhân sự & Chấm công** | **Usecase quản lý chấm công và nhân sự: hồ sơ nhân viên, phân ca sáng/tối, chấm công bằng GPS, tính lương theo ca với hệ số cuối tuần/lễ, RBAC** | **Nguyễn Viết Tùng** | **Chuyên sâu (Chương 3)** |
 
 ---
 

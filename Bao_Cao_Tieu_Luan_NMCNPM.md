@@ -47,7 +47,7 @@ Nhóm thực hiện phân chia trách nhiệm theo nguyên tắc **phân công t
 | **Thành**            | Bán hàng, Đơn hàng, Thanh toán & Hóa đơn, Quản lý bàn     | `hoa_don`, `hoa_don_chi_tiet`, `ban`, `khu_vuc`, `order_item_topping`                 |  UC02, UC03  |
 | **Bảo**              | Quản lý menu (sản phẩm) và công thức pha chế              | `do_uong`, `nhom_do_uong`, `topping`, `cong_thuc`, `nguyen_lieu`                      |     UC01     |
 | **Nguyễn Quang Đạo** | Quản lý nguyên liệu và tồn kho                            | `nguyen_lieu`, `nhap_kho`, `cong_thuc`, `canh_bao_kho`                                |     UC05     |
-| **Nguyễn Viết Tùng** | Quản lý nhân viên, ca làm việc và chấm công               | `nhan_vien`, `tai_khoan`, `shift_template`, `shift`, `shift_assignment`, `attendance` |     UC04     |
+| **Nguyễn Viết Tùng** | Usecase quản lý chấm công và nhân sự                      | `nhan_vien`, `tai_khoan`, `shift_template`, `shift`, `shift_assignment`, `attendance` |     UC04     |
 | **Hồng Nhung**       | Báo cáo doanh thu / chi phí và quản lý danh sách cửa hàng | `bao_cao_doanh_thu`, `chi_phi`, `danh_sach_cua_hang`, `hoa_don`                       |     UC06     |
 
 ---
@@ -85,7 +85,7 @@ Nhằm đảm bảo tiến độ và chất lượng, nhóm thực hiện phân 
 | Thành | Bán hàng, Quản lý khách hàng, Quản lý bàn phục vụ | hoa_don, hoa_don_chi_tiet, ban, khu_vuc, order_item_topping | UC1 |
 | Tạ Bảo Anh Ngọc | Quản lý menu (sản phẩm) và công thức pha chế | do_uong, nhom_do_uong, topping, cong_thuc, nguyen_lieu | UC2 |
 | Nguyễn Quang Đạo | Quản lý nguyên liệu và tồn kho | Cửa hàng, tồn kho, đơn hàng, sản phẩm, công thức, nguyên liệu, chi tiết công thức, giao dịch kho, chi tiết giao dịch kho | UC3 |
-| Nguyễn Viết Tùng | Quản lý nhân viên, ca làm việc và chấm công | nhan_vien, tai_khoan, shift_template, shift, shift_assignment, attendance | UC4 |
+| Nguyễn Viết Tùng | Usecase quản lý chấm công và nhân sự | nhan_vien, tai_khoan, shift_template, shift, shift_assignment, attendance | UC4 |
 | Ngô Thị Hồng Nhung | Báo cáo doanh thu / chi phí và quản lý danh sách cửa hàng | bao_cao_doanh_thu, chi_phi, danh_sach_cua_hang, hoa_don | UC5 + UC6 |
 
 ***Lưu ý****: Mỗi phân hệ UC liên quan đến 3–4 bảng dữ liệu, do đó mức độ phức tạp kỹ thuật của từng phần là tương đương nhau. Việc phân công theo phân hệ giúp tránh xung đột mã nguồn khi làm việc song song trên hệ thống quản lý phiên bản Git.*
@@ -286,7 +286,7 @@ Customer ..> UC02 : gián tiếp
 |   UC03   | Thanh toán & Hóa đơn    | Xử lý thanh toán đa kênh (tiền mặt/thẻ/QR), in hóa đơn                                            | Thành                |           Tóm tắt            |
 |   UC05   | Kho & Nguyên liệu       | Nhập kho, trừ tồn theo công thức pha chế, cảnh báo ngưỡng                                          | Nguyễn Quang Đạo     |           Tóm tắt            |
 |   UC06   | Báo cáo & Cửa hàng      | Thống kê doanh thu, top sản phẩm, quản lý chi nhánh                                               | Hồng Nhung           |           Tóm tắt            |
-| **UC04** | **Nhân sự & Chấm công** | **Hồ sơ nhân viên, phân ca sáng/tối, chấm công bằng GPS, tính lương theo ca với hệ số cuối tuần/lễ, RBAC** | **Nguyễn Viết Tùng** | **Chuyên sâu (Chương 3)** |
+| **UC04** | **Nhân sự & Chấm công** | **Usecase quản lý chấm công và nhân sự: hồ sơ nhân viên, phân ca sáng/tối, chấm công bằng GPS, tính lương theo ca với hệ số cuối tuần/lễ, RBAC** | **Nguyễn Viết Tùng** | **Chuyên sâu (Chương 3)** |
 
 ---
 

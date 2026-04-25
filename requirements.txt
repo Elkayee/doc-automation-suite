@@ -1,0 +1,4 @@
+requests
+python-docx
+tkinterweb
+markdown
