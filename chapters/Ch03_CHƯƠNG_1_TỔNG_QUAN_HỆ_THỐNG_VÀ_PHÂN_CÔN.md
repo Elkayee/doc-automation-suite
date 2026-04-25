@@ -49,25 +49,28 @@ Việc xác định rõ actor giúp nhóm phân biệt đâu là yêu cầu củ
 
 ### 1.3. Yêu cầu Chức năng
 
-Yêu cầu chức năng được phân loại theo chuẩn **IEEE 830**, bảo đảm tính truy vết từ yêu cầu người dùng đến thiết kế ca sử dụng:
+Từ nhu cầu thực tế của quán café và phạm vi đề tài mà nhóm đã xác định, hệ thống phải đáp ứng các yêu cầu chức năng cốt lõi sau. Các yêu cầu này được xây dựng để bao quát đầy đủ các phân hệ bán hàng, thực đơn, kho, báo cáo và nhân sự, đồng thời làm cơ sở cho biểu đồ use case tổng quát và các chương nghiên cứu chuyên sâu.
 
-| **Mã**    | **Phân hệ**   | **Mô tả yêu cầu**                                                                                              | **Ưu tiên** |
-| --------- | ------------- | -------------------------------------------------------------------------------------------------------------- | :---------: |
-| FR-01     | Đơn hàng      | Thu ngân tạo mới, chỉnh sửa và hủy đơn hàng theo tình trạng phục vụ thực tế                                   |     Cao     |
-| FR-02     | Đơn hàng      | Hệ thống tự động chuyển thông tin món đến khu vực pha chế khi đơn được xác nhận                               |     Cao     |
-| FR-03     | Bàn           | Hệ thống quản lý trạng thái bàn theo thời gian thực: trống, đang phục vụ, chờ thanh toán                     |     Cao     |
-| FR-04     | Thanh toán    | Hỗ trợ tối thiểu ba hình thức thanh toán: tiền mặt, thẻ và QR Pay                                             | Trung bình  |
-| FR-05     | Thanh toán    | Hóa đơn được in theo định dạng chuẩn để giao cho khách hàng                                                   |     Cao     |
-| FR-06     | Thực đơn      | Quản lý danh mục đồ uống, nhóm món, topping và công thức pha chế                                              |     Cao     |
-| FR-07     | Kho           | Tự động cập nhật tồn kho theo công thức nguyên liệu khi đơn hàng được hoàn tất                                |     Cao     |
-| FR-08     | Kho           | Cảnh báo khi nguyên liệu xuống dưới ngưỡng tối thiểu                                                           | Trung bình  |
-| **FR-09** | **Ca làm việc** | **Quản lý tạo mẫu ca, lập lịch và phân công ca làm cho nhân viên theo ngày hoặc tuần**                        |   **Cao**   |
-| **FR-10** | **Chấm công** | **Nhân viên thực hiện vào ca và kết thúc ca; hệ thống ghi nhận giờ làm thực tế**                              |   **Cao**   |
-| **FR-11** | **Nhân sự**   | **Quản lý hồ sơ nhân viên, cấp tài khoản đăng nhập và phân quyền theo vai trò**                               |   **Cao**   |
-| **FR-12** | **Nhân sự**   | **Quản lý khóa tài khoản, đặt lại mật khẩu và theo dõi danh sách nhân viên**                                  | Trung bình  |
-| **FR-13** | **Lương**     | **Tính lương theo loại ca, thời gian làm thực tế và hệ số ngày thường, cuối tuần, ngày lễ**                  |   **Cao**   |
-| FR-14     | Báo cáo       | Thống kê doanh thu theo ngày, tuần, tháng và theo chi nhánh                                                   | Trung bình  |
-| FR-15     | Báo cáo       | Thống kê top sản phẩm bán chạy, chi phí vận hành và biến động hoạt động cửa hàng                              |    Thấp     |
+| **Mã** | **Nhóm chức năng** | **Đặc tả yêu cầu chức năng** | **Actor chính** | **Ưu tiên** |
+| --- | --- | --- | --- | :---: |
+| FR-01 | Quản lý thực đơn | Hệ thống cho phép quản lý thêm, sửa, ẩn hoặc cập nhật thông tin đồ uống, nhóm món, topping và giá bán. | Quản lý | Cao |
+| FR-02 | Quản lý công thức | Hệ thống cho phép khai báo công thức pha chế và định lượng nguyên liệu cho từng món uống để làm căn cứ trừ kho. | Quản lý | Cao |
+| FR-03 | Quản lý đơn hàng | Hệ thống cho phép thu ngân tạo đơn hàng mới, cập nhật món, số lượng, ghi chú và trạng thái phục vụ trong quá trình bán hàng. | Thu ngân | Cao |
+| FR-04 | Quản lý bàn | Hệ thống phải theo dõi trạng thái bàn theo thời gian thực như bàn trống, đang phục vụ, chờ thanh toán hoặc đã hoàn tất. | Thu ngân | Cao |
+| FR-05 | Phục vụ và pha chế | Khi đơn hàng được xác nhận, hệ thống phải chuyển thông tin món và yêu cầu liên quan đến bộ phận phục vụ hoặc pha chế để tránh bỏ sót. | Thu ngân, Nhân viên | Cao |
+| FR-06 | Thanh toán | Hệ thống cho phép thanh toán đơn hàng bằng các hình thức phổ biến như tiền mặt, chuyển khoản hoặc mã QR. | Thu ngân | Cao |
+| FR-07 | Hóa đơn | Sau khi thanh toán, hệ thống phải tạo và in hóa đơn cho khách hàng, đồng thời lưu lại lịch sử giao dịch để đối soát. | Thu ngân | Cao |
+| FR-08 | Quản lý kho | Hệ thống cho phép quản lý nhập kho, xuất kho, điều chỉnh số lượng và theo dõi tình trạng tồn kho nguyên liệu. | Quản lý | Cao |
+| FR-09 | Tự động cập nhật tồn kho | Hệ thống phải tự động trừ nguyên liệu theo công thức pha chế khi đơn hàng được hoàn tất. | Hệ thống | Cao |
+| FR-10 | Cảnh báo nguyên liệu | Hệ thống phải cảnh báo khi số lượng nguyên liệu xuống dưới mức tồn tối thiểu để quản lý kịp thời bổ sung. | Quản lý | Trung bình |
+| FR-11 | Quản lý ca làm việc | Hệ thống cho phép tạo mẫu ca, lập lịch làm việc và phân công ca cho nhân viên theo ngày hoặc theo tuần. | Quản lý | Cao |
+| FR-12 | Chấm công | Hệ thống cho phép nhân viên vào ca, kết thúc ca và ghi nhận thời gian làm việc thực tế trong từng ca làm. | Nhân viên | Cao |
+| FR-13 | Quản lý hồ sơ nhân sự | Hệ thống cho phép quản lý thêm mới, cập nhật, theo dõi danh sách và trạng thái làm việc của nhân viên. | Quản lý | Cao |
+| FR-14 | Tài khoản và phân quyền | Hệ thống phải hỗ trợ cấp tài khoản đăng nhập, khóa tài khoản, đặt lại mật khẩu và phân quyền theo vai trò sử dụng. | Quản lý | Cao |
+| FR-15 | Tính lương theo ca | Hệ thống phải hỗ trợ tổng hợp dữ liệu chấm công và tính lương theo loại ca, số buổi làm và thời gian làm việc thực tế. | Quản lý | Cao |
+| FR-16 | Báo cáo thống kê | Hệ thống phải cung cấp báo cáo doanh thu, chi phí, tình hình hoạt động cửa hàng và các chỉ số phục vụ quản lý ra quyết định. | Quản lý | Trung bình |
+
+Nhìn chung, các yêu cầu chức năng trên phản ánh đúng mục tiêu của đề tài là xây dựng một hệ thống quản lý quán café có khả năng hỗ trợ vận hành hằng ngày và kiểm soát quản trị nội bộ trên cùng một nền tảng dữ liệu thống nhất.
 
 ### 1.4. Yêu cầu Phi chức năng
 
