@@ -2,9 +2,79 @@
 
 This guide helps AI agents rapidly become productive in this document-processing codebase.
 
+Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
+
+**Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
+
+## 1. Think Before Coding
+
+**Don't assume. Don't hide confusion. Surface tradeoffs.**
+
+Before implementing:
+
+- State your assumptions explicitly. If uncertain, ask.
+- If multiple interpretations exist, present them - don't pick silently.
+- If a simpler approach exists, say so. Push back when warranted.
+- If something is unclear, stop. Name what's confusing. Ask.
+
+## 2. Simplicity First
+
+**Minimum code that solves the problem. Nothing speculative.**
+
+- No features beyond what was asked.
+- No abstractions for single-use code.
+- No "flexibility" or "configurability" that wasn't requested.
+- No error handling for impossible scenarios.
+- If you write 200 lines and it could be 50, rewrite it.
+
+Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+
+## 3. Surgical Changes
+
+**Touch only what you must. Clean up only your own mess.**
+
+When editing existing code:
+
+- Don't "improve" adjacent code, comments, or formatting.
+- Don't refactor things that aren't broken.
+- Match existing style, even if you'd do it differently.
+- If you notice unrelated dead code, mention it - don't delete it.
+
+When your changes create orphans:
+
+- Remove imports/variables/functions that YOUR changes made unused.
+- Don't remove pre-existing dead code unless asked.
+
+The test: Every changed line should trace directly to the user's request.
+
+## 4. Goal-Driven Execution
+
+**Define success criteria. Loop until verified.**
+
+Transform tasks into verifiable goals:
+
+- "Add validation" → "Write tests for invalid inputs, then make them pass"
+- "Fix the bug" → "Write a test that reproduces it, then make it pass"
+- "Refactor X" → "Ensure tests pass before and after"
+
+For multi-step tasks, state a brief plan:
+
+```
+1. [Step] → verify: [check]
+2. [Step] → verify: [check]
+3. [Step] → verify: [check]
+```
+
+Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
+
+---
+
+**These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+
 ## Architecture Overview
 
 **NMCNPM** is a specialized toolkit for Vietnamese academic reports (NMCNPM group project). The workflow is:
+
 - **Input:** Markdown chapters (`/chapters/Ch*.md`)
 - **Processing:** Assemble → Render Mermaid diagrams → Convert MD → DOCX
 - **Output:** Professional `.docx` report
@@ -14,17 +84,21 @@ This guide helps AI agents rapidly become productive in this document-processing
 ## Essential Workflows
 
 ### 1. Build Complete Report: `python make.py`
+
 **Two-stage pipeline:**
+
 - **Stage 1:** Assembles `chapters/Ch0*.md` (excluding Ch08/09) → concatenates into `Bao_Cao_Tieu_Luan_NMCNPM.md`
 - **Stage 2:** Converts MD → DOCX with formatting (headings, tables, Mermaid diagrams)
 
 **Key mechanics:**
+
 - Mermaid diagrams cached in `mermaid_cache/` (API calls to `mermaid.ink`)
 - Heading colors: H1=`#1A3A5C`, H2=`#1F619E`, H3=`#2E86AB`, H4=`#449DD1`
 - Tables use blue header (`#1F619E`) + light blue alternating rows (`#EBF4FB`)
 - File save handles permission errors by appending `_new` suffix
 
 ### 2. Document Manipulation
+
 - **Convert DOCX → Markdown:** `python convert_docx_to_md.py [input.docx] [output.md]`
 - **Split Markdown into chapters:** `python split_chapters.py [input.md] [output_dir]`
 - **Unpack DOCX to XML:** `python skills/xu-ly-van-phong/scripts/office/unpack.py file.docx output_dir`
@@ -37,7 +111,7 @@ This guide helps AI agents rapidly become productive in this document-processing
 
 ### Markdown to DOCX Conversion (in `make.py`)
 
-```python
+````python
 # Parse markdown with inline formatting and special blocks
 tokens = re.split(r'(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)', text)
 # Handle: **bold**, *italic*, `code`
@@ -45,11 +119,11 @@ tokens = re.split(r'(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)', text)
 # Mermaid diagram handling
 if line.strip().startswith('```mermaid'):
     render_mermaid(code, idx)  # Cache PNG, insert with aspect-ratio logic
-    
+
 # Tables: parse pipe-delimited rows, first row = header (blue background)
 if line.startswith('|'):
     cells = [c.strip() for c in line.strip().strip('|').split('|')]
-```
+````
 
 ### DOCX Formatting Helpers (reused across scripts)
 
@@ -79,12 +153,14 @@ def set_page_setup(doc):
 ## Integration Points
 
 ### External Dependencies
+
 - **`docx` (npm):** Core library (v9.6.1+) for DOCX creation/inspection
 - **`mermaid.ink` API:** Diagram rendering (with 0.5s delays to avoid throttling)
 - **`python-docx`, `openpyxl`, `pypdf`, `pdfplumber`:** Python ecosystem (install via pip)
 - **`soffice` (LibreOffice):** Headless document conversion
 
 ### Cross-Component Communication
+
 - Root scripts (`make.py`, `split_chapters.py`, `convert_docx_to_md.py`) own the primary report workflow
 - `/skills/handling-docx-files/` provides XML-level DOCX manipulation for advanced use cases
 - All office scripts write to consistent output directories (`chapters/`, `Bao_Cao_*.md`, `Bao_Cao_*.docx`)
@@ -92,6 +168,7 @@ def set_page_setup(doc):
 ## Debugging Checklist
 
 Before implementing, check:
+
 1. **Encoding issues?** Add `encoding='utf-8'` to file opens and `sys.stdout.reconfigure(encoding='utf-8')`
 2. **Mermaid diagram blank?** Check API response status; if rendering fails, fallback text is inserted
 3. **Table formatting broken?** Verify all rows have same column count; ensure cell background uses `.set(qn('w:fill'), hex)` not `ShadingType.SOLID`
@@ -108,5 +185,5 @@ Before implementing, check:
 
 ---
 
-**Last Updated:** 2026-04-25  
+**Last Updated:** 2026-04-25
 **Status:** Active development (NMCNPM group project deadline 23:00 same day)
