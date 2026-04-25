@@ -1,121 +1,50 @@
-# CLAUDE.md
+YÊU CẦU BÀI TẬP NHÓM MÔN NMCNPM
 
-Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
+1. Số lượng thành viên nhóm: 5-6 sinh viên
+2. Công việc và yêu cầu của nhóm:
 
-**Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
+- Nhóm nhận chủ đề theo phân công. Danh sách kèm theo.
+- Mỗi nhóm cử 1 sinh viên làm trưởng nhóm. Ghi chú trưởng nhóm trên link chia nhóm.
+- Tạo nhóm Zalo để nhóm làm việc.
+- Công việc làm chung của cả nhóm:
+  o Mô tả bài toán (yêu cầu người sử dụng)
+  o Đặc tả yêu cầu phần mềm: yêu cầu chức năng, phi chức năng.
+  o Biểu đồ UC tổng quát.
+  o Biểu đồ lớp thực thể.
+- Mỗi thành viên trong nhóm chủ trì làm ít nhất 1 UseCase với các việc sau: o Biểu đồ UC chi tiết
+  o Đặc tả UC
+  o Biểu đồ hoạt động
+  Chú ý: chọn UC phải đủ lớn, có nghiệp vụ, có ràng buộc. Nếu chọn những UC đơn giản (ví dụ đăng nhập, đăng xuất, đổi mật khẩu hoặc UC kiểu như thêm sửa xóa đơn giản) thì sẽ không đạt hoặc đánh giá kết quả thấp.
 
-## 1. Think Before Coding
+3. Thời hạn:
+   o Đại diện nhóm nộp trên hệ thống LMS của nhà trường. o Thời gian: Trước 23h ngày 25/4/2026.
+   o Báo cáo nộp ghép chung thành một file doc (hoặc pdf) gồm:
+   ▪ Phần 1 là các nội dung chung của cả nhóm
+   ▪ Phần 2 là nội dung của từng thành viên (tham khảo bố cục phía sau)
+   1BỐ CỤC BÁO CÁO BÀI TẬP NHÓM
+4. Trang bìa:
+   ◦ Tên chủ đề của nhóm
+   ◦ Danh sách thành viên nhóm và ghi rõ thành viên đó đảm nhiệm làm UseCase nào trong bài tập
+5. Phần 1 – Công việc chung của nhóm
+   a. Mô tả yêu cầu bài toán, yêu cầu người dùng:
 
-**Don't assume. Don't hide confusion. Surface tradeoffs.**
+- Mô tả bằng ngôn ngữ tự nhiên.
+- Mô tả đủ các yêu cầu mà “người dùng” cần.
+- Các ràng buộc nghiệp vụ.
+  Chú ý: Phần này khoảng 2-3 trang và mô tả bằng ngôn ngữ tự nhiên, như
+  mô tả của khách hàng (chứ chưa cần mô hình hóa, vẽ biểu đồ gì cả)
+  b. Mô tả yêu cầu phần mềm
+- Phân tích và xác định actor
+- Xác định yêu cầu chức năng: các Usecase
+- Xác định các yêu cầu phi chức năng
+- Vẽ biểu đồ UC tổng quát.
+  c. Xây dựng biểu đồ lớp thực thể
+- Phân tích và xác định các thực thể
+- Mô tả thực thể (thuộc tính, phương thức,..)
+- Vẽ biểu đồ lớp thực thể.
 
-Before implementing:
-- State your assumptions explicitly. If uncertain, ask.
-- If multiple interpretations exist, present them - don't pick silently.
-- If a simpler approach exists, say so. Push back when warranted.
-- If something is unclear, stop. Name what's confusing. Ask.
-
-## 2. Simplicity First
-
-**Minimum code that solves the problem. Nothing speculative.**
-
-- No features beyond what was asked.
-- No abstractions for single-use code.
-- No "flexibility" or "configurability" that wasn't requested.
-- No error handling for impossible scenarios.
-- If you write 200 lines and it could be 50, rewrite it.
-
-Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
-
-## 3. Surgical Changes
-
-**Touch only what you must. Clean up only your own mess.**
-
-When editing existing code:
-- Don't "improve" adjacent code, comments, or formatting.
-- Don't refactor things that aren't broken.
-- Match existing style, even if you'd do it differently.
-- If you notice unrelated dead code, mention it - don't delete it.
-
-When your changes create orphans:
-- Remove imports/variables/functions that YOUR changes made unused.
-- Don't remove pre-existing dead code unless asked.
-
-The test: Every changed line should trace directly to the user's request.
-
-## 4. Goal-Driven Execution
-
-**Define success criteria. Loop until verified.**
-
-Transform tasks into verifiable goals:
-- "Add validation" → "Write tests for invalid inputs, then make them pass"
-- "Fix the bug" → "Write a test that reproduces it, then make it pass"
-- "Refactor X" → "Ensure tests pass before and after"
-
-For multi-step tasks, state a brief plan:
-```
-1. [Step] → verify: [check]
-2. [Step] → verify: [check]
-3. [Step] → verify: [check]
-```
-
-Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
-
----
-
-**These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
-## Project Overview
-This repository is a specialized toolkit for document processing and office automation, primarily focused on `.docx`, `.xlsx`, and `.pptx` files. It includes a comprehensive collection of "skills" (modular AI guidance) for handling complex office document formatting, conversion, and standardization, particularly following Vietnamese administrative standards (NĐ 30).
-
-## NMCNPM Group Project Requirements
-- **Group Size**: 5-6 members with 1 designated leader.
-- **Deadline**: Before 23:00 on 2026-04-25.
-- **Shared Tasks**:
-    - Problem description (user requirements).
-    - Software Requirements Specification (SRS): functional and non-functional.
-    - General Use Case (UC) diagram.
-    - Entity Class diagram.
-- **Individual Member Tasks** (at least 1 complex UC per member):
-    - Detailed UC diagram.
-    - UC Specification.
-    - Activity diagram.
-    - *Note*: Choose "large" UCs with business logic/constraints; avoid simple CRUD or Auth.
-
-## Report Structure (DOCX/PDF)
-- **Cover Page**: Topic name, member list with assigned UCs.
-- **Part 1 (Common Tasks)**:
-    - Problem Description (Natural language, 2-3 pages, customer perspective).
-    - Software Requirements (Actors, functional/UCs, non-functional, general UC diagram).
-    - Entity Class Diagram (Entities, properties, methods, relationships).
-- **Part 2 (Individual Results)**:
-    - Detailed UC Diagram.
-    - UC Specification.
-    - Activity Diagram.
-
-## Architecture & Structure
-- `/skills`: The core of the repository, containing specialized guidance and scripts for various tasks.
-    - `handling-docx-files/`: Technical skills for low-level `.docx` manipulation (XML/OOXML).
-    - `xu-ly-van-phong/`: High-level office automation following Vietnamese standards, including templates and color palettes.
-    - `subagent-driven-development/`, `systematic-debugging/`, `test-driven-development/`: General software engineering methodology skills.
-- `/node_modules`: Project dependencies (managed by npm).
-- `package.json`: Defines project dependencies (currently includes `docx`).
-
-## Development Commands
-
-### Environment Setup
-- Install dependencies: `npm install`
-- Install Python dependencies (for document scripts): `pip install python-docx openpyxl pypdf pdfplumber pdf2docx`
-
-### Document Processing (via scripts)
-Many scripts are located within specific skill directories.
-- Unpack DOCX: `python skills/xu-ly-van-phong/scripts/office/unpack.py <file.docx> <output_dir>`
-- Pack DOCX: `python skills/xu-ly-van-phong/scripts/office/pack.py <input_dir> <output.docx>`
-- Convert DOC to DOCX: `python skills/xu-ly-van-phong/scripts/office/soffice.py --headless --convert-to docx <file.doc>`
-- Convert PDF to DOCX: `python skills/xu-ly-van-phong/scripts/convert/convert_pdf_to_docx.py <input.pdf> <output.docx>`
-
-## Code Style & Standards
-- **Office XML Manipulation**: When editing existing documents, prefer unpacking to XML, modifying, and repacking to preserve formatting.
-- **Vietnamese Standards**: Follow `skills/xu-ly-van-phong/standards/nd30.md` for administrative documents.
-- **Consistency**: Use the color palettes defined in `skills/xu-ly-van-phong/standards/color/` for professional deliverables.
-- **Skills Usage**: Refer to `SKILL.md` in each subdirectory for specific usage patterns and common mistakes.
+23. Phần 2 – Kết quả từng thành viên
+    Từng thành viên trên cơ sở UC mà mình chọn làm thì cần thực hiện các nội dung sau:
+    a. Vẽ biểu đồ UC
+    b. Viết đặc tả UC
+    c. Vẽ biểu đồ hoạt động UC
