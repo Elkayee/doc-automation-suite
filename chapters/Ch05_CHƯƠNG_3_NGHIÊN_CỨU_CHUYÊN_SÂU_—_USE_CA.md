@@ -4,6 +4,8 @@
 
 ![Image 8](extracted_media/Bao_Cao_Tieu_Luan_NMCNPM/image_008.png)
 
+*Biểu đồ 3.1. Biểu đồ UC chi tiết của phân hệ bán hàng (UC01)*
+
 ### 3.2. Đặc tả UC
 
 #### 3.2.1. Thông tin chung
@@ -137,3 +139,5 @@ Hỗ trợ xử lý nhiều đơn hàng cùng lúc
 ### 3.3. Biểu đồ luồng hoạt động
 
 ![Image 9](extracted_media/Bao_Cao_Tieu_Luan_NMCNPM/image_009.png)
+
+*Biểu đồ 3.2. Biểu đồ hoạt động của use case bán hàng (UC01)*

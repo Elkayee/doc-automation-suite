@@ -8,6 +8,7 @@ import glob
 import html as html_lib
 import os
 import re
+import shutil
 import struct
 import sys
 import time
@@ -98,6 +99,39 @@ def collect_chapter_files(chapter_dir):
         raise FileNotFoundError(f'Thieu chapter trong danh sach build: {missing_text}')
 
     return chapter_files
+
+
+def clear_image_cache(img_cache):
+    cache_path = Path(img_cache)
+    if not cache_path.exists():
+        cache_path.mkdir(parents=True, exist_ok=True)
+        return
+
+    for entry in cache_path.iterdir():
+        if entry.is_file():
+            entry.unlink()
+        elif entry.is_dir():
+            shutil.rmtree(entry)
+
+
+def ensure_output_docx_closed(docx_out):
+    output_path = Path(docx_out)
+    if not output_path.exists():
+        return
+
+    probe_path = output_path.with_name(output_path.stem + '.__lockcheck__' + output_path.suffix)
+    try:
+        os.replace(output_path, probe_path)
+        os.replace(probe_path, output_path)
+    except PermissionError as exc:
+        if probe_path.exists():
+            try:
+                os.replace(probe_path, output_path)
+            except OSError:
+                pass
+        raise RuntimeError(
+            f'File output dang mo: {output_path.name}. Hay dong file Word cu truoc khi build lai.'
+        ) from exc
 
 
 def assemble_markdown(chapter_dir, output_path):
@@ -1059,6 +1093,7 @@ def step_convert(md_out=MD_OUT, docx_out=DOCX_OUT, img_cache=IMG_CACHE):
     print()
 
     os.makedirs(img_cache, exist_ok=True)
+    ensure_output_docx_closed(docx_out)
     doc = Document()
     set_page_setup(doc)
     for para in doc.paragraphs:
@@ -1066,14 +1101,13 @@ def step_convert(md_out=MD_OUT, docx_out=DOCX_OUT, img_cache=IMG_CACHE):
 
     parse_and_write(doc, md_out, img_cache)
 
-    # Thu save; neu bi khoa (Word dang mo) thi dung ten _new
     out = docx_out
     try:
         doc.save(out)
-    except PermissionError:
-        out = docx_out.replace('.docx', '_new.docx')
-        print(f'  [WARN] File goc bi khoa. Luu sang: {out}')
-        doc.save(out)
+    except PermissionError as exc:
+        raise RuntimeError(
+            f'Khong the ghi file {Path(docx_out).name}. Hay dong file Word cu truoc khi build lai.'
+        ) from exc
 
     size = os.path.getsize(out) // 1024
     print(f'\n[DONE] {out}  ({size} KB)')
@@ -1083,6 +1117,8 @@ def step_convert(md_out=MD_OUT, docx_out=DOCX_OUT, img_cache=IMG_CACHE):
 
 def run_build_pipeline(chapters_dir=CH_DIR, md_out=MD_OUT, docx_out=DOCX_OUT, img_cache=IMG_CACHE):
     os.makedirs(img_cache, exist_ok=True)
+    print('  [INFO] Dang xoa cache anh cu de lay du lieu render/API moi...')
+    clear_image_cache(img_cache)
     print('=' * 55)
     print('BƯỚC 1: Ghép chapters → MD')
     print('=' * 55)

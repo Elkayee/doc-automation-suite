@@ -65,4 +65,4 @@ Nhằm đảm bảo tiến độ và chất lượng, nhóm thực hiện phân 
 
 ![Image 5](extracted_media/Bao_Cao_Tieu_Luan_NMCNPM/image_005.png)
 
-*Biểu đồ** 2*
+*Biểu đồ 2. Sơ đồ tổng quan phân công nhóm*
