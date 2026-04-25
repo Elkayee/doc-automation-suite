@@ -560,12 +560,176 @@ def launch_workflow_ui():
         ttk.Button(row, text='Browse', command=choose).pack(side='left')
         return entry
 
+    editor_tab = ttk.Frame(notebook, padding=14)
     build_tab = ttk.Frame(notebook, padding=14)
     split_tab = ttk.Frame(notebook, padding=14)
     convert_tab = ttk.Frame(notebook, padding=14)
+    notebook.add(editor_tab, text='Editor')
     notebook.add(build_tab, text='Build DOCX')
     notebook.add(split_tab, text='Split Chapters')
     notebook.add(convert_tab, text='DOCX → MD')
+
+    # --- EDITOR TAB ---
+    editor_paned = ttk.PanedWindow(editor_tab, orient=tk.HORIZONTAL)
+    editor_paned.pack(fill='both', expand=True)
+
+    file_list_frame = ttk.Frame(editor_paned)
+    editor_paned.add(file_list_frame, weight=1)
+
+    editor_frame = ttk.Frame(editor_paned)
+    editor_paned.add(editor_frame, weight=3)
+
+    file_listbox = tk.Listbox(file_list_frame, font=('Consolas', 10))
+    file_listbox.pack(side='left', fill='both', expand=True)
+    scrollbar = ttk.Scrollbar(file_list_frame, orient='vertical', command=file_listbox.yview)
+    scrollbar.pack(side='right', fill='y')
+    file_listbox.config(yscrollcommand=scrollbar.set)
+
+    editor_text = tk.Text(editor_frame, font=('Consolas', 11), wrap='word', undo=True)
+    editor_text.pack(fill='both', expand=True, pady=(0, 5))
+
+    btn_frame = ttk.Frame(editor_frame)
+    btn_frame.pack(fill='x')
+
+    current_file = tk.StringVar()
+
+    def load_files():
+        file_listbox.delete(0, tk.END)
+        for f in collect_chapter_files(CH_DIR):
+            file_listbox.insert(tk.END, os.path.basename(f))
+
+    def on_file_select(event):
+        if not file_listbox.curselection():
+            return
+        idx = file_listbox.curselection()[0]
+        filename = file_listbox.get(idx)
+        filepath = os.path.join(CH_DIR, filename)
+        current_file.set(filepath)
+        try:
+            with open(filepath, 'r', encoding='utf-8') as f:
+                editor_text.delete(1.0, tk.END)
+                editor_text.insert(tk.END, f.read())
+        except Exception as e:
+            log(f'Lỗi đọc file: {e}')
+
+    file_listbox.bind('<<ListboxSelect>>', on_file_select)
+
+    def save_file():
+        filepath = current_file.get()
+        if filepath:
+            try:
+                with open(filepath, 'w', encoding='utf-8') as f:
+                    f.write(editor_text.get(1.0, tk.END).rstrip('\n') + '\n')
+                log(f'Đã lưu: {os.path.basename(filepath)}')
+            except Exception as e:
+                log(f'Lỗi lưu file: {e}')
+
+    def _md_to_html_body(md_content):
+        """Chuyển Markdown sang HTML body, dùng placeholder để giữ Mermaid block."""
+        import html as html_lib
+        lines = md_content.splitlines()
+        out = []
+        placeholders = {}
+        idx = 0
+        i = 0
+        while i < len(lines):
+            ln = lines[i]
+            if ln.strip().startswith('```mermaid'):
+                buf = []
+                i += 1
+                while i < len(lines) and not lines[i].strip().startswith('```'):
+                    buf.append(lines[i])
+                    i += 1
+                key = f'MERMAIDBLOCK{idx}PLACEHOLDER'
+                placeholders[key] = '<pre class="mermaid">\n' + '\n'.join(buf) + '\n</pre>'
+                out.append(key)
+                idx += 1
+            else:
+                out.append(ln)
+            i += 1
+        raw_md = '\n'.join(out)
+        try:
+            import markdown
+            body = markdown.markdown(
+                raw_md,
+                extensions=['tables', 'fenced_code'],
+                output_format='html'
+            )
+        except ImportError:
+            body = '<pre>' + html_lib.escape(raw_md) + '</pre>'
+        for key, html_block in placeholders.items():
+            body = body.replace('<p>' + key + '</p>', html_block)
+            body = body.replace(key, html_block)
+        return body
+
+    def preview_file():
+        filepath = current_file.get()
+        if not filepath:
+            messagebox.showwarning('Cảnh báo', 'Vui lòng chọn file để preview!')
+            return
+        import webbrowser, tempfile
+        content = editor_text.get(1.0, tk.END)
+        body = _md_to_html_body(content)
+        css = """
+body { font-family: 'Segoe UI', Arial, sans-serif; padding: 28px 48px;
+       line-height: 1.7; color: #222; max-width: 860px; margin: auto; }
+h1 { color: #1A3A5C; font-size: 1.8em; border-bottom: 2px solid #1F619E; padding-bottom: 6px; }
+h2 { color: #1F619E; font-size: 1.4em; }
+h3 { color: #2E86AB; font-size: 1.2em; }
+h4 { color: #449DD1; }
+pre { background:#f4f4f4; padding:12px; border-radius:6px; overflow-x:auto;
+      font-family: Consolas, monospace; font-size: 0.92em; }
+code { background:#f0f0f0; padding:2px 5px; border-radius:3px; font-size:0.92em; }
+table { border-collapse: collapse; width: 100%; margin: 14px 0; }
+th { background-color: #1F619E; color: white; padding: 8px 12px; text-align: left; }
+td { border: 1px solid #d0d0d0; padding: 7px 12px; }
+tr:nth-child(even) td { background: #EBF4FB; }
+blockquote { border-left: 4px solid #449DD1; margin-left:0; padding-left:16px; color:#555; }
+img { max-width: 100%; }
+.mermaid { text-align: center; }
+"""
+        html_content = f"""<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <title>Preview — {os.path.basename(filepath)}</title>
+  <style>{css}</style>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+</head>
+<body>
+{body}
+<script>
+  mermaid.initialize({{ startOnLoad: true, theme: 'default', securityLevel: 'loose' }});
+</script>
+</body>
+</html>"""
+        fd, temp_path = tempfile.mkstemp(suffix='.html')
+        with os.fdopen(fd, 'w', encoding='utf-8') as f:
+            f.write(html_content)
+        webbrowser.open('file:///' + temp_path.replace('\\', '/'))
+        log(f'Preview: {os.path.basename(filepath)}')
+
+    def docx_to_chapters():
+        docx_path = filedialog.askopenfilename(initialdir=str(BASE), filetypes=[('Word', '*.docx')])
+        if not docx_path: return
+        log('Đang tách DOCX -> Markdown...')
+        try:
+            tmp_md = str(BASE / 'temp_split.md')
+            convert_docx_to_markdown(docx_path, tmp_md, str(BASE / 'extracted_media' / 'temp_split'))
+            split_chapters.write_chapter_files(tmp_md, CH_DIR)
+            if os.path.exists(tmp_md): os.remove(tmp_md)
+            log('Tách thành công!')
+            load_files()
+            messagebox.showinfo('Thành công', 'Đã tách DOCX thành các chapters.')
+        except Exception as e:
+            log(f'Lỗi: {e}')
+
+    ttk.Button(btn_frame, text='Lưu (Save)', command=save_file).pack(side='left', padx=5)
+    ttk.Button(btn_frame, text='Xem trước (Preview)', command=preview_file).pack(side='left', padx=5)
+    ttk.Button(btn_frame, text='Tải lại danh sách', command=load_files).pack(side='left', padx=5)
+    ttk.Button(btn_frame, text='Tách DOCX -> Chapters', command=docx_to_chapters).pack(side='right', padx=5)
+
+    load_files()
 
     build_chapters = tk.StringVar(value=CH_DIR)
     build_md = tk.StringVar(value=MD_OUT)

@@ -1,76 +1,48 @@
-## CHƯƠNG 6: NGHIÊN CỨU CHUYÊN SÂU — USE CASE QUẢN LÝ CA LÀM VIỆC VÀ CHẤM CÔNG (UC04)
+## CHƯƠNG 6: NGHIÊN CỨU CHUYÊN SÂU — CA SỬ DỤNG QUẢN LÝ CA LÀM VIỆC VÀ CHẤM CÔNG (UC04)
 
-Chương này đi sâu vào phân tích và thiết kế một ca sử dụng cụ thể: **UC04 — Quản lý Ca làm việc và Chấm công**. Đây là phân hệ hạt nhân trong quản trị nhân sự, có tính phức tạp cao do phải xử lý đồng thời nhiều ràng buộc thời gian, dữ liệu và quyền truy cập. Phân tích chuyên sâu UC04 minh họa cho toàn bộ vòng đời thiết kế Use Case từ đặc tả đến thiết kế dữ liệu và kiểm thử.
+Chương này đi sâu vào phân tích và thiết kế một ca sử dụng cụ thể: **UC04 — Quản lý Ca làm việc và Chấm công**. Đây là phân hệ hạt nhân trong quản trị nhân sự, có tính phức tạp cao do phải xử lý đồng thời nhiều ràng buộc thời gian, dữ liệu và quyền truy cập. Phân tích chuyên sâu UC04 minh họa cho toàn bộ vòng đời thiết kế ca sử dụng từ đặc tả đến thiết kế dữ liệu và kiểm thử.
 
-### 6.1. Biểu đồ Use Case chi tiết UC04
+### 6.1. Biểu đồ Ca sử dụng chi tiết UC04
 
-#### 6.1.1. Phân định các ca sử dụng con (Sub-Use Cases)
+#### 6.1.1. Phân định các ca sử dụng con
 
 UC04 được phân rã thành các ca sử dụng con độc lập, có thể được phân công cho các thành viên nhóm khác nhau:
 
-│ │
+```mermaid
+graph TD
+    Manager["Quản lý"]
+    Employee["Nhân viên"]
 
-│ ┌─────────────────────────┐ ┌────────────────────────────┐ │
+    UC041[UC04.1: Tao mau ca]
+    UC042[UC04.2: Phan cong ca]
+    UC043[UC04.3: Vao ca lam]
+    UC044[UC04.4: Ket thuc ca lam]
+    UC045[UC04.5: Tinh luong tu dong]
+    UC046[UC04.6: Xem bao cao]
 
-│ │ (Create Shift Template) │ │ (Assign Shift to Employee)│ │
+    Manager --> UC041
+    Manager --> UC042
+    Manager --> UC045
+    Manager --> UC046
+    Employee --> UC043
+    Employee --> UC044
 
-│ └─────────────────────────┘ └────────────────────────────┘ │
+    UC043 -. include .-> UC042
+    UC044 -. include .-> UC042
+    UC043 -. extend .-> UC045
+    UC044 -. extend .-> UC045
+    UC045 -. extend .-> UC046
+```
 
-│ ▲ ▲ │
+### 6.2. Đặc tả Ca sử dụng
 
-│ │«include» │«include» │
-
-│ │ │ │
-
-│ ┌─────────────────────────┐ ┌────────────────────────────┐ │
-
-│ │ UC04.3: Check-in Ca làm │ │ UC04.4: Check-out Ca làm │ │
-
-│ │ (Employee Check-in) │ │ (Employee Check-out) │ │
-
-│ └─────────────────────────┘ └────────────────────────────┘ │
-
-│ │ │ │
-
-│ └──────────────────┬────────────────┘ │
-
-│ │«extends» │
-
-│ ┌─────────────────────┐ │
-
-│ │ (Calculate Salary) │ │
-
-│ └─────────────────────┘ │
-
-│ │«extends» │
-
-│ ┌─────────────────────┐ │
-
-│ │ UC04.6: Xem báo cáo │ │
-
-│ └─────────────────────┘ │
-
-│ │
-
-└────────────────────────────────────────────────────────────────────────────────────┘
-
-▲ ▲
-
-│ │
-
-[Manager] [Employee]
-
-UC04.1, 04.2, 04.5, 04.6 UC04.3, UC04.4
-
-### 6.2. Đặc tả Use Case (Use Case Specification)
-
-#### 6.2.1. Đặc tả UC04.3 — Nhân viên Check-in Ca làm
+#### 6.2.1. Đặc tả UC04.3 — Nhân viên Vào ca làm
 
 | **Trường** | **Nội dung** |
 | --- | --- |
-| Mã Use Case | UC04.3 |
-| Tên Use Case | Check-in Ca làm việc |
-| Tác nhân chính | Nhân viên (Employee) |
+| Mã ca sử dụng | UC04.3 |
+| Tên ca sử dụng | Vào ca làm việc |
+| Tác nhân chính | Nhân viên |
 | Tác nhân thứ cấp | Hệ thống chấm công |
 | Điều kiện tiên quyết | Nhân viên đã đăng nhập; tồn tại bản phân công ca (ShiftAssignment) cho nhân viên này trong ngày hôm nay; trạng thái ca là "chưa bắt đầu" |
 | Điều kiện kết thúc (thành công) | Bản ghi Attendance được tạo với check_in_time = thời gian hiện tại; trạng thái phân công chuyển sang "đang làm việc" |
@@ -80,28 +52,28 @@ UC04.1, 04.2, 04.5, 04.6 UC04.3, UC04.4
 
 | **Bước** | **Tác nhân** | **Hành động** |
 | --- | --- | --- |
-| 1 | Nhân viên | Mở màn hình Chấm công, chọn "Check-in" |
+| 1 | Nhân viên | Mở màn hình Chấm công, chọn "Vào ca" |
 | 2 | Hệ thống | Truy vấn ShiftAssignment theo id_nhan_vien và ngày hiện tại |
 | 3 | Hệ thống | Xác nhận tồn tại ca được phân công và ca chưa bắt đầu |
 | 4 | Hệ thống | Tạo bản ghi Attendance với check_in_time = NOW() |
 | 5 | Hệ thống | Cập nhật ShiftAssignment.trang_thai = 'dang_lam' |
-| 6 | Hệ thống | Hiển thị thông báo: _"Check-in thành công lúc HH:MM. Chúc bạn làm việc hiệu quả!"_ |
+| 6 | Hệ thống | Hiển thị thông báo: _"Vào ca thành công lúc HH:MM. Chúc bạn làm việc hiệu quả!"_ |
 
 **Luồng ngoại lệ (Alternative / Exception Flows):**
 
 | **Mã** | **Điều kiện kích hoạt** | **Xử lý** |
 | --- | --- | --- |
 | E1 | Không tồn tại ShiftAssignment cho ngày hôm nay | Hiển thị: _"Bạn không có ca làm việc hôm nay. Liên hệ Quản lý."_ |
-| E2 | Nhân viên đã Check-in trong ca này rồi | Hiển thị: _"Bạn đã Check-in lúc [giờ]. Không thể Check-in hai lần."_ |
-| E3 | Check-in sớm hơn 30 phút so với giờ bắt đầu ca |  |
-| E4 | Check-in muộn hơn 15 phút so với giờ bắt đầu ca | Ghi nhận Check-in bình thường nhưng đánh dấu is_late = TRUE trong bản ghi Attendance |
+| E2 | Nhân viên đã vào ca này rồi | Hiển thị: _"Bạn đã vào ca lúc [giờ]. Không thể ghi nhận hai lần."_ |
+| E3 | Vào ca sớm hơn 30 phút so với giờ bắt đầu ca | Hiển thị cảnh báo vào ca sớm; cho phép nhân viên xác nhận tiếp tục ghi nhận |
+| E4 | Vào ca muộn hơn 15 phút so với giờ bắt đầu ca | Ghi nhận vào ca bình thường nhưng đánh dấu is_late = TRUE trong bản ghi Attendance |
 | E5 | Mất kết nối CSDL khi lưu | Thông báo lỗi kỹ thuật; ghi log; không tạo bản ghi Attendance |
 
 #### 6.2.2. Đặc tả UC04.5 — Tính lương tự động
 
 | **Trường** | **Nội dung** |
 | --- | --- |
-| Tác nhân | Manager (khởi tạo) / Hệ thống (thực thi) |
+| Tác nhân | Quản lý (khởi tạo) / Hệ thống (thực thi) |
 | Điều kiện tiên quyết | Tồn tại ít nhất một bản ghi Attendance có đủ cặp check-in/check-out trong kỳ tính lương |
 | Kết quả | Hệ thống tổng hợp bảng lương cho từng nhân viên theo kỳ |
 
@@ -127,31 +99,36 @@ $R_{toi}$: Mức lương cố định cho một ca tối
 
 $R_{ca}$: Mức lương gốc của ca sáng hoặc ca tối tương ứng
 
-### 6.2.3. Xử lý Ngoại lệ Thông minh — Shift Swapping và Quên Check-out
+### 6.2.3. Xử lý Ngoại lệ Thông minh — Đổi ca đột xuất và Quên kết thúc ca
 
 Khác với các quy tắc cứng nhắc, hệ thống được thiết kế để xử lý **linh hoạt** các tình huống thực tế của nghiệp vụ ngành dịch vụ:
 
-**a. Đổi ca đột xuất (Shift Swapping & Ad-hoc Check-in):**
+**a. Đổi ca đột xuất:**
 
 Khi nhân viên đổi ca mà chưa có lịch trên hệ thống, hệ thống **không từ chối** chấm công. Thay vào đó:
 
-Cho phép Check-in bình thường dựa trên xác thực GPS + khuôn mặt
-
-Xếp bản ghi attendance vào trạng thái trang_thai = 'cho_phe_duyet' (Unscheduled Shift)
-
-Gửi thông báo tới Quản lý để phê duyệt retroactively
-
-shift_assignment tương ứng và liên kết lại
+- Cho phép vào ca bình thường dựa trên xác thực GPS và khuôn mặt
+- Xếp bản ghi `attendance` vào trạng thái `trang_thai = 'cho_phe_duyet'`
+- Gửi thông báo tới Quản lý để phê duyệt bổ sung
+- Sau khi phê duyệt, tạo `shift_assignment` tương ứng và liên kết lại
 
 ***Nguyên tắc thiết kế:** Hệ thống không được cản trở hoạt động vận hành; mọi ngoại lệ được thu thập để quản lý xử lý sau, không phải từ chối trước.*
 
-**b. Xử lý "Quên Check-out":**
+**b. Xử lý "Quên kết thúc ca":**
 
 Trường hợp nhân viên quên bấm giờ ra, hệ thống **không được phép** gán giờ làm = 0 (vi phạm quyền lợi người lao động theo Bộ Luật Lao động):
 
-![Image 17](extracted_media/Bao_Cao_Tieu_Luan_NMCNPM/image_017.png)
-
-*Biểu đồ** 10*
+```mermaid
+flowchart TD
+    A[Nhan vien ket thuc ca nhung quen bam ket thuc ca] --> B[He thong phat hien ban ghi attendance chua co check_out_time]
+    B --> C[Danh dau trang_thai can_xac_nhan]
+    C --> D[Gui thong bao cho Quan ly]
+    D --> E{Quan ly co xac nhan gio ra?}
+    E -- Khong --> F[Giữ ban ghi o trang thai cho xu ly]
+    E -- Co --> G[Cap nhat check_out_time theo xac nhan]
+    G --> H[Tinh so_gio_lam va ghi chu dieu chinh]
+    H --> I[Dua vao bang luong ky hien tai]
+```
 
 ### 6.2.4. Cơ chế Chấm công Sinh trắc học — Triệt tiêu Chấm công Hộ
 
@@ -159,10 +136,20 @@ Trường hợp nhân viên quên bấm giờ ra, hệ thống **không được
 
 | **Lớp** | **Công nghệ** | **Cơ chế hoạt động** |
 | --- | --- | --- |
-| Lớp 1: Vị trí | GPS Geofencing | Chỉ cho phép Check-in khi thiết bị nằm trong bán kính ≤ 100m từ tọa độ quán |
-| Lớp 2: Danh tính | FaceID / Selfie AI | Chụp ảnh tại thời điểm Check-in, so sánh với ảnh đăng ký bằng thuật toán nhận diện khuôn mặt |
+| Lớp 1: Vị trí | Định vị GPS theo vùng | Chỉ cho phép vào ca khi thiết bị nằm trong bán kính ≤ 100m từ tọa độ quán |
+| Lớp 2: Danh tính | Nhận diện khuôn mặt hoặc ảnh tự chụp | Chụp ảnh tại thời điểm vào ca, so sánh với ảnh đăng ký bằng thuật toán nhận diện khuôn mặt |
 
 **Luồng xác thực:**
+
+```mermaid
+flowchart TD
+    A[Nhan vien mo app cham cong] --> B{Thiet bi nam trong pham vi 100m?}
+    B -- Khong --> C[Tu choi va ghi log canh bao]
+    B -- Co --> D[Chup selfie xac thuc]
+    D --> E{Khuon mat khop tu 90 phan tram tro len?}
+    E -- Khong --> F[Tu choi va thong bao Quan ly]
+    E -- Co --> G[Ghi nhan vao ca va luu anh bang chung ma hoa]
+```
 
 ***Lưu trữ:** Ảnh selfie được mã hóa và lưu kèm bản ghi `attendance`, giữ tối thiểu 90 ngày để phục vụ kiểm toán nội bộ.*
 
@@ -183,41 +170,107 @@ $$S_{total} = (N_{sang} \times R_{sang}) + (N_{toi} \times R_{toi}) + (N_{cuoi_t
 
 Nguyên tắc thiết kế cốt lõi của UC04 là **tách biệt hoàn toàn** dữ liệu kế hoạch (Planning) khỏi dữ liệu thực tế (Actual), tương tự mô hình Planning vs. Actuals phổ biến trong kế toán quản trị:
 
-![Image 18](extracted_media/Bao_Cao_Tieu_Luan_NMCNPM/image_018.png)
+```mermaid
+erDiagram
+    shift_template ||--o{ shift : tao_ra
+    shift ||--o{ shift_assignment : phan_cong
+    nhan_vien ||--o{ shift_assignment : duoc_giao
+    shift_assignment ||--o{ attendance : ghi_nhan
 
-*Biểu đồ** 11*
+    shift_template {
+        INT id_template PK
+        NVARCHAR ten_ca
+        TIME gio_bat_dau
+        TIME gio_ket_thuc
+        DECIMAL don_gia_gio
+    }
+
+    shift {
+        INT id_ca PK
+        INT id_template FK
+        DATE ngay_lam_viec
+        DECIMAL don_gia_gio
+    }
+
+    nhan_vien {
+        INT id_nhan_vien PK
+        NVARCHAR ho_ten
+        DECIMAL luong_gio
+    }
+
+    shift_assignment {
+        INT id_phan_cong PK
+        INT id_ca FK
+        INT id_nhan_vien FK
+        ENUM trang_thai
+    }
+
+    attendance {
+        INT id_cham_cong PK
+        INT id_phan_cong FK
+        DATETIME check_in_time
+        DATETIME check_out_time
+        DECIMAL so_gio_lam
+        BIT is_late
+        VARCHAR ghi_chu
+    }
+```
 
 ***Ghi chú thiết kế:** 2 nhóm bảng trên tách biệt hoàn toàn **Kế hoạch** (shift_template, shift, shift_assignment) khỏi **Thực tế** (attendance), giúp dễ đối soát và kiểm toán.*
 
-#### 6.3.2. Các Quy tắc Nghiệp vụ (Business Rules) cho UC04
+#### 6.3.2. Các Quy tắc Nghiệp vụ cho UC04
 
 | **Mã BR** | **Quy tắc** | **Cơ chế kiểm soát** |
 | --- | --- | --- |
 | BR-01 | Một nhân viên không thể có 2 ca chồng chéo thời gian trong cùng ngày | Trigger kiểm tra overlap khi INSERT vào shift_assignment |
-| BR-02 | Chỉ có thể Check-out sau khi đã Check-in | check_out_time chỉ được UPDATE khi check_in_time IS NOT NULL |
+| BR-02 | Chỉ có thể kết thúc ca sau khi đã vào ca | check_out_time chỉ được UPDATE khi check_in_time IS NOT NULL |
 | BR-03 | Chỉ ca có đủ check_in_time và check_out_time mới được đưa vào bảng lương | Dùng CASE WHEN hoặc cờ trạng thái hợp lệ khi tổng hợp lương |
-| BR-04 | Giờ làm tối đa 16 giờ/ca; nếu vượt → đánh dấu cần xem xét thủ công | Constraint: CHECK(so_gio_lam <= 16) hoặc cờ needs_review = 1 |
+| BR-04 | Giờ làm tối đa 16 giờ/ca; nếu vượt thì đánh dấu cần xem xét thủ công | Constraint: CHECK(so_gio_lam <= 16) hoặc cờ needs_review = 1 |
 | BR-05 | Mỗi ca phải thuộc đúng 1 trong 2 loại: sang hoặc toi; nếu rơi vào cuối tuần/ngày lễ thì áp đúng hệ số | Ràng buộc ENUM / validation ngày làm việc và cờ loại ngày |
 
-### 6.4. Biểu đồ Hoạt động (Activity Diagram) — Quy trình Chấm công toàn luồng
+### 6.4. Biểu đồ Hoạt động — Quy trình Chấm công toàn luồng
 
-![Image 18](extracted_media/Bao_Cao_Tieu_Luan_NMCNPM/image_018.png)
+```mermaid
+flowchart TD
+    A([Bat dau]) --> B[Nhan vien mo man hinh Cham cong]
+    B --> C{Tim thay ShiftAssignment hom nay?}
+    C -- Khong --> D[Thong bao khong co ca hom nay]
+    D --> E([Ket thuc])
+    C -- Co --> F[Nhan vien nhan Vao ca]
+    F --> G{Da co ban ghi vao ca?}
+    G -- Co --> H[Thong bao loi da vao ca]
+    H --> I([Ket thuc])
+    G -- Chua --> J[He thong ghi check_in_time = NOW]
+    J --> K{Muon hon 15 phut?}
+    K -- Co --> L[Danh dau is_late = TRUE va ghi chu di muon]
+    K -- Khong --> M[Nhan vien thuc hien ca lam viec]
+    L --> M
+    M --> N[Nhan vien nhan Ket thuc ca]
+    N --> O{Chua co ban ghi vao ca?}
+    O -- Co --> P[Thong bao loi chua vao ca]
+    P --> Q([Ket thuc])
+    O -- Khong --> R[Tinh so_gio_lam]
+    R --> S{so_gio_lam lon hon 16 gio?}
+    S -- Co --> T[Danh dau needs_review = TRUE va gui canh bao Quan ly]
+    S -- Khong --> U[Ghi check_out_time va cap nhat hoan_thanh]
+    T --> U
+    U --> V[Hien thi tom tat gio vao, gio ra, tong gio]
+    V --> W([Ket thuc])
+```
 
-*Biểu đồ** 12*
+### 6.5. Kiểm thử Ca sử dụng UC04
 
-### 6.5. Kiểm thử Use Case UC04
-
-#### 6.5.1. Test Case cho UC04.3 (Check-in)
+#### 6.5.1. Ca kiểm thử cho UC04.3 (Vào ca)
 
 | **Mã TC** | **Kịch bản** | **Điều kiện đầu vào** | **Kết quả mong đợi** | **Trạng thái** |
 | --- | --- | --- | --- | --- |
-| TC-UC04-01 | Check-in thành công (đúng giờ) | Có ShiftAssignment hôm nay; chưa check-in; đúng giờ | Tạo Attendance; thông báo thành công | Chờ test |
-| TC-UC04-02 | Check-in thành công (đến sớm) | Sớm hơn 30 phút |  | Chờ test |
-| TC-UC04-03 | Check-in muộn | Muộn hơn 15 phút | Tạo Attendance; is_late = TRUE; thông báo có ghi chú muộn | Chờ test |
-| TC-UC04-04 | Check-in khi không có ca | Không có ShiftAssignment hôm nay | Thông báo lỗi E1; không tạo Attendance | Chờ test |
-| TC-UC04-05 | Check-in lần 2 trong cùng ca | Đã có Attendance với check_in_time | Thông báo lỗi E2; không ghi đè | Chờ test |
+| TC-UC04-01 | Vào ca thành công (đúng giờ) | Có ShiftAssignment hôm nay; chưa vào ca; đúng giờ | Tạo Attendance; thông báo thành công | Chờ kiểm thử |
+| TC-UC04-02 | Vào ca thành công (đến sớm) | Sớm hơn 30 phút | Hiển thị cảnh báo vào ca sớm; nhân viên xác nhận và hệ thống vẫn ghi nhận | Chờ kiểm thử |
+| TC-UC04-03 | Vào ca muộn | Muộn hơn 15 phút | Tạo Attendance; is_late = TRUE; thông báo có ghi chú muộn | Chờ kiểm thử |
+| TC-UC04-04 | Vào ca khi không có ca | Không có ShiftAssignment hôm nay | Thông báo lỗi E1; không tạo Attendance | Chờ kiểm thử |
+| TC-UC04-05 | Vào ca lần 2 trong cùng ca | Đã có Attendance với check_in_time | Thông báo lỗi E2; không ghi đè | Chờ kiểm thử |
 
-#### 6.5.2. Test Case cho UC04.5 (Tính lương)
+#### 6.5.2. Ca kiểm thử cho UC04.5 (Tính lương)
 
 | **Mã TC** | **Kịch bản** | **Dữ liệu đầu vào** | **Kết quả mong đợi** |
 | --- | --- | --- | --- |
@@ -234,7 +287,7 @@ Kiến trúc **4 bảng phân tách kế hoạch/thực tế** đảm bảo tín
 
 Luồng ngoại lệ được xử lý tường minh, không để hệ thống ở trạng thái không xác định.
 
-Business Rules được mã hóa thành Trigger và Constraint ở tầng CSDL, tránh phụ thuộc hoàn toàn vào tầng ứng dụng.
+Các quy tắc nghiệp vụ được mã hóa thành Trigger và Constraint ở tầng CSDL, tránh phụ thuộc hoàn toàn vào tầng ứng dụng.
 
 **Hướng mở rộng trong phiên bản tương lai:**
 
@@ -242,5 +295,5 @@ Business Rules được mã hóa thành Trigger và Constraint ở tầng CSDL, 
 | --- | --- | --- |
 | Chấm công bằng QR Code | Nhân viên quét QR được tạo theo ca làm, giới hạn địa điểm | Trung bình |
 | Tích hợp xử lý lương tự động | Xuất file Excel bảng lương và gửi email thông báo | Thấp |
-| Phân tích chuyên cần | Dashboard thống kê tỷ lệ đi muộn, vắng mặt theo tháng | Cao |
-| Phê duyệt tăng ca cuối tuần/lễ | Cho phép Manager xác nhận ca đặc biệt trước khi chốt lương | Trung bình |
+| Phân tích chuyên cần | Bảng điều khiển thống kê tỷ lệ đi muộn, vắng mặt theo tháng | Cao |
+| Phê duyệt tăng ca cuối tuần/lễ | Cho phép Quản lý xác nhận ca đặc biệt trước khi chốt lương | Trung bình |

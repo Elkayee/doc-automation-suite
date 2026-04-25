@@ -177,11 +177,10 @@ Before implementing, check:
 
 ## Key Files to Read First
 
-1. **`CLAUDE.md`** — Behavioral guidelines (caution-over-speed, simplicity, surgical changes)
-2. **`make.py`** — The main build pipeline; assembles chapters and renders DOCX
-3. **`split_chapters.py`** — Splits the assembled markdown back into chapter files
-4. **`convert_docx_to_md.py`** — Converts the generated report back to markdown with extracted media
-5. **`skills/xu-ly-van-phong/SKILL.md`** — 4-layer architecture for Vietnamese document standards
+1. **`make.py`** — The main build pipeline; assembles chapters and renders DOCX
+2. **`split_chapters.py`** — Splits the assembled markdown back into chapter files
+3. **`convert_docx_to_md.py`** — Converts the generated report back to markdown with extracted media
+4. **`skills/xu-ly-van-phong/SKILL.md`** — 4-layer architecture for Vietnamese document standards
 
 ---
 

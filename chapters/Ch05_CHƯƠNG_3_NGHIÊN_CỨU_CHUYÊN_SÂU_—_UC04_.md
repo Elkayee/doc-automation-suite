@@ -62,7 +62,7 @@ graph TD
 
 | **Bước** | **Tác nhân** | **Hành động**                                                                                           |
 | -------- | ------------ | ------------------------------------------------------------------------------------------------------- |
-| 1        | Manager      | Truy cập menu **Nhân sự → Thêm nhân viên**                                                              |
+| 1        | Manager      | Truy cập menu **Nhân sự > Thêm nhân viên**                                                              |
 | 2        | Hệ thống     | Hiển thị form nhập: Họ tên, CCCD, SĐT, Email, Ngày sinh, Vị trí công việc, Lương theo giờ              |
 | 3        | Manager      | Điền đầy đủ thông tin và nhấn **Lưu**                                                                   |
 | 4        | Hệ thống     | Validate dữ liệu đầu vào (kiểm tra CCCD trùng, SĐT định dạng, email hợp lệ)                            |
@@ -94,7 +94,7 @@ graph TD
 
 | **Bước** | **Hành động**                                                                  |
 | -------- | ------------------------------------------------------------------------------ |
-| 1        | Manager chọn nhân viên → **Đặt lại mật khẩu**                                 |
+| 1        | Manager chọn nhân viên, sau đó chọn **Đặt lại mật khẩu**                     |
 | 2        | Hệ thống tạo mật khẩu ngẫu nhiên mới và hash bằng **BCrypt (salt 12 rounds)** |
 | 3        | Gửi mật khẩu tạm thời qua SMS/Email                                           |
 | 4        | Lần đăng nhập đầu, hệ thống **bắt buộc** nhân viên đổi mật khẩu mới           |
@@ -114,16 +114,16 @@ Hệ thống phân quyền theo mô hình **Role-Based Access Control (RBAC)**, 
 
 | **Chức năng**             | MANAGER | CASHIER | WAITER |
 | ------------------------- | :-----: | :-----: | :----: |
-| Xem danh sách nhân viên   | ✔       | ✘       | ✘      |
-| Thêm/Sửa nhân viên        | ✔       | ✘       | ✘      |
-| Phân công ca làm          | ✔       | ✘       | ✘      |
-| Check-in/Check-out        | ✔       | ✔       | ✔      |
-| Xem lịch sử chấm công     | ✔       | ✔ (bản thân) | ✔ (bản thân) |
-| Duyệt điều chỉnh chấm công| ✔       | ✘       | ✘      |
-| Tạo đơn hàng              | ✔       | ✔       | ✔      |
-| Xử lý thanh toán          | ✔       | ✔       | ✘      |
-| Xem báo cáo doanh thu     | ✔       | ✘       | ✘      |
-| Cấu hình thực đơn         | ✔       | ✘       | ✘      |
+| Xem danh sách nhân viên   | Co      | Khong   | Khong  |
+| Thêm/Sửa nhân viên        | Co      | Khong   | Khong  |
+| Phân công ca làm          | Co      | Khong   | Khong  |
+| Check-in/Check-out        | Co      | Co      | Co     |
+| Xem lịch sử chấm công     | Co      | Co (bản thân) | Co (bản thân) |
+| Duyệt điều chỉnh chấm công| Co      | Khong   | Khong  |
+| Tạo đơn hàng              | Co      | Co      | Co     |
+| Xử lý thanh toán          | Co      | Co      | Khong  |
+| Xem báo cáo doanh thu     | Co      | Khong   | Khong  |
+| Cấu hình thực đơn         | Co      | Khong   | Khong  |
 
 ---
 
@@ -188,7 +188,7 @@ sequenceDiagram
 | ------ | ----------------------------------------------- | -------------------------------------------------------------------------------------- |
 | E1     | Không tồn tại ShiftAssignment cho ngày hôm nay  | Hiển thị: _"Bạn không có ca làm việc hôm nay. Liên hệ Quản lý."_                       |
 | E2     | Nhân viên đã Check-in trong ca này rồi          | Hiển thị: _"Bạn đã Check-in lúc [giờ]. Không thể Check-in hai lần."_                   |
-| E3     | Check-in sớm hơn 30 phút so với giờ bắt đầu ca  | Hiển thị cảnh báo: _"Bạn Check-in sớm. Xác nhận ghi nhận?"_ → Nhân viên xác nhận       |
+| E3     | Check-in sớm hơn 30 phút so với giờ bắt đầu ca  | Hiển thị cảnh báo: _"Bạn Check-in sớm. Xác nhận ghi nhận?"_ và chờ nhân viên xác nhận  |
 | E4     | Check-in muộn hơn 15 phút so với giờ bắt đầu ca | Ghi nhận Check-in bình thường nhưng đánh dấu `is_late = TRUE` trong bản ghi Attendance |
 | E5     | Mất kết nối CSDL khi lưu                        | Thông báo lỗi kỹ thuật; ghi log; không tạo bản ghi Attendance                          |
 
@@ -228,7 +228,7 @@ Khi nhân viên đổi ca mà chưa có lịch trên hệ thống, hệ thống 
 1. Cho phép Check-in bình thường dựa trên xác thực GPS + khuôn mặt
 2. Xếp bản ghi `attendance` vào trạng thái `trang_thai = 'cho_phe_duyet'` (Unscheduled Shift)
 3. Gửi thông báo tới Quản lý để phê duyệt retroactively
-4. Sau khi phê duyệt → tạo `shift_assignment` tương ứng và liên kết lại
+4. Sau khi phê duyệt, tạo `shift_assignment` tương ứng và liên kết lại
 
 > **Nguyên tắc thiết kế:** Hệ thống không được cản trở hoạt động vận hành; mọi ngoại lệ được thu thập để quản lý xử lý sau, không phải từ chối trước.
 
@@ -263,12 +263,12 @@ graph TD
 
 ```mermaid
 graph TD
-    A("📱 Nhân viên mở app chấm công") --> B{"🛰️ GPS Geofencing\nThiết bị trong vùng\n≤ 100m?"}
-    B -- "Không" --> C["❌ Từ chối\nGhi log cảnh báo\nThông báo Quản lý"]
-    B -- "Có" --> D["📸 FaceID / Chụp selfie"]
-    D --> E{"🤖 AI nhận diện khuôn mặt\n≥ 90% khớp?"}
-    E -- "Không khớp\n(< 90%)" --> F["❌ Từ chối\nThông báo Quản lý\nGhi log cảnh báo"]
-    E -- "Khớp\n(≥ 90%)" --> G["✅ Ghi nhận Check-in\nLưu ảnh bằng chứng mã hóa"]
+    A[Nhan vien mo app cham cong] --> B{Thiet bi trong pham vi 100m?}
+    B -- "Khong" --> C[Tu choi\nGhi log canh bao\nThong bao Quan ly]
+    B -- "Co" --> D[FaceID hoac chup selfie]
+    D --> E{Do khop khuon mat tu 90 phan tram?}
+    E -- "Khong khop" --> F[Tu choi\nThong bao Quan ly\nGhi log canh bao]
+    E -- "Khop" --> G[Ghi nhan Check-in\nLuu anh bang chung ma hoa]
 
     style A fill:#1565C0,color:#fff
     style C fill:#C62828,color:#fff
@@ -290,13 +290,7 @@ graph TD
 
 **Luồng xác thực:**
 
-```
-[Nhân viên mở app] → [GPS check: trong vùng?]
-    → Không: từ chối, ghi log cảnh báo
-    → Có: [FaceID / Chụp selfie]
-        → Không khớp (< 90%): từ chối, thông báo Quản lý
-        → Khớp (≥ 90%): Ghi nhận Check-in thành công + lưu ảnh bằng chứng
-```
+Xem sơ đồ Mermaid ở trên cho cùng luồng xác thực hai lớp.
 
 > **Lưu trữ:** Ảnh selfie được mã hóa và lưu kèm bản ghi `attendance`, giữ tối thiểu 90 ngày để phục vụ kiểm toán nội bộ.
 
@@ -401,7 +395,7 @@ classDiagram
 | BR-01     | Một nhân viên không thể có 2 ca chồng chéo thời gian trong cùng ngày | Trigger kiểm tra overlap khi INSERT vào `shift_assignment`              |
 | BR-02     | Chỉ có thể Check-out sau khi đã Check-in                             | `check_out_time` chỉ được UPDATE khi `check_in_time IS NOT NULL`        |
 | BR-03     | Chỉ ca có đủ `check_in_time` và `check_out_time` mới được đưa vào bảng lương | Dùng `CASE WHEN` hoặc cờ trạng thái hợp lệ khi tổng hợp lương |
-| BR-04     | Giờ làm tối đa 16 giờ/ca; nếu vượt → đánh dấu cần xem xét thủ công   | Constraint: `CHECK(so_gio_lam <= 16)` hoặc cờ `needs_review = 1`        |
+| BR-04     | Giờ làm tối đa 16 giờ/ca; nếu vượt thì đánh dấu cần xem xét thủ công | Constraint: `CHECK(so_gio_lam <= 16)` hoặc cờ `needs_review = 1`        |
 | BR-05     | Mỗi ca phải thuộc đúng 1 trong 2 loại: `sang` hoặc `toi`; nếu rơi vào cuối tuần/ngày lễ thì áp đúng hệ số | Ràng buộc ENUM / validation ngày làm việc và cờ loại ngày |
 
 
@@ -413,7 +407,7 @@ classDiagram
 | BR-01     | Một nhân viên không thể có 2 ca chồng chéo thời gian trong cùng ngày | Trigger kiểm tra overlap khi INSERT vào `shift_assignment`              |
 | BR-02     | Chỉ có thể Check-out sau khi đã Check-in                             | `check_out_time` chỉ được UPDATE khi `check_in_time IS NOT NULL`        |
 | BR-03     | Chỉ ca có đủ `check_in_time` và `check_out_time` mới được đưa vào bảng lương | Dùng `CASE WHEN` hoặc cờ trạng thái hợp lệ khi tổng hợp lương |
-| BR-04     | Giờ làm tối đa 16 giờ/ca; nếu vượt → đánh dấu cần xem xét thủ công   | Constraint: `CHECK(so_gio_lam <= 16)` hoặc cờ `needs_review = 1`        |
+| BR-04     | Giờ làm tối đa 16 giờ/ca; nếu vượt thì đánh dấu cần xem xét thủ công | Constraint: `CHECK(so_gio_lam <= 16)` hoặc cờ `needs_review = 1`        |
 | BR-05     | Mỗi ca phải thuộc đúng 1 trong 2 loại: `sang` hoặc `toi`; nếu rơi vào cuối tuần/ngày lễ thì áp đúng hệ số | Ràng buộc ENUM / validation ngày làm việc và cờ loại ngày |
 
 
