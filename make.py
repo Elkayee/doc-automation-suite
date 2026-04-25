@@ -18,7 +18,7 @@ from html.parser import HTMLParser
 import requests
 import split_chapters
 from docx import Document
-from docx.shared import Pt, RGBColor, Inches, Cm
+from docx.shared import Pt, RGBColor, Inches, Cm, Emu
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
@@ -35,6 +35,27 @@ DOCX_OUT = str(BASE / 'Bao_Cao_Tieu_Luan_NMCNPM.docx')
 IMG_CACHE = str(BASE / 'diagram_cache')
 os.makedirs(IMG_CACHE, exist_ok=True)
 
+# Danh sách chapter chính thức dùng để build báo cáo.
+# Các file Ch*.md khác trong thư mục chapters được giữ lại để tham chiếu,
+# nhưng không được ghép vào báo cáo để tránh trùng/lặp chương.
+BUILD_CHAPTER_FILES = [
+    'F00_header.md',
+    'F01_toc.md',
+    'Ch01_LỜI_MỞ_ĐẦU.md',
+    'Ch02_MỞ_ĐẦU_KẾ_HOẠCH_QUẢN_LÝ_DỰ_ÁN_PHẦN_MỀM_.md',
+    'Ch03_CHƯƠNG_1_TỔNG_QUAN_HỆ_THỐNG_VÀ_PHÂN_CÔN.md',
+    'Ch04_CHƯƠNG_2_THIẾT_KẾ_KIẾN_TRÚC_VÀ_CƠ_SỞ_DỮ.md',
+    'Ch05_CHƯƠNG_3_NGHIÊN_CỨU_CHUYÊN_SÂU_—_USE_CA.md',
+    'Ch06_CHƯƠNG_4_NGHIÊN_CỨU_CHUYÊN_SÂU_—_USE_CA.md',
+    'Ch07_CHƯƠNG_5_NGHIÊN_CỨU_CHUYÊN_SÂU_—_USE_CA.md',
+    'Ch08_CHƯƠNG_6_NGHIÊN_CỨU_CHUYÊN_SÂU_—_USE_CA.md',
+    'Ch09_CHƯƠNG_7_NGHIÊN_CỨU_CHUYÊN_SÂU_—_USE_CA.md',
+    'Ch10_CHƯƠNG_8_NGHIÊN_CỨU_CHUYÊN_SÂU_—_USE_CA.md',
+    'Ch11_CHƯƠNG_9_NGHIÊN_CỨU_CHUYÊN_SÂU_—_USE_CA.md',
+    'Ch12_KẾT_LUẬN.md',
+    'Ch13_TÀI_LIỆU_THAM_KHẢO.md',
+]
+
 # ── MÀUSẮC ───────────────────────────────────────────────────────────────────
 COLOR_H1 = RGBColor(0x1A, 0x3A, 0x5C)
 COLOR_H2 = RGBColor(0x1F, 0x61, 0x9E)
@@ -48,9 +69,9 @@ def chapter_sort_key(file_path):
     name = os.path.basename(file_path)
     lower_name = name.lower()
 
-    if lower_name == 'ch00_header.md':
+    if lower_name == 'f00_header.md':
         return (0, 0, '')
-    if lower_name == 'ch00_toc.md':
+    if lower_name == 'f01_toc.md':
         return (0, 1, '')
 
     match = re.match(r'^Ch(\d+)(.*)\.md$', name, re.IGNORECASE)
@@ -61,8 +82,22 @@ def chapter_sort_key(file_path):
 
 
 def collect_chapter_files(chapter_dir):
-    all_files = glob.glob(os.path.join(chapter_dir, 'Ch*.md'))
-    return sorted(all_files, key=chapter_sort_key)
+    chapter_dir_path = Path(chapter_dir)
+    chapter_files = []
+    missing_files = []
+
+    for filename in BUILD_CHAPTER_FILES:
+        file_path = chapter_dir_path / filename
+        if file_path.exists():
+            chapter_files.append(str(file_path))
+        else:
+            missing_files.append(filename)
+
+    if missing_files:
+        missing_text = ', '.join(missing_files)
+        raise FileNotFoundError(f'Thieu chapter trong danh sach build: {missing_text}')
+
+    return chapter_files
 
 
 def assemble_markdown(chapter_dir, output_path):
@@ -104,6 +139,55 @@ def get_png_dimensions(path):
         w = struct.unpack('>I', f.read(4))[0]
         h = struct.unpack('>I', f.read(4))[0]
     return w, h
+
+
+def get_jpeg_dimensions(path):
+    with open(path, 'rb') as f:
+        if f.read(2) != b'\xff\xd8':
+            raise ValueError('Not a JPEG file')
+
+        while True:
+            marker_prefix = f.read(1)
+            if not marker_prefix:
+                break
+            if marker_prefix != b'\xff':
+                continue
+
+            marker = f.read(1)
+            while marker == b'\xff':
+                marker = f.read(1)
+
+            if not marker or marker in {
+                b'\xd8', b'\xd9', b'\x01',
+                b'\xd0', b'\xd1', b'\xd2', b'\xd3',
+                b'\xd4', b'\xd5', b'\xd6', b'\xd7',
+            }:
+                continue
+
+            segment_length = struct.unpack('>H', f.read(2))[0]
+            if marker in {
+                b'\xc0', b'\xc1', b'\xc2', b'\xc3',
+                b'\xc5', b'\xc6', b'\xc7',
+                b'\xc9', b'\xca', b'\xcb',
+                b'\xcd', b'\xce', b'\xcf',
+            }:
+                f.read(1)  # precision
+                height = struct.unpack('>H', f.read(2))[0]
+                width = struct.unpack('>H', f.read(2))[0]
+                return width, height
+
+            f.seek(segment_length - 2, os.SEEK_CUR)
+
+    raise ValueError('Could not determine JPEG dimensions')
+
+
+def get_image_dimensions(path):
+    suffix = Path(path).suffix.lower()
+    if suffix == '.png':
+        return get_png_dimensions(path)
+    if suffix in {'.jpg', '.jpeg'}:
+        return get_jpeg_dimensions(path)
+    return None, None
 
 def plantuml_hex_encode(text):
     return '~h' + text.encode('utf-8').hex()
@@ -185,6 +269,34 @@ def set_page_setup(doc):
     sec.right_margin  = Cm(2)
     sec.top_margin    = Cm(2.5)
     sec.bottom_margin = Cm(2.5)
+
+
+def get_content_frame_size(doc, height_reserve=Cm(1.5)):
+    sec = doc.sections[0]
+    max_width = Emu(sec.page_width - sec.left_margin - sec.right_margin)
+    max_height = Emu(sec.page_height - sec.top_margin - sec.bottom_margin - height_reserve)
+    return max_width, max_height
+
+
+def add_picture_fit(run, image_path, doc, max_width=None, max_height=None):
+    if max_width is None or max_height is None:
+        max_width, max_height = get_content_frame_size(doc)
+
+    img_w, img_h = get_image_dimensions(image_path)
+    if not img_w or not img_h:
+        run.add_picture(str(image_path), width=max_width)
+        return
+
+    width_inches = img_w / 96.0
+    height_inches = img_h / 96.0
+
+    width_scale = max_width.inches / width_inches if width_inches else 1.0
+    height_scale = max_height.inches / height_inches if height_inches else 1.0
+    scale = min(width_scale, height_scale)
+
+    target_width = Inches(width_inches * scale)
+    target_height = Inches(height_inches * scale)
+    run.add_picture(str(image_path), width=target_width, height=target_height)
 
 def strip_md_links(text):
     return re.sub(r'\[([^\]]+)\]\([^)]*\)', r'\1', text)
@@ -333,8 +445,11 @@ def add_markdown_image(doc, md_path, image_ref):
 
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p.paragraph_format.space_before = Pt(6)
+    p.paragraph_format.space_after = Pt(6)
     run = p.add_run()
-    run.add_picture(str(image_path), width=Inches(2.2))
+    max_width, max_height = get_content_frame_size(doc, height_reserve=Cm(2))
+    add_picture_fit(run, image_path, doc, max_width=max_width, max_height=max_height)
 
 def add_page_break(doc):
     doc.add_paragraph().add_run().add_break(WD_BREAK.PAGE)
@@ -692,15 +807,11 @@ def parse_and_write(doc, md_path, img_cache=IMG_CACHE):
                     if img_path:
                         p = doc.add_paragraph()
                         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                        p.paragraph_format.space_before = Pt(6)
+                        p.paragraph_format.space_after = Pt(6)
                         run = p.add_run()
-                        img_w, img_h = get_png_dimensions(img_path)
-                        PAGE_W, PAGE_H = Inches(6.2), Inches(8.0)
-                        aspect = img_h / img_w if img_w > 0 else 1.0
-                        if aspect > 1.2:
-                            calc_w = Inches(min(6.2, PAGE_H.inches / aspect))
-                            run.add_picture(img_path, width=calc_w, height=PAGE_H)
-                        else:
-                            run.add_picture(img_path, width=PAGE_W)
+                        max_width, max_height = get_content_frame_size(doc, height_reserve=Cm(3))
+                        add_picture_fit(run, img_path, doc, max_width=max_width, max_height=max_height)
                         cap = doc.add_paragraph(f'Bieu do {diagram_idx}')
                         cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
                         cap.runs[0].font.size = Pt(10)
@@ -831,13 +942,21 @@ def parse_and_write(doc, md_path, img_cache=IMG_CACHE):
 
         # Blockquote
         if line.startswith('>'):
-            text = line.lstrip('> ').strip()
+            quote_lines = []
+            while i < len(lines) and lines[i].startswith('>'):
+                quote_lines.append(lines[i].lstrip('> ').strip())
+                i += 1
+
             p = doc.add_paragraph()
             p.paragraph_format.left_indent = Cm(1)
-            run = p.add_run(text)
-            run.italic = True
-            run.font.color.rgb = RGBColor(0x55, 0x55, 0x55)
-            i += 1
+            p.paragraph_format.space_before = Pt(4)
+            p.paragraph_format.space_after = Pt(6)
+            add_formatted_run(p, ' '.join(quote_lines))
+
+            for run in p.runs:
+                if run.font.name != 'Courier New':
+                    run.italic = True
+                run.font.color.rgb = RGBColor(0x55, 0x55, 0x55)
             continue
 
         # Checkbox
@@ -884,7 +1003,8 @@ def parse_and_write(doc, md_path, img_cache=IMG_CACHE):
                     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
                     p.paragraph_format.space_before = Pt(6)
                     p.paragraph_format.space_after  = Pt(6)
-                    p.add_run().add_picture(img_path, width=Inches(5.5))
+                    max_width, max_height = get_content_frame_size(doc, height_reserve=Cm(4))
+                    add_picture_fit(p.add_run(), img_path, doc, max_width=max_width, max_height=max_height)
                 else:
                     # Fallback: hiển thị LaTeX dạng text
                     p = doc.add_paragraph()
@@ -903,7 +1023,10 @@ def parse_and_write(doc, md_path, img_cache=IMG_CACHE):
                 if img_path:
                     p = doc.add_paragraph()
                     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                    p.add_run().add_picture(img_path, width=Inches(5.5))
+                    p.paragraph_format.space_before = Pt(6)
+                    p.paragraph_format.space_after  = Pt(6)
+                    max_width, max_height = get_content_frame_size(doc, height_reserve=Cm(4))
+                    add_picture_fit(p.add_run(), img_path, doc, max_width=max_width, max_height=max_height)
                 else:
                     p = doc.add_paragraph()
                     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
