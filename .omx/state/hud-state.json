@@ -1,5 +1,5 @@
 {
-  "last_turn_at": "2026-04-25T05:34:11.589Z",
-  "turn_count": 18,
-  "last_agent_output": "Đã sửa các chapter liên quan để ưu tiên `mermaid` và bỏ ký hiệu lạ trong phần đã chạm tới. Trọng tâm"
+  "last_turn_at": "2026-04-25T06:17:20.996Z",
+  "turn_count": 25,
+  "last_agent_output": "Đã chuyển pipeline sang `PlantUML` và build thành công.\n\nCác thay đổi chính:\n- `make.py` giờ render "
 }

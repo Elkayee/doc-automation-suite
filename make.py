@@ -11,6 +11,7 @@ import struct
 import sys
 import time
 from pathlib import Path
+from urllib.parse import quote
 
 import requests
 import split_chapters
@@ -29,7 +30,7 @@ BASE = Path(__file__).resolve().parent
 CH_DIR = str(BASE / 'chapters')
 MD_OUT = str(BASE / 'Bao_Cao_Tieu_Luan_NMCNPM.md')
 DOCX_OUT = str(BASE / 'Bao_Cao_Tieu_Luan_NMCNPM.docx')
-IMG_CACHE = str(BASE / 'mermaid_cache')
+IMG_CACHE = str(BASE / 'diagram_cache')
 os.makedirs(IMG_CACHE, exist_ok=True)
 
 # ── MÀUSẮC ───────────────────────────────────────────────────────────────────
@@ -94,7 +95,7 @@ def step_assemble():
 # BƯỚC 2: CONVERT MD → DOCX
 # ════════════════════════════════════════════════════════════════════════════
 
-# ── Mermaid render ───────────────────────────────────────────────────────────
+# ── Diagram render ───────────────────────────────────────────────────────────
 def get_png_dimensions(path):
     with open(path, 'rb') as f:
         f.read(16)
@@ -102,15 +103,25 @@ def get_png_dimensions(path):
         h = struct.unpack('>I', f.read(4))[0]
     return w, h
 
-def render_mermaid(code, idx, img_cache):
+def plantuml_hex_encode(text):
+    return '~h' + text.encode('utf-8').hex()
+
+
+def plantuml_png_url(code):
+    normalized = code.strip()
+    if '@startuml' not in normalized:
+        normalized = f'@startuml\n{normalized}\n@enduml'
+    return f'https://www.plantuml.com/plantuml/png/{plantuml_hex_encode(normalized)}'
+
+
+def render_plantuml(code, idx, img_cache):
     cache_file = os.path.join(img_cache, f'diagram_{idx:03d}.png')
     if os.path.exists(cache_file):
         print(f'  [cache] diagram_{idx:03d}.png')
         return cache_file
-    encoded = base64.urlsafe_b64encode(code.encode('utf-8')).decode('ascii')
-    url = f'https://mermaid.ink/img/{encoded}?type=png&bgColor=white'
     try:
         print(f'  [render] Dang render diagram {idx}...')
+        url = plantuml_png_url(code)
         resp = requests.get(url, timeout=30)
         if resp.status_code == 200 and resp.headers.get('content-type','').startswith('image'):
             with open(cache_file, 'wb') as f:
@@ -269,12 +280,12 @@ def parse_and_write(doc, md_path, img_cache=IMG_CACHE):
             if not in_code:
                 in_code = True
                 lang = line.strip()[3:].strip().lower()
-                mermaid_block = (lang == 'mermaid')
+                mermaid_block = (lang in {'plantuml', 'puml'})
                 mermaid_buf = []
             else:
                 if mermaid_block and mermaid_buf:
                     diagram_idx += 1
-                    img_path = render_mermaid('\n'.join(mermaid_buf), diagram_idx, img_cache)
+                    img_path = render_plantuml('\n'.join(mermaid_buf), diagram_idx, img_cache)
                     if img_path:
                         p = doc.add_paragraph()
                         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -294,7 +305,7 @@ def parse_and_write(doc, md_path, img_cache=IMG_CACHE):
                         cap.runs[0].font.color.rgb = RGBColor(0x66, 0x66, 0x66)
                     else:
                         p = doc.add_paragraph()
-                        r = p.add_run(f'[Bieu do Mermaid {diagram_idx} - khong the render]')
+                        r = p.add_run(f'[Bieu do PlantUML {diagram_idx} - khong the render]')
                         r.italic = True
                         r.font.color.rgb = RGBColor(0xAA, 0xAA, 0xAA)
                 in_code = mermaid_block = False
@@ -625,7 +636,7 @@ def launch_workflow_ui():
                 log(f'Lỗi lưu file: {e}')
 
     def _md_to_html_body(md_content):
-        """Chuyển Markdown sang HTML body, dùng placeholder để giữ Mermaid block."""
+        """Chuyển Markdown sang HTML body, dùng placeholder để giữ PlantUML block."""
         import html as html_lib
         lines = md_content.splitlines()
         out = []
@@ -634,14 +645,15 @@ def launch_workflow_ui():
         i = 0
         while i < len(lines):
             ln = lines[i]
-            if ln.strip().startswith('```mermaid'):
+            if ln.strip().startswith('```plantuml'):
                 buf = []
                 i += 1
                 while i < len(lines) and not lines[i].strip().startswith('```'):
                     buf.append(lines[i])
                     i += 1
-                key = f'MERMAIDBLOCK{idx}PLACEHOLDER'
-                placeholders[key] = '<pre class="mermaid">\n' + '\n'.join(buf) + '\n</pre>'
+                key = f'PLANTUMLBLOCK{idx}PLACEHOLDER'
+                img_url = plantuml_png_url('\n'.join(buf))
+                placeholders[key] = f'<p class="diagram"><img src="{quote(img_url, safe=":/?=~")}" alt="PlantUML diagram"></p>'
                 out.append(key)
                 idx += 1
             else:
@@ -686,7 +698,8 @@ td { border: 1px solid #d0d0d0; padding: 7px 12px; }
 tr:nth-child(even) td { background: #EBF4FB; }
 blockquote { border-left: 4px solid #449DD1; margin-left:0; padding-left:16px; color:#555; }
 img { max-width: 100%; }
-.mermaid { text-align: center; }
+.diagram { text-align: center; }
+.diagram img { max-width: 100%; height: auto; }
 """
         html_content = f"""<!DOCTYPE html>
 <html lang="vi">
@@ -694,13 +707,9 @@ img { max-width: 100%; }
   <meta charset="utf-8">
   <title>Preview — {os.path.basename(filepath)}</title>
   <style>{css}</style>
-  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 </head>
 <body>
 {body}
-<script>
-  mermaid.initialize({{ startOnLoad: true, theme: 'default', securityLevel: 'loose' }});
-</script>
 </body>
 </html>"""
         fd, temp_path = tempfile.mkstemp(suffix='.html')
@@ -739,7 +748,7 @@ img { max-width: 100%; }
     add_path_row(build_tab, 'Chapters dir', build_chapters, 'dir')
     add_path_row(build_tab, 'Output MD', build_md, 'save', [('Markdown', '*.md')])
     add_path_row(build_tab, 'Output DOCX', build_docx, 'save', [('Word Document', '*.docx')])
-    add_path_row(build_tab, 'Mermaid cache', build_cache, 'dir')
+    add_path_row(build_tab, 'Diagram cache', build_cache, 'dir')
 
     ttk.Button(
         build_tab,

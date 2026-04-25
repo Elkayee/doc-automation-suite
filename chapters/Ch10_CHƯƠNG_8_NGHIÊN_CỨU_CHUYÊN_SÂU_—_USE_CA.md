@@ -2,43 +2,47 @@
 
 ### 8.1. Biểu đồ Ca sử dụng
 
-```mermaid
-graph TD
-    Owner[Chu chuoi]
-    Accountant[Ke toan]
-    StoreManager[Quan ly cua hang]
+```plantuml
+@startuml
+left to right direction
+actor "Chủ chuỗi" as Owner
+actor "Kế toán" as Accountant
+actor "Quản lý cửa hàng" as StoreManager
 
-    UC501[UC5-01: Xem bang dieu khien tong quan]
-    UC502[UC5-02: Xem bao cao doanh thu]
-    UC503[UC5-03: Xem bao cao chi phi]
-    UC504[UC5-04: Xem bao cao loi nhuan]
-    UC505[UC5-05: Loc du lieu bao cao]
-    UC506[UC5-06: Xuat bao cao]
-    UC507[UC5-07: So sanh hieu suat cua hang]
-    UC508[UC5-08: Xem top san pham ban chay]
+rectangle "UC05 - Báo cáo doanh thu và chi phí" {
+  usecase "UC5-01: Xem bảng điều khiển tổng quan" as UC501
+  usecase "UC5-02: Xem báo cáo doanh thu" as UC502
+  usecase "UC5-03: Xem báo cáo chi phí" as UC503
+  usecase "UC5-04: Xem báo cáo lợi nhuận" as UC504
+  usecase "UC5-05: Lọc dữ liệu báo cáo" as UC505
+  usecase "UC5-06: Xuất báo cáo" as UC506
+  usecase "UC5-07: So sánh hiệu suất cửa hàng" as UC507
+  usecase "UC5-08: Xem top sản phẩm bán chạy" as UC508
+}
 
-    Owner --> UC501
-    Owner --> UC502
-    Owner --> UC503
-    Owner --> UC504
-    Owner --> UC507
-    Owner --> UC508
-    Accountant --> UC502
-    Accountant --> UC503
-    Accountant --> UC504
-    Accountant --> UC506
-    StoreManager --> UC503
-    StoreManager --> UC508
+Owner --> UC501
+Owner --> UC502
+Owner --> UC503
+Owner --> UC504
+Owner --> UC507
+Owner --> UC508
+Accountant --> UC502
+Accountant --> UC503
+Accountant --> UC504
+Accountant --> UC506
+StoreManager --> UC503
+StoreManager --> UC508
 
-    UC501 -. include .-> UC505
-    UC502 -. include .-> UC505
-    UC503 -. include .-> UC505
-    UC504 -. include .-> UC505
-    UC507 -. include .-> UC505
-    UC502 -. extend .-> UC506
-    UC503 -. extend .-> UC506
-    UC504 -. extend .-> UC506
-    UC506 -. extend .-> UC508
+UC501 ..> UC505 : include
+UC502 ..> UC505 : include
+UC503 ..> UC505 : include
+UC504 ..> UC505 : include
+UC507 ..> UC505 : include
+UC502 ..> UC506 : extend
+UC503 ..> UC506 : extend
+UC504 ..> UC506 : extend
+UC506 ..> UC508 : extend
+@enduml
 ```
 
 ### 8.2. Đặc tả Ca sử dụng

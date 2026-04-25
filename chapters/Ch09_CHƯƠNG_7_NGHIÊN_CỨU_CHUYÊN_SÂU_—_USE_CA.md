@@ -8,30 +8,34 @@ Chương này phân tích chuyên sâu **UC07 — Quản lý Tài khoản và Ph
 
 UC07 được phân rã thành các ca sử dụng con gắn với vòng đời nhân viên:
 
-```mermaid
-graph TD
-    Manager["Quản lý"]
-    Employee["Nhân viên"]
+```plantuml
+@startuml
+left to right direction
+actor "Quản lý" as Manager
+actor "Nhân viên" as Employee
 
-    UC071[UC07.1: Them ho so nhan vien]
-    UC072[UC07.2: Cap va quan ly tai khoan]
-    UC073[UC07.3: Phan quyen RBAC]
-    UC074[UC07.4: Khoa hoac thu hoi tai khoan]
-    UC075[UC07.5: Dat lai mat khau]
-    UC076[UC07.6: Xem danh sach nhan vien]
+rectangle "UC07 - Quản lý tài khoản và phân quyền nhân sự" {
+  usecase "UC07.1: Thêm hồ sơ nhân viên" as UC071
+  usecase "UC07.2: Cấp và quản lý tài khoản" as UC072
+  usecase "UC07.3: Phân quyền RBAC" as UC073
+  usecase "UC07.4: Khóa hoặc thu hồi tài khoản" as UC074
+  usecase "UC07.5: Đặt lại mật khẩu" as UC075
+  usecase "UC07.6: Xem danh sách nhân viên" as UC076
+}
 
-    Manager --> UC071
-    Manager --> UC072
-    Manager --> UC073
-    Manager --> UC074
-    Manager --> UC075
-    Manager --> UC076
-    Employee --> UC072
+Manager --> UC071
+Manager --> UC072
+Manager --> UC073
+Manager --> UC074
+Manager --> UC075
+Manager --> UC076
+Employee --> UC072
 
-    UC071 -. include .-> UC072
-    UC071 -. include .-> UC073
-    UC074 -. extend .-> UC072
-    UC075 -. extend .-> UC072
+UC071 ..> UC072 : include
+UC071 ..> UC073 : include
+UC074 ..> UC072 : extend
+UC075 ..> UC072 : extend
+@enduml
 ```
 
 ### 7.2. Đặc tả Ca sử dụng
@@ -118,31 +122,32 @@ Hệ thống phân quyền theo mô hình **Role-Based Access Control (RBAC)**, 
 
 Biểu đồ này mô tả chi tiết giao tiếp giữa các lớp trong kiến trúc phân lớp khi nhân viên thực hiện vào ca, tập trung vào việc **xác thực danh tính** và **kiểm tra phân công ca** trước khi ghi nhận:
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor NV as NhanVien
-    participant GD as GiaoDien
-    participant HT as HeThong
-    participant DB as CoSoDuLieu
+```plantuml
+@startuml
+autonumber
+actor NhanVien as NV
+participant GiaoDien as GD
+participant HeThong as HT
+database CoSoDuLieu as DB
 
-    NV->>GD: Mo chuc nang Cham cong
-    GD->>HT: Ktra ca lam (id_nv, tg_ht)
-    HT->>DB: Truy van ShiftAssignment
-    DB-->>HT: Tra ve ca lam viec
+NV -> GD : Mở chức năng chấm công
+GD -> HT : Kiểm tra ca làm (id_nv, tg_ht)
+HT -> DB : Truy vấn ShiftAssignment
+DB --> HT : Trả về ca làm việc
 
-    alt Co ca hop le
-        HT-->>GD: Cho phep vao ca
-        NV->>GD: Bam nut Vao ca
-        GD->>HT: Gui yc luu gio vao (tg_vao)
-        HT->>DB: Them record vao Attendance
-        DB-->>HT: Xac nhan luu OK
-        HT-->>GD: Bao vao ca thanh cong
-        GD-->>NV: Hien thi thong bao thanh cong
-    else Sai ca hoac khong co ca
-        HT-->>GD: Bao loi Sai ca / Khong co ca
-        GD-->>NV: Hien thi loi Tu choi ghi nhan
-    end
+alt Có ca hợp lệ
+  HT --> GD : Cho phép vào ca
+  NV -> GD : Bấm nút Vào ca
+  GD -> HT : Gửi yêu cầu lưu giờ vào (tg_vao)
+  HT -> DB : Thêm bản ghi vào Attendance
+  DB --> HT : Xác nhận lưu OK
+  HT --> GD : Báo vào ca thành công
+  GD --> NV : Hiển thị thông báo thành công
+else Sai ca hoặc không có ca
+  HT --> GD : Báo lỗi Sai ca / Không có ca
+  GD --> NV : Hiển thị lỗi từ chối ghi nhận
+end
+@enduml
 ```
 
 **Giải thích các biến số:**
@@ -155,84 +160,93 @@ tg_vao — Thời gian vào ca thực tế, tương đương check_in_time trong
 
 ### 7.4. Biểu đồ Hoạt động — Quy trình tiếp nhận nhân viên mới
 
-```mermaid
-flowchart TD
-    A([Bat dau: Nhan vien moi gia nhap]) --> B[Quan ly nhap ho so vao he thong]
-    B --> C{Du lieu hop le?}
-    C -- Khong --> D[Hien thi loi va yeu cau sua]
-    D --> B
-    C -- Co --> E[Them ban ghi vao nhan_vien]
-    E --> F[Tao tai_khoan voi vai_tro mac dinh NHAN_VIEN]
-    F --> G[Ma hoa mat khau bang BCrypt]
-    G --> H[Gui thong tin dang nhap qua Email hoac SMS]
-    H --> I{Gui thong bao thanh cong?}
-    I -- Khong --> J[Ghi log loi gui thong bao]
-    I -- Co --> K[Nhan vien nhan thong tin dang nhap]
-    J --> K
-    K --> L[Nhan vien dang nhap lan dau]
-    L --> M{Da doi mat khau?}
-    M -- Chua --> N[Yeu cau nhap mat khau moi]
-    N --> O[Cap nhat mat_khau trong tai_khoan]
-    O --> P[Nhan vien vao bang dieu khien]
-    M -- Roi --> P
-    P --> Q([Ket thuc: Tiep nhan nhan vien hoan tat])
+```plantuml
+@startuml
+start
+:Quản lý nhập hồ sơ vào hệ thống;
+if (Dữ liệu hợp lệ?) then (Có)
+  :Thêm bản ghi vào nhan_vien;
+  :Tạo tai_khoan với vai trò mặc định NHAN_VIEN;
+  :Mã hóa mật khẩu bằng BCrypt;
+  :Gửi thông tin đăng nhập qua Email hoặc SMS;
+  if (Gửi thông báo thành công?) then (Có)
+  else (Không)
+    :Ghi log lỗi gửi thông báo;
+  endif
+  :Nhân viên nhận thông tin đăng nhập;
+  :Nhân viên đăng nhập lần đầu;
+  if (Đã đổi mật khẩu?) then (Rồi)
+  else (Chưa)
+    :Yêu cầu nhập mật khẩu mới;
+    :Cập nhật mat_khau trong tai_khoan;
+  endif
+  :Nhân viên vào bảng điều khiển;
+else (Không)
+  :Hiển thị lỗi và yêu cầu sửa;
+endif
+stop
+@enduml
 ```
 
 ### 7.5. Mô hình Dữ liệu (ERD) — Phân hệ Nhân sự
 
 Lược đồ CSDL của phân hệ nhân sự được thiết kế tách bạch rõ ràng giữa **hồ sơ nhân sự** (thông tin cứng, ít thay đổi) và **tài khoản hệ thống** (thông tin xác thực, phân quyền):
 
-```mermaid
-erDiagram
-    nhan_vien ||--|| tai_khoan : so_huu
-    tai_khoan ||--o{ audit_log : tao_ra
-    vai_tro_quyen }o--|| tai_khoan : ap_dung_vai_tro
-    vai_tro_quyen }o--|| quyen_han : bao_gom
+```plantuml
+@startuml
+hide methods
+hide stereotypes
 
-    nhan_vien {
-        INT id_nhan_vien PK
-        NVARCHAR ho_ten
-        VARCHAR cccd
-        VARCHAR so_dien_thoai
-        VARCHAR email
-        DATE ngay_sinh
-        NVARCHAR vi_tri
-        DECIMAL luong_gio
-        ENUM trang_thai
-        DATE ngay_vao_lam
-    }
+class nhan_vien {
+  id_nhan_vien : INT <<PK>>
+  ho_ten : NVARCHAR
+  cccd : VARCHAR
+  so_dien_thoai : VARCHAR
+  email : VARCHAR
+  ngay_sinh : DATE
+  vi_tri : NVARCHAR
+  luong_gio : DECIMAL
+  trang_thai : ENUM
+  ngay_vao_lam : DATE
+}
 
-    tai_khoan {
-        INT id_tai_khoan PK
-        INT id_nhan_vien FK
-        VARCHAR ten_dang_nhap
-        VARCHAR mat_khau_hash
-        ENUM vai_tro
-        BIT kich_hoat
-        DATETIME lan_dang_nhap_cuoi
-        BIT buoc_doi_mat_khau
-    }
+class tai_khoan {
+  id_tai_khoan : INT <<PK>>
+  id_nhan_vien : INT <<FK>>
+  ten_dang_nhap : VARCHAR
+  mat_khau_hash : VARCHAR
+  vai_tro : ENUM
+  kich_hoat : BIT
+  lan_dang_nhap_cuoi : DATETIME
+  buoc_doi_mat_khau : BIT
+}
 
-    vai_tro_quyen {
-        VARCHAR vai_tro FK
-        INT id_quyen FK
-    }
+class vai_tro_quyen {
+  vai_tro : VARCHAR <<FK>>
+  id_quyen : INT <<FK>>
+}
 
-    quyen_han {
-        INT id_quyen PK
-        VARCHAR ten_quyen
-        VARCHAR mo_ta
-    }
+class quyen_han {
+  id_quyen : INT <<PK>>
+  ten_quyen : VARCHAR
+  mo_ta : VARCHAR
+}
 
-    audit_log {
-        INT id_log PK
-        INT id_tai_khoan FK
-        VARCHAR hanh_dong
-        VARCHAR bang_tac_dong
-        INT id_ban_ghi
-        DATETIME thoi_gian
-        VARCHAR ip_address
-    }
+class audit_log {
+  id_log : INT <<PK>>
+  id_tai_khoan : INT <<FK>>
+  hanh_dong : VARCHAR
+  bang_tac_dong : VARCHAR
+  id_ban_ghi : INT
+  thoi_gian : DATETIME
+  ip_address : VARCHAR
+}
+
+nhan_vien "1" -- "1" tai_khoan : so huu
+tai_khoan "1" -- "N" audit_log : tao ra
+tai_khoan "1" -- "N" vai_tro_quyen : ap dung vai tro
+quyen_han "1" -- "N" vai_tro_quyen : bao gom
+@enduml
 ```
 
 ***Quyết định thiết kế:** Tách bảng `nhan_vien` và `tai_khoan` thay vì gộp chung nhằm tuân thủ **Nguyên tắc Phân tách mối quan tâm (Separation of Concerns)**. Khi nhân viên nghỉ việc, tài khoản bị `kich_hoat = 0` (không xóa) để bảo toàn toàn bộ lịch sử `audit_log` và dữ liệu chấm công phục vụ kiểm toán.*

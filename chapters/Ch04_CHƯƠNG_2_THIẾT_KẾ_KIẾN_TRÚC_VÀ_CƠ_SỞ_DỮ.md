@@ -6,36 +6,40 @@
 
 Hệ thống áp dụng kiến trúc **3 lớp** nhằm tách biệt ba mối quan tâm: hiển thị, xử lý nghiệp vụ và lưu trữ dữ liệu:
 
-```mermaid
-graph TD
-    subgraph "TẦNG TRÌNH DIỄN"
-        POS["Máy POS Thu ngân\n(Windows)"]
-        KDS["Màn hình Pha chế\n(KDS)"]
-        MOB["Máy tính bảng / Điện thoại\n(Android/iOS)"]
-    end
+```plantuml
+@startuml
+top to bottom direction
+skinparam packageStyle rectangle
 
-    subgraph "TẦNG NGHIỆP VỤ"
-        API["Máy chủ ứng dụng\nAPI REST"]
-        OS["Dịch vụ đơn hàng"]
-        PS["Dịch vụ thanh toán"]
-        SS["Dịch vụ ca làm"]
-        IS["Dịch vụ kho"]
-        API --- OS
-        API --- PS
-        API --- SS
-        API --- IS
-    end
+rectangle "TẦNG TRÌNH DIỄN" {
+  rectangle "Máy POS Thu ngân\n(Windows)" as POS
+  rectangle "Màn hình Pha chế\n(KDS)" as KDS
+  rectangle "Máy tính bảng / Điện thoại\n(Android/iOS)" as MOB
+}
 
-    subgraph "TẦNG DỮ LIỆU"
-        DB[("Máy chủ cơ sở dữ liệu\nMySQL / SQL Server")]
-        BK["Sao lưu hằng ngày lúc 2:00"]
-        DB --- BK
-    end
+rectangle "TẦNG NGHIỆP VỤ" {
+  rectangle "Máy chủ ứng dụng\nAPI REST" as API
+  rectangle "Dịch vụ đơn hàng" as OS
+  rectangle "Dịch vụ thanh toán" as PS
+  rectangle "Dịch vụ ca làm" as SS
+  rectangle "Dịch vụ kho" as IS
+}
 
-    POS -- "HTTP/HTTPS qua LAN" --> API
-    KDS -- "HTTP/HTTPS qua WiFi" --> API
-    MOB -- "HTTP/HTTPS qua WiFi" --> API
-    API -- "JDBC / ORM Hibernate" --> DB
+rectangle "TẦNG DỮ LIỆU" {
+  database "Máy chủ cơ sở dữ liệu\nMySQL / SQL Server" as DB
+  rectangle "Sao lưu hằng ngày\nlúc 2:00" as BK
+}
+
+POS --> API : HTTP/HTTPS qua LAN
+KDS --> API : HTTP/HTTPS qua WiFi
+MOB --> API : HTTP/HTTPS qua WiFi
+API --> OS
+API --> PS
+API --> SS
+API --> IS
+API --> DB : JDBC / ORM Hibernate
+DB --> BK
+@enduml
 ```
 
 
@@ -73,46 +77,54 @@ Hệ thống gồm **5 nhóm bảng** tương ứng với 5 phân hệ UC, đề
 
 Nguyên tắc thiết kế cốt lõi của UC04 là **tách biệt hoàn toàn** dữ liệu kế hoạch khỏi dữ liệu thực tế, tương tự mô hình đối chiếu kế hoạch và thực tế phổ biến trong kế toán quản trị:
 
-```mermaid
-classDiagram
-    class shift_template {
-        INT id_template [PK]
-        NVARCHAR ten_ca
-        TIME gio_bat_dau
-        TIME gio_ket_thuc
-        DECIMAL don_gia_gio
-    }
-    class shift {
-        INT id_ca [PK]
-        INT id_template [FK]
-        DATE ngay_lam_viec
-        DECIMAL don_gia_gio
-    }
-    class shift_assignment {
-        INT id_phan_cong [PK]
-        INT id_ca [FK]
-        INT id_nhan_vien [FK]
-        ENUM trang_thai
-    }
-    class attendance {
-        INT id_cham_cong [PK]
-        INT id_phan_cong [FK]
-        DATETIME check_in_time
-        DATETIME check_out_time
-        DECIMAL so_gio_lam
-        BIT is_late
-        VARCHAR ghi_chu
-    }
-    class nhan_vien {
-        INT id_nhan_vien [PK]
-        NVARCHAR ho_ten
-        DECIMAL luong_gio
-    }
+```plantuml
+@startuml
+hide methods
+hide stereotypes
 
-    shift_template -- shift : 1..N (tao ra)
-    shift -- shift_assignment : 1..N (phan cong)
-    nhan_vien -- shift_assignment : 1..N (duoc giao)
-    shift_assignment -- attendance : 1..1 (ghi nhan)
+class shift_template {
+  id_template : INT <<PK>>
+  ten_ca : NVARCHAR
+  gio_bat_dau : TIME
+  gio_ket_thuc : TIME
+  don_gia_gio : DECIMAL
+}
+
+class shift {
+  id_ca : INT <<PK>>
+  id_template : INT <<FK>>
+  ngay_lam_viec : DATE
+  don_gia_gio : DECIMAL
+}
+
+class shift_assignment {
+  id_phan_cong : INT <<PK>>
+  id_ca : INT <<FK>>
+  id_nhan_vien : INT <<FK>>
+  trang_thai : ENUM
+}
+
+class attendance {
+  id_cham_cong : INT <<PK>>
+  id_phan_cong : INT <<FK>>
+  check_in_time : DATETIME
+  check_out_time : DATETIME
+  so_gio_lam : DECIMAL
+  is_late : BIT
+  ghi_chu : VARCHAR
+}
+
+class nhan_vien {
+  id_nhan_vien : INT <<PK>>
+  ho_ten : NVARCHAR
+  luong_gio : DECIMAL
+}
+
+shift_template "1" -- "N" shift : tao ra
+shift "1" -- "N" shift_assignment : phan cong
+nhan_vien "1" -- "N" shift_assignment : duoc giao
+shift_assignment "1" -- "1" attendance : ghi nhan
+@enduml
 ```
 
 > **Ghi chú thiết kế:** Tách biệt **Kế hoạch** (`shift_template`, `shift`, `shift_assignment`) khỏi **Thực tế** (`attendance`) — cho phép đối soát chênh lệch (đi muộn/về sớm) và kiểm toán lao động minh bạch.

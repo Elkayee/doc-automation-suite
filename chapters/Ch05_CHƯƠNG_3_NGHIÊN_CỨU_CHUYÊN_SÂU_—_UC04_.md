@@ -8,37 +8,32 @@
 
 UC04 được phân rã thành các ca sử dụng con độc lập, có thể được phân công cho các thành viên nhóm khác nhau:
 
-```mermaid
-graph TD
-    subgraph UC04
-        UC041["UC04.1\nTạo mẫu ca làm\n(Create Shift Template)"]
-        UC042["UC04.2\nPhân công ca làm\n(Assign Shift)"]
-        UC043["UC04.3\nCheck-in ca làm\n(Employee Check-in)"]
-        UC044["UC04.4\nCheck-out ca làm\n(Employee Check-out)"]
-        UC045["UC04.5\nTính lương tự động\n(Calculate Salary)"]
-        UC046["UC04.6\nXem báo cáo chấm công\n(View Report)"]
-    end
+```plantuml
+@startuml
+left to right direction
+actor "Quản lý" as MANAGER
+actor "Nhân viên" as EMPLOYEE
 
-    MANAGER("👔 Manager")
-    EMPLOYEE("👤 Employee")
+rectangle "UC04 - Quản lý ca làm việc và chấm công" {
+  usecase "UC04.1\nTạo mẫu ca làm" as UC041
+  usecase "UC04.2\nPhân công ca làm" as UC042
+  usecase "UC04.3\nVào ca làm" as UC043
+  usecase "UC04.4\nKết thúc ca làm" as UC044
+  usecase "UC04.5\nTính lương tự động" as UC045
+  usecase "UC04.6\nXem báo cáo chấm công" as UC046
+}
 
-    MANAGER --- UC041
-    MANAGER --- UC042
-    MANAGER --- UC045
-    MANAGER --- UC046
-    EMPLOYEE --- UC043
-    EMPLOYEE --- UC044
+MANAGER --> UC041
+MANAGER --> UC042
+MANAGER --> UC045
+MANAGER --> UC046
+EMPLOYEE --> UC043
+EMPLOYEE --> UC044
 
-    UC043 -. "«extends»" .-> UC045
-    UC044 -. "«extends»" .-> UC045
-    UC045 -. "«extends»" .-> UC046
-
-    style UC041 fill:#E3F2FD,stroke:#1565C0
-    style UC042 fill:#E3F2FD,stroke:#1565C0
-    style UC043 fill:#F3E5F5,stroke:#6A1B9A
-    style UC044 fill:#F3E5F5,stroke:#6A1B9A
-    style UC045 fill:#E8F5E9,stroke:#2E7D32
-    style UC046 fill:#FFF3E0,stroke:#E65100
+UC043 ..> UC045 : extend
+UC044 ..> UC045 : extend
+UC045 ..> UC046 : extend
+@enduml
 ```
 
 ### 3.2. Quản lý Tài khoản, Phân quyền RBAC và Onboarding
@@ -130,31 +125,32 @@ Hệ thống phân quyền theo mô hình **Role-Based Access Control (RBAC)**, 
 
 Biểu đồ này mô tả chi tiết giao tiếp giữa các lớp trong kiến trúc phân lớp khi nhân viên thực hiện Check-in, tập trung vào việc **xác thực danh tính** và **kiểm tra phân công ca** trước khi ghi nhận:
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant NV as NhanVien
-    participant GD as GiaoDien
-    participant HT as HeThong
-    participant DB as CoSoDuLieu
+```plantuml
+@startuml
+autonumber
+participant NhanVien as NV
+participant GiaoDien as GD
+participant HeThong as HT
+database CoSoDuLieu as DB
 
-    NV->>GD: Mở chức năng "Chấm công"
-    GD->>HT: Ktra ca làm (id_nv, tg_ht)
-    HT->>DB: Truy vấn ShiftAssignment
-    DB-->>HT: Trả về ca làm việc
+NV -> GD : Mở chức năng chấm công
+GD -> HT : Kiểm tra ca làm (id_nv, tg_ht)
+HT -> DB : Truy vấn ShiftAssignment
+DB --> HT : Trả về ca làm việc
 
-    alt Có ca làm việc hợp lệ trong khung giờ
-        HT-->>GD: Cho phép Check-in
-        NV->>GD: Bấm nút "Check-in"
-        GD->>HT: Gửi y/c lưu giờ vào (tg_vao)
-        HT->>DB: Thêm record vào Attendance
-        DB-->>HT: Xác nhận lưu ok
-        HT-->>GD: Báo "Check-in thành công"
-        GD-->>NV: Hiển thị thông báo thành công
-    else Không có ca làm (Luồng ngoại lệ E1)
-        HT-->>GD: Báo lỗi "Sai ca / Không có ca"
-        GD-->>NV: Hiển thị lỗi "Từ chối ghi nhận"
-    end
+alt Có ca làm việc hợp lệ trong khung giờ
+  HT --> GD : Cho phép vào ca
+  NV -> GD : Bấm nút Vào ca
+  GD -> HT : Gửi yêu cầu lưu giờ vào (tg_vao)
+  HT -> DB : Thêm bản ghi vào Attendance
+  DB --> HT : Xác nhận lưu OK
+  HT --> GD : Báo vào ca thành công
+  GD --> NV : Hiển thị thông báo thành công
+else Không có ca làm
+  HT --> GD : Báo lỗi Sai ca / Không có ca
+  GD --> NV : Hiển thị lỗi từ chối ghi nhận
+end
+@enduml
 ```
 
 ### 3.3. Đặc tả Use Case — Check-in, Check-out và Tính lương
@@ -236,19 +232,24 @@ Khi nhân viên đổi ca mà chưa có lịch trên hệ thống, hệ thống 
 
 Trường hợp nhân viên quên bấm giờ ra, hệ thống **không được phép** gán giờ làm = 0 (vi phạm quyền lợi người lao động theo Bộ Luật Lao động):
 
-```mermaid
-graph TD
-    A(Ca làm việc kết thúc) --> B{Đã Check-out chưa}
-    B -->|Có| Z(Kết thúc bình thường)
-    B -->|Không| C(Hệ thống chờ thêm 60 phút)
-    C --> D(Tự động đóng phiên và chờ xác nhận)
-    D --> E(Gửi thông báo cho Quản lý)
-    E --> F{Đối soát và xác nhận}
-    F -->|Xác nhận đúng| G(Chốt lương)
-    F -->|Điều chỉnh| H(Cập nhật thủ công rồi Chốt lương)
-
-    style D fill:#FF9800,color:#fff
-    style G fill:#4CAF50,color:#fff
+```plantuml
+@startuml
+start
+:Ca làm việc kết thúc;
+if (Đã kết thúc ca chưa?) then (Có)
+  :Kết thúc bình thường;
+else (Không)
+  :Hệ thống chờ thêm 60 phút;
+  :Tự động đóng phiên và chờ xác nhận;
+  :Gửi thông báo cho Quản lý;
+  if (Đối soát và xác nhận?) then (Xác nhận đúng)
+    :Chốt lương;
+  else (Điều chỉnh)
+    :Cập nhật thủ công rồi chốt lương;
+  endif
+endif
+stop
+@enduml
 ```
 
 
@@ -261,20 +262,25 @@ graph TD
 
 **Luồng xác thực hai lớp (Two-Factor Authentication Flow):**
 
-```mermaid
-graph TD
-    A[Nhan vien mo app cham cong] --> B{Thiet bi trong pham vi 100m?}
-    B -- "Khong" --> C[Tu choi\nGhi log canh bao\nThong bao Quan ly]
-    B -- "Co" --> D[FaceID hoac chup selfie]
-    D --> E{Do khop khuon mat tu 90 phan tram?}
-    E -- "Khong khop" --> F[Tu choi\nThong bao Quan ly\nGhi log canh bao]
-    E -- "Khop" --> G[Ghi nhan Check-in\nLuu anh bang chung ma hoa]
-
-    style A fill:#1565C0,color:#fff
-    style C fill:#C62828,color:#fff
-    style F fill:#C62828,color:#fff
-    style G fill:#2E7D32,color:#fff
-    style D fill:#F57F17,color:#fff
+```plantuml
+@startuml
+start
+:Nhân viên mở ứng dụng chấm công;
+if (Thiết bị trong phạm vi 100m?) then (Có)
+  :Chụp ảnh khuôn mặt hoặc selfie;
+  if (Độ khớp khuôn mặt từ 90 phần trăm?) then (Khớp)
+    :Ghi nhận vào ca và lưu ảnh bằng chứng mã hóa;
+  else (Không khớp)
+    :Từ chối và thông báo Quản lý;
+    :Ghi log cảnh báo;
+  endif
+else (Không)
+  :Từ chối;
+  :Ghi log cảnh báo;
+  :Thông báo Quản lý;
+endif
+stop
+@enduml
 ```
 
 ### 3.5. Cơ chế Chấm công Sinh trắc học — Triệt tiêu Chấm công Hộ
@@ -345,46 +351,50 @@ $$S_{total} = (N_{sang} \times R_{sang}) + (N_{toi} \times R_{toi}) + (N_{cuoi_t
 
 Nguyên tắc thiết kế cốt lõi của UC04 là **tách biệt hoàn toàn** dữ liệu kế hoạch (Planning) khỏi dữ liệu thực tế (Actual), tương tự mô hình Planning vs. Actuals phổ biến trong kế toán quản trị:
 
-```mermaid
-classDiagram
-    class shift_template {
-        INT id_template [PK]
-        NVARCHAR ten_ca
-        TIME gio_bat_dau
-        TIME gio_ket_thuc
-        DECIMAL don_gia_gio
-    }
-    class shift {
-        INT id_ca [PK]
-        INT id_template [FK]
-        DATE ngay_lam_viec
-        DECIMAL don_gia_gio
-    }
-    class shift_assignment {
-        INT id_phan_cong [PK]
-        INT id_ca [FK]
-        INT id_nhan_vien [FK]
-        ENUM trang_thai
-    }
-    class attendance {
-        INT id_cham_cong [PK]
-        INT id_phan_cong [FK]
-        DATETIME check_in_time
-        DATETIME check_out_time
-        DECIMAL so_gio_lam
-        BIT is_late
-        VARCHAR ghi_chu
-    }
-    class nhan_vien {
-        INT id_nhan_vien [PK]
-        NVARCHAR ho_ten
-        DECIMAL luong_gio
-    }
+```plantuml
+@startuml
+hide methods
+hide stereotypes
 
-    shift_template -- shift : 1..N (tao ra)
-    shift -- shift_assignment : 1..N (phan cong)
-    nhan_vien -- shift_assignment : 1..N (duoc giao)
-    shift_assignment -- attendance : 1..1 (ghi nhan)
+class shift_template {
+  id_template : INT <<PK>>
+  ten_ca : NVARCHAR
+  gio_bat_dau : TIME
+  gio_ket_thuc : TIME
+  don_gia_gio : DECIMAL
+}
+class shift {
+  id_ca : INT <<PK>>
+  id_template : INT <<FK>>
+  ngay_lam_viec : DATE
+  don_gia_gio : DECIMAL
+}
+class shift_assignment {
+  id_phan_cong : INT <<PK>>
+  id_ca : INT <<FK>>
+  id_nhan_vien : INT <<FK>>
+  trang_thai : ENUM
+}
+class attendance {
+  id_cham_cong : INT <<PK>>
+  id_phan_cong : INT <<FK>>
+  check_in_time : DATETIME
+  check_out_time : DATETIME
+  so_gio_lam : DECIMAL
+  is_late : BIT
+  ghi_chu : VARCHAR
+}
+class nhan_vien {
+  id_nhan_vien : INT <<PK>>
+  ho_ten : NVARCHAR
+  luong_gio : DECIMAL
+}
+
+shift_template "1" -- "N" shift : tao ra
+shift "1" -- "N" shift_assignment : phan cong
+nhan_vien "1" -- "N" shift_assignment : duoc giao
+shift_assignment "1" -- "1" attendance : ghi nhan
+@enduml
 ```
 
 > **Ghi chú thiết kế:** 2 nhóm bảng trên tách biệt hoàn toàn **Kế hoạch** (shift_template, shift, shift_assignment) khỏi **Thực tế** (attendance), giúp dễ đối soát và kiểm toán.
@@ -431,31 +441,32 @@ classDiagram
 
 Biểu đồ này mô tả chi tiết giao tiếp giữa các lớp trong kiến trúc phân lớp khi nhân viên thực hiện Check-in, tập trung vào việc **xác thực danh tính** và **kiểm tra phân công ca** trước khi ghi nhận:
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant NV as NhanVien
-    participant GD as GiaoDien
-    participant HT as HeThong
-    participant DB as CoSoDuLieu
+```plantuml
+@startuml
+autonumber
+participant NhanVien as NV
+participant GiaoDien as GD
+participant HeThong as HT
+database CoSoDuLieu as DB
 
-    NV->>GD: Mở chức năng "Chấm công"
-    GD->>HT: Ktra ca làm (id_nv, tg_ht)
-    HT->>DB: Truy vấn ShiftAssignment
-    DB-->>HT: Trả về ca làm việc
+NV -> GD : Mở chức năng chấm công
+GD -> HT : Kiểm tra ca làm (id_nv, tg_ht)
+HT -> DB : Truy vấn ShiftAssignment
+DB --> HT : Trả về ca làm việc
 
-    alt Có ca làm việc hợp lệ trong khung giờ
-        HT-->>GD: Cho phép Check-in
-        NV->>GD: Bấm nút "Check-in"
-        GD->>HT: Gửi y/c lưu giờ vào (tg_vao)
-        HT->>DB: Thêm record vào Attendance
-        DB-->>HT: Xác nhận lưu ok
-        HT-->>GD: Báo "Check-in thành công"
-        GD-->>NV: Hiển thị thông báo thành công
-    else Không có ca làm (Luồng ngoại lệ E1)
-        HT-->>GD: Báo lỗi "Sai ca / Không có ca"
-        GD-->>NV: Hiển thị lỗi "Từ chối ghi nhận"
-    end
+alt Có ca làm việc hợp lệ trong khung giờ
+  HT --> GD : Cho phép vào ca
+  NV -> GD : Bấm nút Vào ca
+  GD -> HT : Gửi yêu cầu lưu giờ vào (tg_vao)
+  HT -> DB : Thêm bản ghi vào Attendance
+  DB --> HT : Xác nhận lưu OK
+  HT --> GD : Báo vào ca thành công
+  GD --> NV : Hiển thị thông báo thành công
+else Không có ca làm
+  HT --> GD : Báo lỗi Sai ca / Không có ca
+  GD --> NV : Hiển thị lỗi từ chối ghi nhận
+end
+@enduml
 ```
 
 **Giải thích các biến số:**
@@ -470,89 +481,74 @@ sequenceDiagram
 ### 3.9. Biểu đồ Hoạt động — Quy trình Chấm công (Activity Diagram)
 
 
-```mermaid
-graph TD
-    A(BẮT ĐẦU) --> B[Nhân viên mở màn hình Chấm công]
-    B --> C{Hệ thống tìm\nShiftAssignment\nhôm nay?}
-
-    C -->|Không tìm thấy| D[Thông báo: Không có ca hôm nay\nLiên hệ Quản lý]
-    D --> Z1(KẾT THÚC)
-
-    C -->|Tìm thấy ca| E[Nhân viên nhấn CHECK-IN]
-    E --> F{Đã có bản ghi\nCheck-in rồi?}
-
-    F -->|YES| G[Thông báo lỗi:\nĐã Check-in lúc HH:MM]
-    G --> Z2(KẾT THÚC)
-
-    F -->|NO| H[Hệ thống ghi check_in_time = NOW]
-    H --> I{Muộn hơn\n15 phút?}
-
-    I -->|YES| J[Đánh dấu is_late = TRUE\nGhi chú đi muộn]
-    J --> K
-    I -->|NO| K[Nhân viên thực hiện ca làm việc]
-
-    K --> L[Nhân viên nhấn CHECK-OUT]
-    L --> M{Chưa có\nbản ghi Check-in?}
-
-    M -->|YES| N[Thông báo lỗi:\nChưa Check-in]
-    N --> Z3(KẾT THÚC)
-
-    M -->|NO| O["Tính so_gio_lam = (check_out - check_in) / 3600"]
-    O --> P{so_gio_lam\n> 16 giờ?}
-
-    P -->|YES| Q[Đánh dấu needs_review = TRUE\nGửi cảnh báo Quản lý]
-    Q --> R
-    P -->|NO| R[Ghi check_out_time\nCập nhật trang_thai = hoan_thanh]
-
-    R --> S[Hiển thị tóm tắt: Giờ vào - Ra - Tổng giờ - Ghi chú]
-    S --> Z4(KẾT THÚC)
-
-    style A fill:#2196F3,color:#fff
-    style Z1 fill:#9E9E9E,color:#fff
-    style Z2 fill:#9E9E9E,color:#fff
-    style Z3 fill:#9E9E9E,color:#fff
-    style Z4 fill:#4CAF50,color:#fff
-    style G fill:#F44336,color:#fff
-    style N fill:#F44336,color:#fff
-    style J fill:#FF9800,color:#fff
-    style Q fill:#FF9800,color:#fff
+```plantuml
+@startuml
+start
+:Nhân viên mở màn hình chấm công;
+if (Hệ thống tìm thấy ShiftAssignment hôm nay?) then (Tìm thấy)
+  :Nhân viên nhấn Vào ca;
+  if (Đã có bản ghi vào ca?) then (Có)
+    :Thông báo lỗi đã vào ca lúc HH:MM;
+    stop
+  else (Chưa)
+    :Hệ thống ghi check_in_time = NOW;
+    if (Muộn hơn 15 phút?) then (Có)
+      :Đánh dấu is_late = TRUE;
+      :Ghi chú đi muộn;
+    endif
+    :Nhân viên thực hiện ca làm việc;
+    :Nhân viên nhấn Kết thúc ca;
+    if (Chưa có bản ghi vào ca?) then (Có)
+      :Thông báo lỗi chưa vào ca;
+      stop
+    else (Không)
+      :Tính so_gio_lam = (check_out - check_in) / 3600;
+      if (so_gio_lam > 16 giờ?) then (Có)
+        :Đánh dấu needs_review = TRUE;
+        :Gửi cảnh báo Quản lý;
+      endif
+      :Ghi check_out_time;
+      :Cập nhật trang_thai = hoan_thanh;
+      :Hiển thị tóm tắt giờ vào, giờ ra, tổng giờ và ghi chú;
+    endif
+  endif
+else (Không tìm thấy)
+  :Thông báo không có ca hôm nay;
+  :Liên hệ Quản lý;
+endif
+stop
+@enduml
 ```
 
 ### 3.10. Biểu đồ Hoạt động — Quy trình Onboarding Nhân viên Mới (Activity Diagram)
 
 
-```mermaid
-graph TD
-    A(BẮT ĐẦU: Nhân viên mới gia nhập) --> B[Manager nhập hồ sơ\nvào hệ thống]
-    B --> C{Validate\ndữ liệu?}
-
-    C -->|Lỗi (CCCD/Email trùng)| D[Hiển thị lỗi\nYêu cầu sửa lại]
-    D --> B
-
-    C -->|Hợp lệ| E[INSERT vào bảng\nnhan_vien]
-    E --> F[Tạo tai_khoan\nvai_tro = NHAN_VIEN]
-    F --> G[Mã hoá mật khẩu\nbằng BCrypt]
-    G --> H[Gửi thông tin\nđăng nhập qua Email/SMS]
-
-    H --> I{Gửi\nthành công?}
-    I -->|Thất bại| J[Ghi log lỗi gửi mail\nManager tự thông báo]
-    I -->|Thành công| K
-
-    J --> K[Nhân viên nhận\nthông tin đăng nhập]
-    K --> L[Nhân viên đăng nhập\nlần đầu]
-    L --> M{Bắt buộc\nđổi mật khẩu?}
-
-    M -->|Chưa đổi| N[Yêu cầu nhập\nmật khẩu mới]
-    N --> O[Cập nhật mat_khau\ntrong tai_khoan]
-    O --> P
-
-    M -->|Đã đổi| P[Nhân viên vào\nDashboard]
-    P --> Q(KẾT THÚC: Onboarding hoàn tất)
-
-    style A fill:#2196F3,color:#fff
-    style Q fill:#4CAF50,color:#fff
-    style D fill:#F44336,color:#fff
-    style J fill:#FF9800,color:#fff
+```plantuml
+@startuml
+start
+:Quản lý nhập hồ sơ vào hệ thống;
+if (Dữ liệu hợp lệ?) then (Hợp lệ)
+  :INSERT vào bảng nhan_vien;
+  :Tạo tai_khoan với vai_tro = NHAN_VIEN;
+  :Mã hóa mật khẩu bằng BCrypt;
+  :Gửi thông tin đăng nhập qua Email hoặc SMS;
+  if (Gửi thành công?) then (Có)
+  else (Thất bại)
+    :Ghi log lỗi gửi thư;
+    :Quản lý tự thông báo;
+  endif
+  :Nhân viên nhận thông tin đăng nhập;
+  :Nhân viên đăng nhập lần đầu;
+  if (Bắt buộc đổi mật khẩu?) then (Chưa đổi)
+    :Yêu cầu nhập mật khẩu mới;
+    :Cập nhật mat_khau trong tai_khoan;
+  endif
+  :Nhân viên vào bảng điều khiển;
+else (Lỗi)
+  :Hiển thị lỗi và yêu cầu sửa lại;
+endif
+stop
+@enduml
 ```
 
 ---
