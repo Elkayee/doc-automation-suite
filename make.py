@@ -135,6 +135,28 @@ def render_plantuml(code, idx, img_cache):
         print(f'  [ERROR] {e}')
         return None
 
+def render_latex(latex_code, idx, img_cache):
+    """Render công thức LaTeX → PNG qua CodeCogs API, cache lại kết quả."""
+    cache_file = os.path.join(img_cache, f'math_{idx:03d}.png')
+    if os.path.exists(cache_file):
+        print(f'  [cache] math_{idx:03d}.png')
+        return cache_file
+    try:
+        print(f'  [render] Dang render công thức toán {idx}...')
+        encoded = quote(latex_code, safe='')
+        url = f'https://latex.codecogs.com/png.image?\\dpi{{150}}{encoded}'
+        resp = requests.get(url, timeout=15)
+        if resp.status_code == 200 and resp.headers.get('content-type', '').startswith('image'):
+            with open(cache_file, 'wb') as f:
+                f.write(resp.content)
+            print(f'  [OK] math_{idx:03d}.png')
+            return cache_file
+        print(f'  [WARN] CodeCogs trả về {resp.status_code}')
+        return None
+    except Exception as e:
+        print(f'  [ERROR] Render LaTeX: {e}')
+        return None
+
 # ── DOCX helpers ─────────────────────────────────────────────────────────────
 def set_cell_bg(cell, hex_color):
     tc = cell._tc
@@ -169,6 +191,18 @@ def strip_md_markup(text):
     text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)
     text = re.sub(r'\*([^*]+)\*',     r'\1', text)
     text = re.sub(r'`([^`]+)`',       r'\1', text)
+    return text
+
+def normalize_punctuation(text):
+    """Chuẩn hóa dấu câu theo NĐ30: dấu sát từ trước, space sau dấu."""
+    # Xóa khoảng trắng TRƯỚC dấu câu ngắt (., , : ; ! ? )
+    text = re.sub(r'\s+([.,;:!?)])', r'\1', text)
+    # Xóa khoảng trắng SAU dấu mở ngoặc
+    text = re.sub(r'([([{])\s+', r'\1', text)
+    # Xóa khoảng trắng TRƯỚC dấu đóng ngoặc
+    text = re.sub(r'\s+([)\]}])', r'\1', text)
+    # Đảm bảo có đúng 1 space SAU dấu câu (bỏ qua số thập phân và URL)
+    text = re.sub(r'([.,;:!?])([^\s\d.,;:!?)\]}\'"\\])', r'\1 \2', text)
     return text
 
 def resolve_media_path(md_path, asset_path):
@@ -242,18 +276,28 @@ def get_heading_indent(text):
 
 def add_formatted_run(para, text):
     text = strip_md_links(text)
-    tokens = re.split(r'(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)', text)
+    # Hỗ trợ: **bold**, __bold__, *italic*, _italic_, `code`
+    tokens = re.split(
+        r'(\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_|`[^`]+`)',
+        text
+    )
     for token in tokens:
         if not token:
             continue
         run = para.add_run()
-        if token.startswith('**') and token.endswith('**'):
+        if (token.startswith('**') and token.endswith('**')):
             run.text = token[2:-2]
             run.bold = True
-        elif token.startswith('*') and token.endswith('*'):
+        elif (token.startswith('__') and token.endswith('__')):
+            run.text = token[2:-2]
+            run.bold = True
+        elif (token.startswith('*') and token.endswith('*')):
             run.text = token[1:-1]
             run.italic = True
-        elif token.startswith('`') and token.endswith('`'):
+        elif (token.startswith('_') and token.endswith('_')):
+            run.text = token[1:-1]
+            run.italic = True
+        elif (token.startswith('`') and token.endswith('`')):
             run.text = token[1:-1]
             run.font.name  = 'Courier New'
             run.font.size  = Pt(9)
@@ -269,8 +313,26 @@ def parse_and_write(doc, md_path, img_cache=IMG_CACHE):
     style = doc.styles['Normal']
     style.font.name = 'Times New Roman'
     style.font.size = Pt(13)
+    # Chuẩn NĐ30: justify + dãn dòng 1.5
+    # space_after = 0 vì đã dùng first_line_indent để phân biệt đoạn
+    style.paragraph_format.alignment    = WD_ALIGN_PARAGRAPH.JUSTIFY
+    style.paragraph_format.line_spacing = 1.5
+    style.paragraph_format.space_before = Pt(0)
+    style.paragraph_format.space_after  = Pt(0)
 
-    i, in_code, mermaid_block, mermaid_buf, diagram_idx = 0, False, False, [], 0
+    # Tiền xử lý: rút gọn ≥2 dòng trống liên tiếp thành tối đa 1
+    compressed, blank_run = [], 0
+    for _ln in lines:
+        if not _ln.strip():
+            blank_run += 1
+            if blank_run == 1:           # chỉ giữ dòng trống đầu tiên
+                compressed.append(_ln)
+        else:
+            blank_run = 0
+            compressed.append(_ln)
+    lines = compressed
+
+    i, in_code, mermaid_block, mermaid_buf, diagram_idx, math_idx = 0, False, False, [], 0, 0
 
     while i < len(lines):
         line = lines[i].rstrip('\n')
@@ -348,15 +410,24 @@ def parse_and_write(doc, md_path, img_cache=IMG_CACHE):
                     cell = tbl.cell(ri, ci)
                     cell.paragraphs[0].clear()
                     p = cell.paragraphs[0]
+                    # Căn lề trong cell: header center, body left
+                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER if ri == 0 else WD_ALIGN_PARAGRAPH.LEFT
+                    p.paragraph_format.space_before = Pt(2)
+                    p.paragraph_format.space_after  = Pt(2)
                     run = p.add_run(strip_md_markup(cell_text))
                     run.font.size = Pt(11)
+                    run.font.name = 'Times New Roman'
                     if ri == 0:
                         run.bold = True
                         run.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
                         set_cell_bg(cell, '1F619E')
                     elif ri % 2 == 0:
                         set_cell_bg(cell, 'EBF4FB')
-            doc.add_paragraph()
+            # Khoảng cách sau bảng (spacer mỏng, không phải dòng trống đầy)
+            _sp = doc.add_paragraph()
+            _sp.paragraph_format.space_before = Pt(0)
+            _sp.paragraph_format.space_after  = Pt(6)
+            _sp.add_run('').font.size = Pt(4)
             continue
 
         # Horizontal rule
@@ -403,6 +474,12 @@ def parse_and_write(doc, md_path, img_cache=IMG_CACHE):
             heading_indent = get_heading_indent(text)
             if heading_indent is not None:
                 p.paragraph_format.left_indent = heading_indent
+            # Khoảng cách trước/sau heading — cân bằng, không quá rộng
+            _space_before = [Pt(12), Pt(10), Pt(8), Pt(6), Pt(6), Pt(4)]
+            p.paragraph_format.space_before  = _space_before[level - 1]
+            p.paragraph_format.space_after   = Pt(4)
+            p.paragraph_format.line_spacing  = 1.5
+            p.paragraph_format.alignment     = WD_ALIGN_PARAGRAPH.LEFT  # heading luôn left
             run   = p.add_run(text)
             run.font.name = 'Times New Roman'
             run.font.color.rgb = [COLOR_H1,COLOR_H2,COLOR_H3,COLOR_H4,COLOR_H4,COLOR_H4][level-1]
@@ -448,26 +525,65 @@ def parse_and_write(doc, md_path, img_cache=IMG_CACHE):
             i += 1
             continue
 
-        # Math
-        if line.strip().startswith('$$'):
-            p = doc.add_paragraph()
-            run = p.add_run(line.strip())
-            run.font.name = 'Cambria Math'
-            run.font.size = Pt(12)
-            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        # Công thức toán (khối $$ ... $$)
+        if line.strip() == '$$':
+            # Thu thập tất cả dòng đến khi gặp $$ đóng
+            math_buf = []
+            i += 1
+            while i < len(lines) and lines[i].rstrip('\n').strip() != '$$':
+                math_buf.append(lines[i].rstrip('\n'))
+                i += 1
+            i += 1  # bỏ qua dòng $$ đóng
+            latex_code = ' '.join(b.strip() for b in math_buf if b.strip())
+            if latex_code:
+                math_idx += 1
+                img_path = render_latex(latex_code, math_idx, img_cache)
+                if img_path:
+                    p = doc.add_paragraph()
+                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    p.paragraph_format.space_before = Pt(6)
+                    p.paragraph_format.space_after  = Pt(6)
+                    p.add_run().add_picture(img_path, width=Inches(5.5))
+                else:
+                    # Fallback: hiển thị LaTeX dạng text
+                    p = doc.add_paragraph()
+                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    run = p.add_run(latex_code)
+                    run.font.name = 'Cambria Math'
+                    run.font.size = Pt(11)
+            continue
+
+        # Công thức toán inline: $$ ... $$ trên một dòng
+        if line.strip().startswith('$$') and line.strip().endswith('$$') and len(line.strip()) > 4:
+            latex_code = line.strip()[2:-2].strip()
+            if latex_code:
+                math_idx += 1
+                img_path = render_latex(latex_code, math_idx, img_cache)
+                if img_path:
+                    p = doc.add_paragraph()
+                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    p.add_run().add_picture(img_path, width=Inches(5.5))
+                else:
+                    p = doc.add_paragraph()
+                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    p.add_run(latex_code).font.name = 'Cambria Math'
             i += 1
             continue
 
-        # Dòng trống
+        # Dòng trống → bỏ qua hoàn toàn, không tạo paragraph
+        # (space_after của đoạn văn trước đã tạo khoảng cách đủ rồi)
         if not line.strip():
-            doc.add_paragraph()
             i += 1
             continue
 
-        # Đoạn văn thường
+        # Đoạn văn thường — chuẩn NĐ30: justify, lùi đầu dòng, dãn 1.5
         p = doc.add_paragraph()
-        p.paragraph_format.space_after = Pt(4)
-        add_formatted_run(p, line.strip())
+        p.alignment                          = WD_ALIGN_PARAGRAPH.JUSTIFY
+        p.paragraph_format.first_line_indent = Cm(1.27)  # lùi đầu dòng 1.27 cm
+        p.paragraph_format.line_spacing      = 1.5
+        p.paragraph_format.space_before      = Pt(0)
+        p.paragraph_format.space_after       = Pt(6)     # tối thiểu 6pt giữa đoạn
+        add_formatted_run(p, normalize_punctuation(line.strip()))
         i += 1
 
 def step_convert(md_out=MD_OUT, docx_out=DOCX_OUT, img_cache=IMG_CACHE):
@@ -519,7 +635,7 @@ def launch_workflow_ui():
 
     root = tk.Tk()
     root.title('NMCNPM Workflow')
-    root.geometry('920x620')
+    root.geometry('1400x720')  # Rộng hơn để chứa live preview panel
     root.configure(bg='#f3efe5')
 
     style = ttk.Style()
@@ -580,27 +696,123 @@ def launch_workflow_ui():
     notebook.add(split_tab, text='Split Chapters')
     notebook.add(convert_tab, text='DOCX → MD')
 
+    # ── Kiểm tra tkinterweb ──────────────────────────────────────────────────
+    try:
+        from tkinterweb import HtmlFrame as _HtmlFrame
+        _has_htmlframe = True
+    except ImportError:
+        _has_htmlframe = False
+
     # --- EDITOR TAB ---
+    # Bố cục: [Listbox file | Editor text | Preview panel]
     editor_paned = ttk.PanedWindow(editor_tab, orient=tk.HORIZONTAL)
     editor_paned.pack(fill='both', expand=True)
 
+    # Cột 1: Danh sách file
     file_list_frame = ttk.Frame(editor_paned)
     editor_paned.add(file_list_frame, weight=1)
 
+    # Cột 2: Editor text
     editor_frame = ttk.Frame(editor_paned)
     editor_paned.add(editor_frame, weight=3)
 
+    # Cột 3: Live preview
+    preview_frame = ttk.Frame(editor_paned)
+    editor_paned.add(preview_frame, weight=3)
+
+    # -- Listbox --
     file_listbox = tk.Listbox(file_list_frame, font=('Consolas', 10))
     file_listbox.pack(side='left', fill='both', expand=True)
     scrollbar = ttk.Scrollbar(file_list_frame, orient='vertical', command=file_listbox.yview)
     scrollbar.pack(side='right', fill='y')
     file_listbox.config(yscrollcommand=scrollbar.set)
 
+    # -- Editor --
     editor_text = tk.Text(editor_frame, font=('Consolas', 11), wrap='word', undo=True)
     editor_text.pack(fill='both', expand=True, pady=(0, 5))
 
     btn_frame = ttk.Frame(editor_frame)
     btn_frame.pack(fill='x')
+
+    # -- Live preview widget --
+    ttk.Label(preview_frame, text='Live Preview', font=('Georgia', 10, 'bold')).pack(anchor='w', padx=6, pady=(0, 4))
+    if _has_htmlframe:
+        # Dùng HtmlFrame (tkinterweb) — render HTML thực sự
+        live_preview = _HtmlFrame(preview_frame, messages_enabled=False)
+        live_preview.pack(fill='both', expand=True)
+
+        def _update_preview_widget(html_content):
+            live_preview.load_html(html_content)
+    else:
+        # Fallback: tk.Text hiển thị nội dung thô (chỉ dùng khi tkinterweb chưa cài)
+        preview_text = tk.Text(
+            preview_frame, font=('Consolas', 10), wrap='word',
+            bg='#fffdf8', fg='#2b241b', state='disabled'
+        )
+        preview_text.pack(fill='both', expand=True)
+        ttk.Label(
+            preview_frame,
+            text='Cài tkinterweb để xem preview đẹp hơn:\npip install tkinterweb',
+            foreground='#888', font=('Consolas', 9)
+        ).pack(anchor='w', padx=6)
+
+        def _update_preview_widget(html_content):
+            # Fallback: chỉ hiện nội dung Markdown thô
+            preview_text.config(state='normal')
+            preview_text.delete(1.0, tk.END)
+            preview_text.insert(tk.END, editor_text.get(1.0, tk.END))
+            preview_text.config(state='disabled')
+
+    # -- Debounce timer cho live preview --
+    _preview_after_id = [None]  # dùng list để có thể thay đổi trong closure
+
+    def _build_preview_html():
+        """Tạo HTML đầy đủ từ nội dung editor hiện tại."""
+        content = editor_text.get(1.0, tk.END)
+        filepath = current_file.get()
+        body = _md_to_html_body(content)
+        fname = os.path.basename(filepath) if filepath else 'Preview'
+        css = """
+body { font-family: 'Segoe UI', Arial, sans-serif; padding: 20px 32px;
+       line-height: 1.7; color: #222; max-width: 860px; margin: auto; }
+h1 { color: #1A3A5C; font-size: 1.7em; border-bottom: 2px solid #1F619E; padding-bottom: 5px; }
+h2 { color: #1F619E; font-size: 1.35em; }
+h3 { color: #2E86AB; font-size: 1.15em; }
+h4 { color: #449DD1; }
+pre { background:#f4f4f4; padding:10px; border-radius:5px; overflow-x:auto;
+      font-family: Consolas, monospace; font-size: 0.9em; }
+code { background:#f0f0f0; padding:2px 4px; border-radius:3px; font-size:0.9em; }
+table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+th { background-color: #1F619E; color: white; padding: 7px 10px; text-align: left; }
+td { border: 1px solid #d0d0d0; padding: 6px 10px; }
+tr:nth-child(even) td { background: #EBF4FB; }
+blockquote { border-left: 4px solid #449DD1; margin-left:0; padding-left:14px; color:#555; }
+img { max-width: 100%; height: auto; display: block; margin: 8px auto; }
+.diagram { text-align: center; }
+"""
+        return f"""<!DOCTYPE html>
+<html lang="vi">
+<head><meta charset="utf-8"><title>{fname}</title><style>{css}</style></head>
+<body>{body}</body>
+</html>"""
+
+    def _do_live_preview():
+        """Được gọi sau debounce — render và cập nhật preview."""
+        try:
+            html_content = _build_preview_html()
+            _update_preview_widget(html_content)
+        except Exception:
+            pass  # Không để lỗi render crash UI
+        _preview_after_id[0] = None
+
+    def _on_editor_change(event=None):
+        """Debounce 800ms: chỉ render sau khi ngừng gõ."""
+        if _preview_after_id[0] is not None:
+            root.after_cancel(_preview_after_id[0])
+        _preview_after_id[0] = root.after(800, _do_live_preview)
+
+    # Gắn sự kiện gõ phím vào editor
+    editor_text.bind('<KeyRelease>', _on_editor_change)
 
     current_file = tk.StringVar()
 
@@ -620,6 +832,8 @@ def launch_workflow_ui():
             with open(filepath, 'r', encoding='utf-8') as f:
                 editor_text.delete(1.0, tk.END)
                 editor_text.insert(tk.END, f.read())
+            # Render ngay khi mở file mới
+            _do_live_preview()
         except Exception as e:
             log(f'Lỗi đọc file: {e}')
 
@@ -734,7 +948,7 @@ img { max-width: 100%; }
             log(f'Lỗi: {e}')
 
     ttk.Button(btn_frame, text='Lưu (Save)', command=save_file).pack(side='left', padx=5)
-    ttk.Button(btn_frame, text='Xem trước (Preview)', command=preview_file).pack(side='left', padx=5)
+    ttk.Button(btn_frame, text='Mở Preview (Browser)', command=preview_file).pack(side='left', padx=5)
     ttk.Button(btn_frame, text='Tải lại danh sách', command=load_files).pack(side='left', padx=5)
     ttk.Button(btn_frame, text='Tách DOCX -> Chapters', command=docx_to_chapters).pack(side='right', padx=5)
 

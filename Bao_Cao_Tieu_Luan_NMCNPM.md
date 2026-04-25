@@ -1941,7 +1941,7 @@ Chương này đi sâu vào mô tả và phân tích thiết kế một use case
 
 ## CHƯƠNG 6: NGHIÊN CỨU CHUYÊN SÂU — CA SỬ DỤNG QUẢN LÝ CA LÀM VIỆC VÀ CHẤM CÔNG (UC04)
 
-Chương này đi sâu vào phân tích và thiết kế một ca sử dụng cụ thể: **UC04 — Quản lý Ca làm việc và Chấm công**. Đây là phân hệ hạt nhân trong quản trị nhân sự, có tính phức tạp cao do phải xử lý đồng thời nhiều ràng buộc thời gian, dữ liệu và quyền truy cập. Phân tích chuyên sâu UC04 minh họa cho toàn bộ vòng đời thiết kế ca sử dụng từ đặc tả đến thiết kế dữ liệu và kiểm thử.
+Chương này đi sâu vào phân tích và thiết kế **UC04 — Quản lý Ca làm việc và Chấm công**. Đây là phân hệ hạt nhân trong quản trị nhân sự, có tính phức tạp cao do phải xử lý đồng thời nhiều ràng buộc thời gian, dữ liệu và quyền truy cập. Phân tích chuyên sâu UC04 minh họa cho toàn bộ vòng đời thiết kế ca sử dụng từ đặc tả đến thiết kế dữ liệu và kiểm thử.
 
 ### 6.1. Biểu đồ Ca sử dụng chi tiết UC04
 
@@ -1983,96 +1983,72 @@ UC045 ..> UC046 : extend
 
 #### 6.2.1. Đặc tả UC04.3 — Nhân viên Vào ca làm
 
-| **Trường** | **Nội dung** |
-| --- | --- |
-| Mã ca sử dụng | UC04.3 |
-| Tên ca sử dụng | Vào ca làm việc |
-| Tác nhân chính | Nhân viên |
-| Tác nhân thứ cấp | Hệ thống chấm công |
-| Điều kiện tiên quyết | Nhân viên đã đăng nhập; tồn tại bản phân công ca (ShiftAssignment) cho nhân viên này trong ngày hôm nay; trạng thái ca là "chưa bắt đầu" |
-| Điều kiện kết thúc (thành công) | Bản ghi Attendance được tạo với check_in_time = thời gian hiện tại; trạng thái phân công chuyển sang "đang làm việc" |
-| Điều kiện kết thúc (thất bại) | Hệ thống hiển thị thông báo lỗi; trạng thái Attendance không thay đổi |
+| **Trường**                      | **Nội dung**                                                                                            |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Mã ca sử dụng                   | UC04.3                                                                                                  |
+| Tên ca sử dụng                  | Vào ca làm việc                                                                                         |
+| Tác nhân chính                  | Nhân viên                                                                                               |
+| Tác nhân thứ cấp                | Hệ thống chấm công                                                                                      |
+| Điều kiện tiên quyết            | Nhân viên đã đăng nhập; tồn tại bản phân công ca (ShiftAssignment) cho nhân viên này trong ngày hôm nay |
+| Điều kiện kết thúc (thành công) | Bản ghi Attendance được tạo với check_in = thời gian hiện tại; status = 'present' hoặc 'late'           |
+| Điều kiện kết thúc (thất bại)   | Hệ thống hiển thị thông báo lỗi; không tạo bản ghi Attendance                                           |
 
 **Luồng sự kiện chính (Main Flow):**
 
-| **Bước** | **Tác nhân** | **Hành động** |
-| --- | --- | --- |
-| 1 | Nhân viên | Mở màn hình Chấm công, chọn "Vào ca" |
-| 2 | Hệ thống | Truy vấn ShiftAssignment theo id_nhan_vien và ngày hiện tại |
-| 3 | Hệ thống | Xác nhận tồn tại ca được phân công và ca chưa bắt đầu |
-| 4 | Hệ thống | Tạo bản ghi Attendance với check_in_time = NOW() |
-| 5 | Hệ thống | Cập nhật ShiftAssignment.trang_thai = 'dang_lam' |
-| 6 | Hệ thống | Hiển thị thông báo: _"Vào ca thành công lúc HH:MM. Chúc bạn làm việc hiệu quả!"_ |
+| **Bước** | **Tác nhân** | **Hành động**                                                                   |
+| -------- | ------------ | ------------------------------------------------------------------------------- |
+| 1        | Nhân viên    | Mở màn hình Chấm công, chọn "Vào ca"                                            |
+| 2        | Hệ thống     | Truy vấn ShiftAssignment theo employee_id và ngày hiện tại                      |
+| 3        | Hệ thống     | Xác nhận tồn tại ca được phân công và chưa có check_in                          |
+| 4        | Hệ thống     | Tạo bản ghi Attendance với check_in = NOW()                                     |
+| 5        | Hệ thống     | Cập nhật Attendance.status = 'present'                                          |
+| 6        | Hệ thống     | Hiển thị thông báo:_"Vào ca thành công lúc HH:MM. Chúc bạn làm việc hiệu quả!"_ |
 
-**Luồng ngoại lệ (Alternative / Exception Flows):**
+**Luồng ngoại lệ (Exception Flows):**
 
-| **Mã** | **Điều kiện kích hoạt** | **Xử lý** |
-| --- | --- | --- |
-| E1 | Không tồn tại ShiftAssignment cho ngày hôm nay | Hiển thị: _"Bạn không có ca làm việc hôm nay. Liên hệ Quản lý."_ |
-| E2 | Nhân viên đã vào ca này rồi | Hiển thị: _"Bạn đã vào ca lúc [giờ]. Không thể ghi nhận hai lần."_ |
-| E3 | Vào ca sớm hơn 30 phút so với giờ bắt đầu ca | Hiển thị cảnh báo vào ca sớm; cho phép nhân viên xác nhận tiếp tục ghi nhận |
-| E4 | Vào ca muộn hơn 15 phút so với giờ bắt đầu ca | Ghi nhận vào ca bình thường nhưng đánh dấu is_late = TRUE trong bản ghi Attendance |
-| E5 | Mất kết nối CSDL khi lưu | Thông báo lỗi kỹ thuật; ghi log; không tạo bản ghi Attendance |
+| **Mã** | **Điều kiện kích hoạt**                         | **Xử lý**                                                          |
+| ------ | ----------------------------------------------- | ------------------------------------------------------------------ |
+| E1     | Không tồn tại ShiftAssignment cho ngày hôm nay  | Hiển thị:_"Bạn không có ca làm việc hôm nay. Liên hệ Quản lý."_    |
+| E2     | Nhân viên đã vào ca (check_in đã tồn tại)       | Hiển thị:_"Bạn đã vào ca lúc [giờ]. Không thể ghi nhận hai lần."_  |
+| E3     | Vào ca sớm hơn 30 phút so với Shift.start_time  | Hiển thị cảnh báo vào ca sớm; cho phép nhân viên xác nhận tiếp tục |
+| E4     | Vào ca muộn hơn 15 phút so với Shift.start_time | Ghi nhận bình thường nhưng đặt Attendance.status = 'late'          |
+| E5     | Mất kết nối CSDL khi lưu                        | Thông báo lỗi kỹ thuật; ghi log; không tạo bản ghi Attendance      |
 
 #### 6.2.2. Đặc tả UC04.5 — Tính lương tự động
 
-| **Trường** | **Nội dung** |
-| --- | --- |
-| Tác nhân | Quản lý (khởi tạo) / Hệ thống (thực thi) |
-| Điều kiện tiên quyết | Tồn tại ít nhất một bản ghi Attendance có đủ cặp check-in/check-out trong kỳ tính lương |
-| Kết quả | Hệ thống tổng hợp bảng lương cho từng nhân viên theo kỳ |
+| **Trường**           | **Nội dung**                                                                        |
+| -------------------- | ----------------------------------------------------------------------------------- |
+| Mã ca sử dụng        | UC04.5                                                                              |
+| Tác nhân             | Quản lý (khởi tạo) / Hệ thống (thực thi)                                            |
+| Điều kiện tiên quyết | Tồn tại ít nhất một bản ghi Attendance có đủ check_in/check_out trong kỳ tính lương |
+| Kết quả              | Hệ thống tổng hợp bảng lương cho từng nhân viên theo kỳ                             |
 
 **Công thức tính lương:**
 
-$$L_{nv} = \sum (N_{sang,thuong} \times R_{sang}) + \sum (N_{toi,thuong} \times R_{toi}) + \sum (N_{cuoi_tuan} \times R_{ca} \times 1.5) + \sum (N_{ngay_le} \times R_{ca} \times 2.0)$$
+$$
+S_{total} = (N_{sang} \times R_{sang}) + (N_{toi} \times R_{toi}) + (N_{cuoi\_tuan} \times R_{ca} \times 1.5) + (N_{ngay\_le} \times R_{ca} \times 2.0)
+$$
 
-Trong đó:
+| **Loại ca**           | **Khung giờ (start_time – end_time)** | **Cách tính**                      |
+| --------------------- | ------------------------------------- | ---------------------------------- |
+| Ca sáng (ngày thường) | 06:00 – 14:00                         | Cộng `R_sang` khi hoàn thành đủ ca |
+| Ca tối (ngày thường)  | 14:00 – 22:00                         | Cộng `R_toi` khi hoàn thành đủ ca  |
+| Ca cuối tuần          | Theo loại ca tương ứng                | Nhân hệ số `1.5` trên đơn giá ca   |
+| Ca ngày lễ            | Theo loại ca tương ứng                | Nhân hệ số `2.0` trên đơn giá ca   |
 
-$L_{nv}$: Tổng lương của nhân viên trong kỳ
+#### 6.2.3. Xử lý Ngoại lệ — Quên kết thúc ca
 
-$N_{sang,thuong}$: Số ca sáng ngày thường đã hoàn thành trong kỳ
-
-$N_{toi,thuong}$: Số ca tối ngày thường đã hoàn thành trong kỳ
-
-$N_{cuoi_tuan}$: Số ca hoàn thành vào cuối tuần
-
-$N_{ngay_le}$: Số ca hoàn thành vào ngày lễ
-
-$R_{sang}$: Mức lương cố định cho một ca sáng
-
-$R_{toi}$: Mức lương cố định cho một ca tối
-
-$R_{ca}$: Mức lương gốc của ca sáng hoặc ca tối tương ứng
-
-### 6.2.3. Xử lý Ngoại lệ Thông minh — Đổi ca đột xuất và Quên kết thúc ca
-
-Khác với các quy tắc cứng nhắc, hệ thống được thiết kế để xử lý **linh hoạt** các tình huống thực tế của nghiệp vụ ngành dịch vụ:
-
-**a. Đổi ca đột xuất:**
-
-Khi nhân viên đổi ca mà chưa có lịch trên hệ thống, hệ thống **không từ chối** chấm công. Thay vào đó:
-
-- Cho phép vào ca bình thường dựa trên xác thực GPS và khuôn mặt
-- Xếp bản ghi `attendance` vào trạng thái `trang_thai = 'cho_phe_duyet'`
-- Gửi thông báo tới Quản lý để phê duyệt bổ sung
-- Sau khi phê duyệt, tạo `shift_assignment` tương ứng và liên kết lại
-
-***Nguyên tắc thiết kế:** Hệ thống không được cản trở hoạt động vận hành; mọi ngoại lệ được thu thập để quản lý xử lý sau, không phải từ chối trước.*
-
-**b. Xử lý "Quên kết thúc ca":**
-
-Trường hợp nhân viên quên bấm giờ ra, hệ thống **không được phép** gán giờ làm = 0 (vi phạm quyền lợi người lao động theo Bộ Luật Lao động):
+Trường hợp nhân viên quên bấm giờ ra, hệ thống **không được phép** gán working_hours = 0 (vi phạm quyền lợi người lao động). Thay vào đó:
 
 ```plantuml
 @startuml
 start
-:Nhân viên kết thúc ca nhưng quên bấm kết thúc ca;
-:Hệ thống phát hiện bản ghi attendance chưa có check_out_time;
-:Đánh dấu trạng thái cần xác nhận;
-:Gửi thông báo cho Quản lý;
-if (Quản lý có xác nhận giờ ra?) then (Có)
-  :Cập nhật check_out_time theo xác nhận;
-  :Tính số giờ làm và ghi chú điều chỉnh;
+:Hệ thống phát hiện bản ghi Attendance chưa có check_out;
+:Đánh dấu Attendance.status = 'absent' tạm thời;
+:Gửi thông báo cho Quản lý xem xét;
+if (Quản lý xác nhận giờ ra?) then (Có)
+  :Cập nhật check_out theo xác nhận;
+  :Tính working_hours = check_out - check_in;
   :Đưa vào bảng lương kỳ hiện tại;
 else (Không)
   :Giữ bản ghi ở trạng thái chờ xử lý;
@@ -2081,115 +2057,76 @@ stop
 @enduml
 ```
 
-### 6.2.4. Cơ chế Chấm công Sinh trắc học — Triệt tiêu Chấm công Hộ
-
-Để ngăn chặn tình trạng **chấm công hộ (Buddy Punching)** — một vấn đề phổ biến trong ngành dịch vụ, ứng dụng di động tích hợp hai lớp bảo vệ:
-
-| **Lớp** | **Công nghệ** | **Cơ chế hoạt động** |
-| --- | --- | --- |
-| Lớp 1: Vị trí | Định vị GPS theo vùng | Chỉ cho phép vào ca khi thiết bị nằm trong bán kính ≤ 100m từ tọa độ quán |
-| Lớp 2: Danh tính | Nhận diện khuôn mặt hoặc ảnh tự chụp | Chụp ảnh tại thời điểm vào ca, so sánh với ảnh đăng ký bằng thuật toán nhận diện khuôn mặt |
-
-**Luồng xác thực:**
-
-```plantuml
-@startuml
-start
-:Nhân viên mở ứng dụng chấm công;
-if (Thiết bị nằm trong phạm vi 100m?) then (Có)
-  :Chụp selfie xác thực;
-  if (Khuôn mặt khớp từ 90 phần trăm trở lên?) then (Có)
-    :Ghi nhận vào ca và lưu ảnh bằng chứng mã hóa;
-  else (Không)
-    :Từ chối và thông báo Quản lý;
-  endif
-else (Không)
-  :Từ chối và ghi log cảnh báo;
-endif
-stop
-@enduml
-```
-
-***Lưu trữ:** Ảnh selfie được mã hóa và lưu kèm bản ghi `attendance`, giữ tối thiểu 90 ngày để phục vụ kiểm toán nội bộ.*
-
-### 6.2.5. Tính lương theo 2 ca cố định có hệ số cuối tuần/lễ
-
-Hệ thống áp dụng mô hình tính lương gọn nhưng thực tế: chỉ có 2 ca sáng/tối, nhưng vẫn cộng hệ số cho cuối tuần và ngày lễ.
-
-$$S_{total} = (N_{sang} \times R_{sang}) + (N_{toi} \times R_{toi}) + (N_{cuoi_tuan} \times R_{ca} \times 1.5) + (N_{ngay_le} \times R_{ca} \times 2.0)$$
-
-| **Loại ca** | **Khung giờ chuẩn** | **Cách tính lương** |
-| --- | --- | --- |
-| Ca sáng | 06:00 - 12:00 | Cộng `R_sang` khi hoàn thành đủ ca |
-| Ca tối | 16:00 - 22:00 | Cộng `R_toi` khi hoàn thành đủ ca |
-| Ca cuối tuần | Theo ca sáng hoặc ca tối | Nhân hệ số `1.5` trên đơn giá ca tương ứng |
-| Ca ngày lễ | Theo ca sáng hoặc ca tối | Nhân hệ số `2.0` trên đơn giá ca tương ứng |
+### 6.3. Mô hình Dữ liệu — Phân hệ Ca làm việc
 
 #### 6.3.1. Lược đồ 4 bảng — Tách biệt Kế hoạch và Thực tế
 
-Nguyên tắc thiết kế cốt lõi của UC04 là **tách biệt hoàn toàn** dữ liệu kế hoạch (Planning) khỏi dữ liệu thực tế (Actual), tương tự mô hình Planning vs. Actuals phổ biến trong kế toán quản trị:
+Nguyên tắc thiết kế cốt lõi của UC04 là **tách biệt hoàn toàn** dữ liệu kế hoạch (ShiftTemplate, Shift, ShiftAssignment) khỏi dữ liệu thực tế (Attendance). Lược đồ bám sát ERD tổng thể, tên tham số theo tiếng Anh:
 
 ```plantuml
 @startuml
-hide methods
-hide stereotypes
 
-class shift_template {
-  id_template : INT <<PK>>
-  ten_ca : NVARCHAR
-  gio_bat_dau : TIME
-  gio_ket_thuc : TIME
-  don_gia_gio : DECIMAL
+entity ShiftTemplate {
+  +id PK
+  name
+  start_time
+  end_time
 }
 
-class shift {
-  id_ca : INT <<PK>>
-  id_template : INT <<FK>>
-  ngay_lam_viec : DATE
-  don_gia_gio : DECIMAL
+entity Shift {
+  +id PK
+  store_id FK
+  shift_template_id FK
+  shift_date
+  start_time
+  end_time
+  status
 }
 
-class nhan_vien {
-  id_nhan_vien : INT <<PK>>
-  ho_ten : NVARCHAR
-  luong_gio : DECIMAL
+entity ShiftAssignment {
+  +id PK
+  shift_id FK
+  employee_id FK
+  role
 }
 
-class shift_assignment {
-  id_phan_cong : INT <<PK>>
-  id_ca : INT <<FK>>
-  id_nhan_vien : INT <<FK>>
-  trang_thai : ENUM
+entity Attendance {
+  +id PK
+  shift_id FK
+  employee_id FK
+  check_in
+  check_out
+  status
+  working_hours
 }
 
-class attendance {
-  id_cham_cong : INT <<PK>>
-  id_phan_cong : INT <<FK>>
-  check_in_time : DATETIME
-  check_out_time : DATETIME
-  so_gio_lam : DECIMAL
-  is_late : BIT
-  ghi_chu : VARCHAR
+entity Employee {
+  +id PK
+  store_id FK
+  name
+  role
 }
 
-shift_template "1" -- "N" shift : tao ra
-shift "1" -- "N" shift_assignment : phan cong
-nhan_vien "1" -- "N" shift_assignment : duoc giao
-shift_assignment "1" -- "N" attendance : ghi nhan
+ShiftTemplate ||--o{ Shift
+Shift ||--o{ ShiftAssignment
+Shift ||--o{ Attendance
+Employee ||--o{ ShiftAssignment
+Employee ||--o{ Attendance
+
 @enduml
 ```
 
-***Ghi chú thiết kế:** 2 nhóm bảng trên tách biệt hoàn toàn **Kế hoạch** (shift_template, shift, shift_assignment) khỏi **Thực tế** (attendance), giúp dễ đối soát và kiểm toán.*
+_Ghi chú: **ShiftTemplate** lưu mẫu ca tái sử dụng; **Shift** là ca thực tế theo ngày; **ShiftAssignment** là kế hoạch phân công; **Attendance** ghi thực tế check_in, check_out và working_hours._
 
 #### 6.3.2. Các Quy tắc Nghiệp vụ cho UC04
 
-| **Mã BR** | **Quy tắc** | **Cơ chế kiểm soát** |
-| --- | --- | --- |
-| BR-01 | Một nhân viên không thể có 2 ca chồng chéo thời gian trong cùng ngày | Trigger kiểm tra overlap khi INSERT vào shift_assignment |
-| BR-02 | Chỉ có thể kết thúc ca sau khi đã vào ca | check_out_time chỉ được UPDATE khi check_in_time IS NOT NULL |
-| BR-03 | Chỉ ca có đủ check_in_time và check_out_time mới được đưa vào bảng lương | Dùng CASE WHEN hoặc cờ trạng thái hợp lệ khi tổng hợp lương |
-| BR-04 | Giờ làm tối đa 16 giờ/ca; nếu vượt thì đánh dấu cần xem xét thủ công | Constraint: CHECK(so_gio_lam <= 16) hoặc cờ needs_review = 1 |
-| BR-05 | Mỗi ca phải thuộc đúng 1 trong 2 loại: sang hoặc toi; nếu rơi vào cuối tuần/ngày lễ thì áp đúng hệ số | Ràng buộc ENUM / validation ngày làm việc và cờ loại ngày |
+| **Mã BR** | **Quy tắc**                                                            | **Cơ chế kiểm soát**                                        |
+| --------- | ---------------------------------------------------------------------- | ----------------------------------------------------------- |
+| BR-01     | Một nhân viên không thể có 2 ca chồng chéo thời gian trong cùng ngày   | Kiểm tra overlap khi INSERT vào ShiftAssignment             |
+| BR-02     | Chỉ có thể ghi check_out sau khi đã có check_in                        | check_out chỉ được UPDATE khi check_in IS NOT NULL          |
+| BR-03     | Chỉ Attendance có đủ check_in và check_out mới được đưa vào bảng lương | Lọc theo điều kiện check_out IS NOT NULL khi tổng hợp lương |
+| BR-04     | working_hours tối đa 16 giờ/ca; nếu vượt thì đánh dấu cần xem xét      | Kiểm tra working_hours <= 16; nếu vượt gửi cảnh báo Quản lý |
+| BR-05     | status của Attendance chỉ nhận: present / late / absent                | Ràng buộc ENUM trên cột Attendance.status                   |
 
 ### 6.4. Biểu đồ Hoạt động — Quy trình Chấm công toàn luồng
 
@@ -2199,27 +2136,24 @@ start
 :Nhân viên mở màn hình chấm công;
 if (Tìm thấy ShiftAssignment hôm nay?) then (Có)
   :Nhân viên nhấn Vào ca;
-  if (Đã có bản ghi vào ca?) then (Có)
+  if (Đã có bản ghi check_in?) then (Có)
     :Thông báo lỗi đã vào ca;
     stop
   else (Chưa)
-    :Hệ thống ghi check_in_time = NOW;
+    :Hệ thống ghi check_in = NOW;
     if (Muộn hơn 15 phút?) then (Có)
-      :Đánh dấu is_late = TRUE và ghi chú đi muộn;
+      :Đặt status = late;
+    else (Không)
+      :Đặt status = present;
     endif
     :Nhân viên thực hiện ca làm việc;
     :Nhân viên nhấn Kết thúc ca;
-    if (Chưa có bản ghi vào ca?) then (Có)
-      :Thông báo lỗi chưa vào ca;
-      stop
-    else (Không)
-      :Tính số giờ làm;
-      if (Số giờ làm lớn hơn 16 giờ?) then (Có)
-        :Đánh dấu needs_review = TRUE và gửi cảnh báo Quản lý;
-      endif
-      :Ghi check_out_time và cập nhật hoàn thành;
-      :Hiển thị tóm tắt giờ vào, giờ ra, tổng giờ;
+    :Tính working_hours = check_out - check_in;
+    if (working_hours lớn hơn 16 giờ?) then (Có)
+      :Gửi cảnh báo Quản lý xem xét;
     endif
+    :Ghi check_out và cập nhật hoàn thành;
+    :Hiển thị tóm tắt giờ vào, giờ ra, tổng giờ;
   endif
 else (Không)
   :Thông báo không có ca hôm nay;
@@ -2227,46 +2161,6 @@ endif
 stop
 @enduml
 ```
-
-### 6.5. Kiểm thử Ca sử dụng UC04
-
-#### 6.5.1. Ca kiểm thử cho UC04.3 (Vào ca)
-
-| **Mã TC** | **Kịch bản** | **Điều kiện đầu vào** | **Kết quả mong đợi** | **Trạng thái** |
-| --- | --- | --- | --- | --- |
-| TC-UC04-01 | Vào ca thành công (đúng giờ) | Có ShiftAssignment hôm nay; chưa vào ca; đúng giờ | Tạo Attendance; thông báo thành công | Chờ kiểm thử |
-| TC-UC04-02 | Vào ca thành công (đến sớm) | Sớm hơn 30 phút | Hiển thị cảnh báo vào ca sớm; nhân viên xác nhận và hệ thống vẫn ghi nhận | Chờ kiểm thử |
-| TC-UC04-03 | Vào ca muộn | Muộn hơn 15 phút | Tạo Attendance; is_late = TRUE; thông báo có ghi chú muộn | Chờ kiểm thử |
-| TC-UC04-04 | Vào ca khi không có ca | Không có ShiftAssignment hôm nay | Thông báo lỗi E1; không tạo Attendance | Chờ kiểm thử |
-| TC-UC04-05 | Vào ca lần 2 trong cùng ca | Đã có Attendance với check_in_time | Thông báo lỗi E2; không ghi đè | Chờ kiểm thử |
-
-#### 6.5.2. Ca kiểm thử cho UC04.5 (Tính lương)
-
-| **Mã TC** | **Kịch bản** | **Dữ liệu đầu vào** | **Kết quả mong đợi** |
-| --- | --- | --- | --- |
-| TC-UC04-06 | Tính lương 1 ca sáng ngày thường | Hoàn thành 1 ca sáng, `R_sang = 120.000đ` | Lương = 120.000đ |
-| TC-UC04-07 | Tính lương 1 ca tối cuối tuần | Hoàn thành 1 ca tối cuối tuần, `R_toi = 140.000đ` | Lương = 140.000 × 1.5 = 210.000đ |
-| TC-UC04-08 | Ca chưa check-out | check_out_time = NULL | Chưa đưa vào bảng lương, chờ quản lý xác nhận |
-| TC-UC04-09 | Tổng hợp cả tháng | 18 ca sáng ngày thường + 8 ca tối ngày thường + 2 ca tối cuối tuần + 1 ca sáng ngày lễ | L = 18×120.000 + 8×140.000 + 2×140.000×1.5 + 1×120.000×2.0 = 3.940.000đ |
-
-### 6.6. Đánh giá và Định hướng mở rộng UC04
-
-**Những điểm mạnh của thiết kế hiện tại:**
-
-Kiến trúc **4 bảng phân tách kế hoạch/thực tế** đảm bảo tính toàn vẹn dữ liệu và dễ đối soát.
-
-Luồng ngoại lệ được xử lý tường minh, không để hệ thống ở trạng thái không xác định.
-
-Các quy tắc nghiệp vụ được mã hóa thành Trigger và Constraint ở tầng CSDL, tránh phụ thuộc hoàn toàn vào tầng ứng dụng.
-
-**Hướng mở rộng trong phiên bản tương lai:**
-
-| **Tính năng** | **Mô tả** | **Độ phức tạp** |
-| --- | --- | --- |
-| Chấm công bằng QR Code | Nhân viên quét QR được tạo theo ca làm, giới hạn địa điểm | Trung bình |
-| Tích hợp xử lý lương tự động | Xuất file Excel bảng lương và gửi email thông báo | Thấp |
-| Phân tích chuyên cần | Bảng điều khiển thống kê tỷ lệ đi muộn, vắng mặt theo tháng | Cao |
-| Phê duyệt tăng ca cuối tuần/lễ | Cho phép Quản lý xác nhận ca đặc biệt trước khi chốt lương | Trung bình |
 
 ## CHƯƠNG 7: NGHIÊN CỨU CHUYÊN SÂU — CA SỬ DỤNG QUẢN LÝ NHÂN SỰ (UC07)
 
@@ -2287,7 +2181,7 @@ actor "Nhân viên" as Employee
 rectangle "UC07 - Quản lý tài khoản và phân quyền nhân sự" {
   usecase "UC07.1: Thêm hồ sơ nhân viên" as UC071
   usecase "UC07.2: Cấp và quản lý tài khoản" as UC072
-  usecase "UC07.3: Phân quyền RBAC" as UC073
+  usecase "UC07.3: Phân quyền theo vai trò" as UC073
   usecase "UC07.4: Khóa hoặc thu hồi tài khoản" as UC074
   usecase "UC07.5: Đặt lại mật khẩu" as UC075
   usecase "UC07.6: Xem danh sách nhân viên" as UC076
@@ -2299,7 +2193,7 @@ Manager --> UC073
 Manager --> UC074
 Manager --> UC075
 Manager --> UC076
-Employee --> UC072
+Employee --> UC075
 
 UC071 ..> UC072 : include
 UC071 ..> UC073 : include
@@ -2318,8 +2212,8 @@ UC075 ..> UC072 : extend
 | Tên ca sử dụng | Thêm hồ sơ nhân viên mới |
 | Tác nhân chính | Quản lý |
 | Tác nhân thứ cấp | Hệ thống, Nhân viên mới (người nhận tài khoản) |
-| Điều kiện tiên quyết | Quản lý đã đăng nhập; có quyền MANAGE_EMPLOYEE |
-| Điều kiện kết thúc (thành công) | Bản ghi nhan_vien và tai_khoan được tạo; tài khoản ở trạng thái kich_hoat; email thông báo được gửi đi |
+| Điều kiện tiên quyết | Quản lý đã đăng nhập; có quyền MANAGER |
+| Điều kiện kết thúc (thành công) | Bản ghi Employee được tạo; tài khoản ở trạng thái hoạt động; thông báo đăng nhập được gửi |
 | Điều kiện kết thúc (thất bại) | Không có bản ghi nào được tạo; hệ thống hiển thị lỗi cụ thể |
 | Mức độ ưu tiên | Cao |
 
@@ -2328,22 +2222,22 @@ UC075 ..> UC072 : extend
 | **Bước** | **Tác nhân** | **Hành động** |
 | --- | --- | --- |
 | 1 | Quản lý | Truy cập menu **Nhân sự > Thêm nhân viên** |
-| 2 | Hệ thống | Hiển thị form nhập: Họ tên, CCCD, SĐT, Email, Ngày sinh, Vị trí công việc, Lương theo giờ |
+| 2 | Hệ thống | Hiển thị form nhập: name, phone, email, ngày sinh, store_id, role |
 | 3 | Quản lý | Điền đầy đủ thông tin và nhấn Lưu |
-| 4 | Hệ thống | Validate dữ liệu đầu vào (kiểm tra CCCD trùng, SĐT định dạng, email hợp lệ) |
-| 5 | Hệ thống | INSERT bản ghi vào bảng nhan_vien |
-| 6 | Hệ thống | Tự động tạo tai_khoan với mat_khau ngẫu nhiên (8 ký tự); gán vai_tro mặc định = NHAN_VIEN |
+| 4 | Hệ thống | Kiểm tra dữ liệu đầu vào (phone trùng, email định dạng, role hợp lệ) |
+| 5 | Hệ thống | INSERT bản ghi vào bảng Employee |
+| 6 | Hệ thống | Tự động tạo tài khoản với mật khẩu tạm thời; gán role mặc định |
 | 7 | Hệ thống | Gửi email/SMS thông báo thông tin đăng nhập đến nhân viên mới |
 | 8 | Hệ thống | Hiển thị thông báo: _"Thêm nhân viên thành công. Thông tin đăng nhập đã được gửi."_ |
 
-**Luồng ngoại lệ (Exception Flows):**
+**Luồng ngoại lệ:**
 
 | **Mã** | **Điều kiện kích hoạt** | **Xử lý** |
 | --- | --- | --- |
-| E1 | CCCD đã tồn tại trong hệ thống | Hiển thị: _"Nhân viên với CCCD này đã được đăng ký."_ Không INSERT. |
+| E1 | Số điện thoại đã tồn tại trong hệ thống | Hiển thị: _"Nhân viên với số điện thoại này đã được đăng ký."_ Không INSERT. |
 | E2 | Email không đúng định dạng | Highlight trường lỗi, thông báo: _"Email không hợp lệ."_ |
-| E3 | Mức lương ca nhập vào không hợp lệ | Cảnh báo: _"Mức lương ca chưa phù hợp. Vui lòng kiểm tra lại hoặc xác nhận tiếp tục."_ |
-| E4 | Gửi thư điện tử thất bại | Vẫn tạo tài khoản thành công; ghi nhật ký lỗi gửi thư; Quản lý tự thông báo thủ công |
+| E3 | store_id không tồn tại | Cảnh báo: _"Cửa hàng không hợp lệ. Vui lòng chọn lại."_ |
+| E4 | Gửi thông báo thất bại | Vẫn tạo Employee thành công; ghi log lỗi; Quản lý tự thông báo thủ công |
 
 #### 7.2.2. Đặc tả UC07.2 — Cấp và Quản lý tài khoản đăng nhập
 
@@ -2359,38 +2253,38 @@ UC075 ..> UC072 : extend
 | **Bước** | **Hành động** |
 | --- | --- |
 | 1 | Quản lý chọn nhân viên, sau đó chọn Đặt lại mật khẩu |
-| 2 | Hệ thống tạo mật khẩu ngẫu nhiên mới và hash bằng BCrypt (salt 12 rounds) |
+| 2 | Hệ thống tạo mật khẩu ngẫu nhiên mới và băm trước khi lưu |
 | 3 | Gửi mật khẩu tạm thời qua SMS/Email |
 | 4 | Lần đăng nhập đầu, hệ thống bắt buộc nhân viên đổi mật khẩu mới |
 
-#### 7.2.3. Đặc tả UC07.3 — Phân quyền RBAC
+#### 7.2.3. Đặc tả UC07.3 — Phân quyền theo vai trò (role)
 
-Hệ thống phân quyền theo mô hình **Role-Based Access Control (RBAC)**, quản lý 3 cấp độ vai trò:
+Hệ thống phân quyền theo trường `role` trong thực thể **Employee**, với 3 vai trò chính:
 
-| **Vai trò (Role)** | **Mã vai trò** | **Quyền hạn chính** |
-| --- | --- | --- |
-| Quản lý | MANAGER | Toàn quyền: CRUD nhân viên, phê duyệt lương, xem báo cáo, cấu hình hệ thống |
-| Thu ngân | CASHIER | Tạo/đóng đơn hàng, xử lý thanh toán, in hóa đơn; xem lịch ca của bản thân |
-| Nhân viên phục vụ | WAITER | Cập nhật trạng thái bàn, thêm món vào đơn; chấm công cá nhân |
+| **Vai trò (role)** | **Quyền hạn chính** |
+| --- | --- |
+| manager | Toàn quyền: quản lý Employee, phê duyệt lương, xem Revenue, cấu hình hệ thống |
+| cashier | Tạo/đóng Orders, xử lý Payment, in hóa đơn; xem lịch ca bản thân |
+| barista | Cập nhật trạng thái đơn, thêm món vào Orders; chấm công cá nhân (Attendance) |
 
 **Ma trận phân quyền chi tiết:**
 
-| **Chức năng** | **MANAGER** | **CASHIER** | **WAITER** |
+| **Chức năng** | **manager** | **cashier** | **barista** |
 | --- | --- | --- | --- |
-| Xem danh sách nhân viên | Có | Không | Không |
-| Thêm/Sửa nhân viên | Có | Không | Không |
-| Phân công ca làm | Có | Không | Không |
-| Vào ca/Kết thúc ca | Có | Có | Có |
-| Xem lịch sử chấm công | Có | Có (bản thân) | Có (bản thân) |
-| Duyệt điều chỉnh chấm công | Có | Không | Không |
-| Tạo đơn hàng | Có | Có | Có |
-| Xử lý thanh toán | Có | Có | Không |
-| Xem báo cáo doanh thu | Có | Không | Không |
-| Cấu hình thực đơn | Có | Không | Không |
+| Xem danh sách Employee | Có | Không | Không |
+| Thêm/Sửa Employee | Có | Không | Không |
+| Phân công ca (ShiftAssignment) | Có | Không | Không |
+| Vào ca/Kết thúc ca (Attendance) | Có | Có | Có |
+| Xem lịch sử Attendance | Có | Có (bản thân) | Có (bản thân) |
+| Duyệt điều chỉnh Attendance | Có | Không | Không |
+| Tạo Orders | Có | Có | Có |
+| Xử lý Payment | Có | Có | Không |
+| Xem Revenue | Có | Không | Không |
+| Cấu hình Product/Menu | Có | Không | Không |
 
 ### 7.3. Biểu đồ Tuần tự — Luồng Vào ca của Nhân viên
 
-Biểu đồ này mô tả chi tiết giao tiếp giữa các lớp trong kiến trúc phân lớp khi nhân viên thực hiện vào ca, tập trung vào việc **xác thực danh tính** và **kiểm tra phân công ca** trước khi ghi nhận:
+Biểu đồ này mô tả chi tiết giao tiếp giữa các lớp khi nhân viên thực hiện vào ca — tập trung vào việc xác thực và kiểm tra ShiftAssignment trước khi ghi Attendance:
 
 ```plantuml
 @startuml
@@ -2401,56 +2295,52 @@ participant HeThong as HT
 database CoSoDuLieu as DB
 
 NV -> GD : Mở chức năng chấm công
-GD -> HT : Kiểm tra ca làm (id_nv, tg_ht)
+GD -> HT : Kiểm tra ca làm (employee_id, ngày hôm nay)
 HT -> DB : Truy vấn ShiftAssignment
-DB --> HT : Trả về ca làm việc
+DB --> HT : Trả về bản ghi ShiftAssignment
 
 alt Có ca hợp lệ
   HT --> GD : Cho phép vào ca
   NV -> GD : Bấm nút Vào ca
-  GD -> HT : Gửi yêu cầu lưu giờ vào (tg_vao)
-  HT -> DB : Thêm bản ghi vào Attendance
+  GD -> HT : Gửi yêu cầu ghi check_in
+  HT -> DB : INSERT bản ghi Attendance (check_in = NOW)
   DB --> HT : Xác nhận lưu OK
   HT --> GD : Báo vào ca thành công
   GD --> NV : Hiển thị thông báo thành công
-else Sai ca hoặc không có ca
-  HT --> GD : Báo lỗi Sai ca / Không có ca
+else Không có ca hoặc ca không hợp lệ
+  HT --> GD : Báo lỗi không tìm thấy ca
   GD --> NV : Hiển thị lỗi từ chối ghi nhận
 end
 @enduml
 ```
 
-**Giải thích các biến số:**
+**Giải thích các tham số:**
 
-id_nv — Mã nhân viên (ID Nhân viên), lấy từ session đăng nhập.
-
-tg_ht — Thời gian hiện tại, dùng để đối chiếu với bảng shift_assignment.
-
-tg_vao — Thời gian vào ca thực tế, tương đương check_in_time trong bảng attendance.
+- `employee_id` — Mã nhân viên, lấy từ session đăng nhập.
+- `check_in` — Thời gian vào ca thực tế, ghi vào Attendance.check_in.
 
 ### 7.4. Biểu đồ Hoạt động — Quy trình tiếp nhận nhân viên mới
 
 ```plantuml
 @startuml
 start
-:Quản lý nhập hồ sơ vào hệ thống;
+:Quản lý nhập hồ sơ nhân viên vào hệ thống;
 if (Dữ liệu hợp lệ?) then (Có)
-  :Thêm bản ghi vào nhan_vien;
-  :Tạo tai_khoan với vai trò mặc định NHAN_VIEN;
-  :Mã hóa mật khẩu bằng BCrypt;
+  :INSERT bản ghi vào Employee;
+  :Tạo tài khoản đăng nhập với mật khẩu tạm thời;
+  :Gán role mặc định theo vị trí;
   :Gửi thông tin đăng nhập qua Email hoặc SMS;
   if (Gửi thông báo thành công?) then (Có)
   else (Không)
     :Ghi log lỗi gửi thông báo;
   endif
-  :Nhân viên nhận thông tin đăng nhập;
-  :Nhân viên đăng nhập lần đầu;
-  if (Đã đổi mật khẩu?) then (Rồi)
+  :Nhân viên nhận thông tin và đăng nhập lần đầu;
+  if (Đã đổi mật khẩu tạm thời?) then (Rồi)
   else (Chưa)
-    :Yêu cầu nhập mật khẩu mới;
-    :Cập nhật mat_khau trong tai_khoan;
+    :Yêu cầu đặt mật khẩu mới;
+    :Cập nhật mật khẩu trong hệ thống;
   endif
-  :Nhân viên vào bảng điều khiển;
+  :Nhân viên vào màn hình chính;
 else (Không)
   :Hiển thị lỗi và yêu cầu sửa;
 endif
@@ -2458,112 +2348,79 @@ stop
 @enduml
 ```
 
-### 7.5. Mô hình Dữ liệu (ERD) — Phân hệ Nhân sự
+### 7.5. Mô hình Dữ liệu — Phân hệ Nhân sự
 
-Lược đồ CSDL của phân hệ nhân sự được thiết kế tách bạch rõ ràng giữa **hồ sơ nhân sự** (thông tin cứng, ít thay đổi) và **tài khoản hệ thống** (thông tin xác thực, phân quyền):
+Lược đồ CSDL của phân hệ nhân sự bám sát ERD tổng thể. Tên tham số theo tiếng Anh để đồng bộ với toàn hệ thống:
 
 ```plantuml
 @startuml
-hide methods
-hide stereotypes
 
-class nhan_vien {
-  id_nhan_vien : INT <<PK>>
-  ho_ten : NVARCHAR
-  cccd : VARCHAR
-  so_dien_thoai : VARCHAR
-  email : VARCHAR
-  ngay_sinh : DATE
-  vi_tri : NVARCHAR
-  luong_gio : DECIMAL
-  trang_thai : ENUM
-  ngay_vao_lam : DATE
+entity Brand {
+  +id PK
+  name
 }
 
-class tai_khoan {
-  id_tai_khoan : INT <<PK>>
-  id_nhan_vien : INT <<FK>>
-  ten_dang_nhap : VARCHAR
-  mat_khau_hash : VARCHAR
-  vai_tro : ENUM
-  kich_hoat : BIT
-  lan_dang_nhap_cuoi : DATETIME
-  buoc_doi_mat_khau : BIT
+entity Store {
+  +id PK
+  brand_id FK
+  name
 }
 
-class vai_tro_quyen {
-  vai_tro : VARCHAR <<FK>>
-  id_quyen : INT <<FK>>
+entity Employee {
+  +id PK
+  store_id FK
+  name
+  role
 }
 
-class quyen_han {
-  id_quyen : INT <<PK>>
-  ten_quyen : VARCHAR
-  mo_ta : VARCHAR
+entity ShiftAssignment {
+  +id PK
+  shift_id FK
+  employee_id FK
+  role
 }
 
-class audit_log {
-  id_log : INT <<PK>>
-  id_tai_khoan : INT <<FK>>
-  hanh_dong : VARCHAR
-  bang_tac_dong : VARCHAR
-  id_ban_ghi : INT
-  thoi_gian : DATETIME
-  ip_address : VARCHAR
+entity Attendance {
+  +id PK
+  shift_id FK
+  employee_id FK
+  check_in
+  check_out
+  status
+  working_hours
 }
 
-nhan_vien "1" -- "1" tai_khoan : so huu
-tai_khoan "1" -- "N" audit_log : tao ra
-tai_khoan "1" -- "N" vai_tro_quyen : ap dung vai tro
-quyen_han "1" -- "N" vai_tro_quyen : bao gom
+Brand ||--o{ Store
+Store ||--o{ Employee
+Employee ||--o{ ShiftAssignment
+Employee ||--o{ Attendance
+
 @enduml
 ```
 
-***Quyết định thiết kế:** Tách bảng `nhan_vien` và `tai_khoan` thay vì gộp chung nhằm tuân thủ **Nguyên tắc Phân tách mối quan tâm (Separation of Concerns)**. Khi nhân viên nghỉ việc, tài khoản bị `kich_hoat = 0` (không xóa) để bảo toàn toàn bộ lịch sử `audit_log` và dữ liệu chấm công phục vụ kiểm toán.*
+*Quyết định thiết kế: Trường `role` trong **Employee** là nguồn kiểm soát phân quyền trực tiếp (manager / cashier / barista). Khi nhân viên nghỉ việc, bản ghi Employee không bị xóa vật lý — chỉ đánh dấu trạng thái để bảo toàn toàn bộ lịch sử Attendance và phục vụ kiểm toán.*
 
 ### 7.6. Ràng buộc Nghiệp vụ
 
 | **Mã BR** | **Quy tắc** | **Cơ chế kiểm soát** |
 | --- | --- | --- |
-| BR-NS-01 | Mỗi nhân viên chỉ có đúng một tài khoản đăng nhập (quan hệ 1-1) | Unique Constraint trên tai_khoan.id_nhan_vien |
-| BR-NS-02 | Mật khẩu phải được băm bằng BCrypt trước khi lưu; không lưu dạng văn bản gốc | Xử lý tại tầng dịch vụ; không bao giờ lưu chuỗi gốc |
-| BR-NS-03 | Lần đăng nhập đầu tiên bắt buộc đổi mật khẩu | Cờ buoc_doi_mat_khau = 1; lớp trung gian chặn mọi yêu cầu trừ điểm cuối đổi mật khẩu |
-| BR-NS-04 | Không được xóa vật lý bản ghi nhân viên | Chỉ đặt trang_thai = 'da_nghi_viec' và kich_hoat = 0 (vô hiệu hóa mềm) |
-| BR-NS-05 | Mọi thao tác thêm/sửa/xoá nhân viên phải được ghi vào audit_log | Bộ kích hoạt cơ sở dữ liệu AFTER INSERT/UPDATE/DELETE trên bảng nhan_vien và tai_khoan |
-| BR-NS-06 | Không thể phân công ca cho nhân viên có tài khoản bị khóa | Trigger kiểm tra tai_khoan.kich_hoat = 1 trước khi INSERT vào shift_assignment |
+| BR-NS-01 | Mỗi Employee chỉ có đúng một tài khoản đăng nhập (quan hệ 1-1) | Unique Constraint trên cột employee_id của bảng tài khoản |
+| BR-NS-02 | Mật khẩu phải được băm trước khi lưu; không lưu dạng văn bản gốc | Xử lý tại tầng dịch vụ |
+| BR-NS-03 | Lần đăng nhập đầu tiên bắt buộc đổi mật khẩu | Cờ buộc đổi mật khẩu; chặn mọi yêu cầu trừ endpoint đổi mật khẩu |
+| BR-NS-04 | Không được xóa vật lý bản ghi Employee | Chỉ đánh dấu trạng thái vô hiệu (soft delete) |
+| BR-NS-05 | Mọi thao tác thêm/sửa Employee phải được ghi nhật ký | Trigger AFTER INSERT/UPDATE trên bảng Employee |
+| BR-NS-06 | Không thể tạo ShiftAssignment cho Employee đã bị vô hiệu hóa | Trigger kiểm tra trạng thái Employee trước khi INSERT ShiftAssignment |
 
-### 7.7. Kiểm thử Ca sử dụng UC07
-
-#### 7.7.1. Ca kiểm thử cho UC07.1 (Thêm nhân viên)
-
-| **Mã TC** | **Kịch bản** | **Điều kiện đầu vào** | **Kết quả mong đợi** | **Trạng thái** |
-| --- | --- | --- | --- | --- |
-| TC-UC07-01 | Thêm nhân viên thành công | Dữ liệu hợp lệ, CCCD chưa tồn tại | Tạo bản ghi nhan_vien + tai_khoan; email được gửi | Chờ test |
-| TC-UC07-02 | CCCD đã tồn tại trong hệ thống | CCCD trùng với nhân viên khác | Hiển thị lỗi E1; không INSERT bất kỳ bản ghi nào | Chờ test |
-| TC-UC07-03 | Email sai định dạng | email = "khong_hop_le" | Highlight lỗi, thông báo E2; không cho phép submit | Chờ test |
-| TC-UC07-04 | Mức lương ca nhập không hợp lệ | Mức lương ca sáng hoặc ca tối nhỏ hơn cấu hình tối thiểu của quán | Hiển thị cảnh báo E3; Quản lý xác nhận mới lưu | Chờ kiểm thử |
-| TC-UC07-05 | Gửi thư điện tử thất bại sau khi tạo xong | Máy chủ SMTP ngừng hoạt động | Nhân viên vẫn được tạo; ghi nhật ký lỗi; không hoàn tác | Chờ kiểm thử |
-
-#### 7.7.2. Ca kiểm thử cho UC07.3 (Phân quyền RBAC)
-
-| **Mã TC** | **Kịch bản** | **Điều kiện đầu vào** | **Kết quả mong đợi** | **Trạng thái** |
-| --- | --- | --- | --- | --- |
-| TC-UC07-06 | Thu ngân truy cập chức năng quản lý nhân viên | Vai trò CASHIER gọi API /employees | HTTP 403; ghi audit_log | Chờ kiểm thử |
-| TC-UC07-07 | Quản lý nâng quyền nhân viên phục vụ thành thu ngân | vai_tro = 'CASHIER' cho id_nv = 5 | Cập nhật tai_khoan.vai_tro; quyền hạn thay đổi ngay | Chờ kiểm thử |
-| TC-UC07-08 | Đăng nhập sau khi tài khoản bị khóa | kich_hoat = 0 | HTTP 401; thông báo: _"Tài khoản bị tạm khóa."_ | Chờ kiểm thử |
-| TC-UC07-09 | Xem lịch sử chấm công của người khác (nhân viên phục vụ) | WAITER gọi API chấm công id_nv = 10 | HTTP 403; chỉ được xem bản ghi của chính mình | Chờ kiểm thử |
 
 ### 7.8. Đánh giá và Định hướng mở rộng UC07
 
 **Những điểm mạnh của thiết kế hiện tại:**
 
-Mô hình **vô hiệu hóa mềm** đảm bảo toàn vẹn dữ liệu lịch sử, đặc biệt quan trọng khi kiểm toán tài chính.
+Trường `role` trực tiếp trong **Employee** đơn giản hóa việc kiểm tra quyền hạn, phù hợp quy mô quán cafe.
 
-Kiến trúc **RBAC** với bảng vai_tro_quyen trung gian cho phép thêm/sửa quyền hạn mà không cần thay đổi mã nguồn.
+Cơ chế **vô hiệu hóa mềm** đảm bảo toàn vẹn dữ liệu lịch sử, đặc biệt quan trọng khi kiểm toán.
 
-**BCrypt (12 rounds)** cung cấp bảo vệ mật khẩu đủ mạnh, chịu được brute-force attack với phần cứng hiện đại.
-
-**Nhật ký thao tác** ở tầng CSDL (trigger) bảo đảm ghi nhận ngay cả khi ứng dụng gặp sự cố.
+Nhật ký thao tác ở tầng CSDL (trigger) đảm bảo ghi nhận ngay cả khi ứng dụng gặp sự cố.
 
 **Hướng mở rộng trong phiên bản tương lai:**
 
@@ -2572,7 +2429,7 @@ Kiến trúc **RBAC** với bảng vai_tro_quyen trung gian cho phép thêm/sử
 | Đăng nhập 2 yếu tố (2FA) | OTP qua SMS hoặc ứng dụng xác thực tại mỗi lần đăng nhập | Trung bình |
 | Đăng nhập một lần (SSO) | Tích hợp đăng nhập qua Google Workspace cho chuỗi nhiều chi nhánh | Cao |
 | Hợp đồng lao động điện tử | Lưu trữ và ký số hợp đồng ngay trong hệ thống | Cao |
-| Bảng điều khiển phân tích nhân sự | Thống kê tỷ lệ nghỉ việc, thâm niên, biểu đồ cơ cấu nhân sự | Trung bình |
+| Dashboard phân tích nhân sự | Thống kê tỷ lệ nghỉ việc, thâm niên, cơ cấu nhân sự | Trung bình |
 
 ## CHƯƠNG 8: NGHIÊN CỨU CHUYÊN SÂU — CA SỬ DỤNG BÁO CÁO DOANH THU - CHI PHÍ (UC05)
 
