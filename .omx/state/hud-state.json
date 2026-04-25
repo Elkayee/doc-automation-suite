@@ -1,5 +1,5 @@
 {
-  "last_turn_at": "2026-04-25T02:20:37.038Z",
-  "turn_count": 4,
-  "last_agent_output": "Đã gộp workflow Python ở root về đúng 3 file: `make.py`, `split_chapters.py`, `convert_docx_to_md.py"
+  "last_turn_at": "2026-04-25T05:11:09.529Z",
+  "turn_count": 14,
+  "last_agent_output": "Không tự xóa.\n\nCác thư mục kiểu `tmp_debug_docx`, `tmp_debug_docx_fixed`, `tmp_debug_docx_fixed2`, `"
 }

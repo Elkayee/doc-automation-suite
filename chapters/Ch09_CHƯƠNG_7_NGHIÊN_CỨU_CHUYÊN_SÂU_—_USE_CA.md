@@ -86,7 +86,7 @@ UC07 được phân rã thành các ca sử dụng con gắn với vòng đời 
 | --- | --- | --- |
 | E1 | CCCD đã tồn tại trong hệ thống | Hiển thị: _"Nhân viên với CCCD này đã được đăng ký."_ Không INSERT. |
 | E2 | Email không đúng định dạng | Highlight trường lỗi, thông báo: _"Email không hợp lệ."_ |
-| E3 | Lương theo giờ < mức lương tối thiểu vùng | Cảnh báo: _"Mức lương thấp hơn quy định (22.500đ/giờ). Xác nhận tiếp tục?"_ |
+| E3 | Mức lương ca nhập vào không hợp lệ | Cảnh báo: _"Mức lương ca chưa phù hợp. Vui lòng kiểm tra lại hoặc xác nhận tiếp tục."_ |
 | E4 | Gửi email thất bại | Vẫn tạo tài khoản thành công; ghi log lỗi gửi mail; Manager tự thông báo thủ công |
 
 #### 7.2.2. Đặc tả UC07.2 — Cấp và Quản lý tài khoản đăng nhập
@@ -184,7 +184,7 @@ Lược đồ CSDL của phân hệ nhân sự được thiết kế tách bạc
 | TC-UC07-01 | Thêm nhân viên thành công | Dữ liệu hợp lệ, CCCD chưa tồn tại | Tạo bản ghi nhan_vien + tai_khoan; email được gửi | Chờ test |
 | TC-UC07-02 | CCCD đã tồn tại trong hệ thống | CCCD trùng với nhân viên khác | Hiển thị lỗi E1; không INSERT bất kỳ bản ghi nào | Chờ test |
 | TC-UC07-03 | Email sai định dạng | email = "khong_hop_le" | Highlight lỗi, thông báo E2; không cho phép submit | Chờ test |
-| TC-UC07-04 | Lương thấp hơn tối thiểu vùng | luong_gio = 15000 (< 22.500đ) | Hiển thị cảnh báo E3; Manager xác nhận mới lưu | Chờ test |
+| TC-UC07-04 | Mức lương ca nhập không hợp lệ | Mức lương ca sáng hoặc ca tối nhỏ hơn cấu hình tối thiểu của quán | Hiển thị cảnh báo E3; Manager xác nhận mới lưu | Chờ test |
 | TC-UC07-05 | Gửi email thất bại sau khi tạo xong | SMTP server down | Nhân viên vẫn được tạo; ghi log lỗi; không rollback | Chờ test |
 
 #### 7.7.2. Test Case cho UC07.3 (Phân quyền RBAC)

@@ -107,19 +107,25 @@ UC04.1, 04.2, 04.5, 04.6 UC04.3, UC04.4
 
 **Công thức tính lương:**
 
-$$L_{nv} = \sum_{i=1}^{n} \left[ (t_{checkout_i} - t_{checkin_i}) \times r_{ca_i} \right] - P_{tre} + B_{bonus}$$
+$$L_{nv} = \sum (N_{sang,thuong} \times R_{sang}) + \sum (N_{toi,thuong} \times R_{toi}) + \sum (N_{cuoi_tuan} \times R_{ca} \times 1.5) + \sum (N_{ngay_le} \times R_{ca} \times 2.0)$$
 
 Trong đó:
 
 $L_{nv}$: Tổng lương của nhân viên trong kỳ
 
-$t_{checkout_i} - t_{checkin_i}$: Số giờ làm thực tế của ca $i$ (tính bằng giờ, làm tròn 2 chữ số thập phân)
+$N_{sang,thuong}$: Số ca sáng ngày thường đã hoàn thành trong kỳ
 
-$r_{ca_i}$: Đơn giá giờ của ca $i$ (có thể khác nhau giữa ca thường và ca cuối tuần/lễ)
+$N_{toi,thuong}$: Số ca tối ngày thường đã hoàn thành trong kỳ
 
-$P_{tre}$: Khoản khấu trừ do đi muộn (nếu có, theo chính sách)
+$N_{cuoi_tuan}$: Số ca hoàn thành vào cuối tuần
 
-$B_{bonus}$: Thưởng thêm (nếu Quản lý nhập thủ công)
+$N_{ngay_le}$: Số ca hoàn thành vào ngày lễ
+
+$R_{sang}$: Mức lương cố định cho một ca sáng
+
+$R_{toi}$: Mức lương cố định cho một ca tối
+
+$R_{ca}$: Mức lương gốc của ca sáng hoặc ca tối tương ứng
 
 ### 6.2.3. Xử lý Ngoại lệ Thông minh — Shift Swapping và Quên Check-out
 
@@ -160,35 +166,18 @@ Trường hợp nhân viên quên bấm giờ ra, hệ thống **không được
 
 ***Lưu trữ:** Ảnh selfie được mã hóa và lưu kèm bản ghi `attendance`, giữ tối thiểu 90 ngày để phục vụ kiểm toán nội bộ.*
 
-### 6.2.5. Payroll Engine Đa biến — Tuân thủ NĐ 38/2022/NĐ-CP
+### 6.2.5. Tính lương theo 2 ca cố định có hệ số cuối tuần/lễ
 
-Hệ thống loại bỏ công thức tính lương đơn giản và triển khai **động cơ tính lương đa biến** tuân thủ đầy đủ pháp luật lao động Việt Nam:
+Hệ thống áp dụng mô hình tính lương gọn nhưng thực tế: chỉ có 2 ca sáng/tối, nhưng vẫn cộng hệ số cho cuối tuần và ngày lễ.
 
-$$S_{total} = \sum_{i=1}^{n} \left( H_{basic,i} \times R \right) + \sum_{j=1}^{m} \left( H_{OT,j} \times R \times M_j \right) + \sum_{k=1}^{p} \left( H_{night,k} \times R \times N_k \right) + A_{total} - D_{total}$$
+$$S_{total} = (N_{sang} \times R_{sang}) + (N_{toi} \times R_{toi}) + (N_{cuoi_tuan} \times R_{ca} \times 1.5) + (N_{ngay_le} \times R_{ca} \times 2.0)$$
 
-**Giải thích các biến số:**
-
-| **Biến** | **Ý nghĩa** | **Giá trị theo luật** |
+| **Loại ca** | **Khung giờ chuẩn** | **Cách tính lương** |
 | --- | --- | --- |
-| $H_{basic,i}$ | Giờ hành chính tiêu chuẩn |  |
-| $R$ | Lương cơ bản theo giờ | ≥ 22.500 đ/giờ (Vùng I, 2024) |
-| $H_{OT,j}$ | Giờ làm thêm (tăng ca) | ≤ 40h/tháng, ≤ 200h/năm |
-| $M_j$ | Hệ số tăng ca | 1.5 (ngày thường) / 2.0 (ngày nghỉ) / 3.0 (Lễ, Tết) |
-| $H_{night,k}$ | Giờ làm ca đêm (22:00–06:00) | Theo lịch thực tế |
-| $N_k$ | Hệ số phụ cấp đêm | +30% (≥ 1.3); nếu vừa tăng ca vừa đêm → cộng thêm +20% |
-| $A_{total}$ | Tổng phụ cấp (ăn ca, xăng xe...) | Theo chính sách quán |
-| $D_{total}$ | Tổng khấu trừ (BHXH, đi muộn...) | Theo chính sách + pháp luật |
-
-**Kiến trúc tách biệt hệ số khỏi mã nguồn:**
-
-*Mọi hệ số $M_j$ và $N_k$ được lưu trong **Bảng ma trận cấu hình (Compliance Matrix)** riêng biệt trong CSDL, không hardcode vào logic code. Khi Chính phủ ban hành quy định mới, Nhân sự chỉ cần cập nhật bảng cấu hình mà **không cần phát hành phiên bản phần mềm mới**.*
-
-| **Bảng** | **compliance_matrix** |
-| --- | --- |
-| loai_ca | ENUM: 'ngay_thuong', 'ngay_nghi', 'le_tet', 'ca_dem' |
-| he_so | DECIMAL(4,2) — hệ số áp dụng |
-| hieu_luc_tu | DATE — ngày bắt đầu hiệu lực |
-| van_ban_phap_ly | VARCHAR — số nghị định tham chiếu |
+| Ca sáng | 06:00 - 12:00 | Cộng `R_sang` khi hoàn thành đủ ca |
+| Ca tối | 16:00 - 22:00 | Cộng `R_toi` khi hoàn thành đủ ca |
+| Ca cuối tuần | Theo ca sáng hoặc ca tối | Nhân hệ số `1.5` trên đơn giá ca tương ứng |
+| Ca ngày lễ | Theo ca sáng hoặc ca tối | Nhân hệ số `2.0` trên đơn giá ca tương ứng |
 
 #### 6.3.1. Lược đồ 4 bảng — Tách biệt Kế hoạch và Thực tế
 
@@ -206,9 +195,9 @@ Nguyên tắc thiết kế cốt lõi của UC04 là **tách biệt hoàn toàn*
 | --- | --- | --- |
 | BR-01 | Một nhân viên không thể có 2 ca chồng chéo thời gian trong cùng ngày | Trigger kiểm tra overlap khi INSERT vào shift_assignment |
 | BR-02 | Chỉ có thể Check-out sau khi đã Check-in | check_out_time chỉ được UPDATE khi check_in_time IS NOT NULL |
-| BR-03 | so_gio_lam không được tính nếu check_out_time IS NULL | Dùng CASE WHEN trong câu truy vấn tính lương |
+| BR-03 | Chỉ ca có đủ check_in_time và check_out_time mới được đưa vào bảng lương | Dùng CASE WHEN hoặc cờ trạng thái hợp lệ khi tổng hợp lương |
 | BR-04 | Giờ làm tối đa 16 giờ/ca; nếu vượt → đánh dấu cần xem xét thủ công | Constraint: CHECK(so_gio_lam <= 16) hoặc cờ needs_review = 1 |
-| BR-05 | Ca cuối tuần (Thứ 7, Chủ nhật) được nhân hệ số 1.5 | Hàm tính lương kiểm tra DAYOFWEEK(ngay_lam_viec) trước khi áp đơn giá |
+| BR-05 | Mỗi ca phải thuộc đúng 1 trong 2 loại: sang hoặc toi; nếu rơi vào cuối tuần/ngày lễ thì áp đúng hệ số | Ràng buộc ENUM / validation ngày làm việc và cờ loại ngày |
 
 ### 6.4. Biểu đồ Hoạt động (Activity Diagram) — Quy trình Chấm công toàn luồng
 
@@ -232,10 +221,10 @@ Nguyên tắc thiết kế cốt lõi của UC04 là **tách biệt hoàn toàn*
 
 | **Mã TC** | **Kịch bản** | **Dữ liệu đầu vào** | **Kết quả mong đợi** |
 | --- | --- | --- | --- |
-| TC-UC04-06 | Tính lương ca thường | 8 giờ làm, đơn giá 25.000đ/giờ | Lương = 8 × 25.000 = 200.000đ |
-| TC-UC04-07 | Tính lương ca cuối tuần | 8 giờ làm, đơn giá 25.000đ/giờ, hệ số 1.5 | Lương = 8 × 25.000 × 1.5 = 300.000đ |
-| TC-UC04-08 | Ca chưa check-out | check_out_time = NULL | so_gio_lam = 0; không tính vào lương |
-| TC-UC04-09 | Tổng hợp cả tháng | 22 ca thường (8h) + 4 ca cuối tuần (8h) | L = 22×8×25k + 4×8×25k×1.5 = 4.400.000 + 1.200.000 = 5.600.000đ |
+| TC-UC04-06 | Tính lương 1 ca sáng ngày thường | Hoàn thành 1 ca sáng, `R_sang = 120.000đ` | Lương = 120.000đ |
+| TC-UC04-07 | Tính lương 1 ca tối cuối tuần | Hoàn thành 1 ca tối cuối tuần, `R_toi = 140.000đ` | Lương = 140.000 × 1.5 = 210.000đ |
+| TC-UC04-08 | Ca chưa check-out | check_out_time = NULL | Chưa đưa vào bảng lương, chờ quản lý xác nhận |
+| TC-UC04-09 | Tổng hợp cả tháng | 18 ca sáng ngày thường + 8 ca tối ngày thường + 2 ca tối cuối tuần + 1 ca sáng ngày lễ | L = 18×120.000 + 8×140.000 + 2×140.000×1.5 + 1×120.000×2.0 = 3.940.000đ |
 
 ### 6.6. Đánh giá và Định hướng mở rộng UC04
 
@@ -254,4 +243,4 @@ Business Rules được mã hóa thành Trigger và Constraint ở tầng CSDL, 
 | Chấm công bằng QR Code | Nhân viên quét QR được tạo theo ca làm, giới hạn địa điểm | Trung bình |
 | Tích hợp xử lý lương tự động | Xuất file Excel bảng lương và gửi email thông báo | Thấp |
 | Phân tích chuyên cần | Dashboard thống kê tỷ lệ đi muộn, vắng mặt theo tháng | Cao |
-| Phê duyệt tăng ca |  | Trung bình |
+| Phê duyệt tăng ca cuối tuần/lễ | Cho phép Manager xác nhận ca đặc biệt trước khi chốt lương | Trung bình |

@@ -62,7 +62,7 @@ def write_chapter_files(source_path: str | Path, output_dir: str | Path) -> list
 
 def main(argv: list[str] | None = None) -> int:
     args = argv or sys.argv[1:]
-    source_path = Path(args[0]) if len(args) >= 1 else Path.cwd() / 'Bao_Cao_Tieu_Luan_NMCNPM_from_docx.md'
+    source_path = Path(args[0]) if len(args) >= 1 else Path.cwd() / 'Bao_Cao_Tieu_Luan_NMCNPM.md'
     output_dir = Path(args[1]) if len(args) >= 2 else Path.cwd() / 'chapters'
     write_chapter_files(source_path, output_dir)
     return 0

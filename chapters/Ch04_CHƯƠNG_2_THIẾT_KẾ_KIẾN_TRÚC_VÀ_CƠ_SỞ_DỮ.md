@@ -67,7 +67,7 @@ Hệ thống gồm **5 nhóm bảng** tương ứng với 5 phân hệ UC, đề
 | Báo cáo | `bao_cao_doanh_thu`, `chi_phi`, `danh_sach_cua_hang` | UC06 |
 | **Nhân sự** *(trọng tâm)* | **`nhan_vien`, `tai_khoan`, `shift_template`, `shift`, `shift_assignment`, `attendance`** | **UC04** |
 
-> **Nguyên tắc Snapshot:** `luong_gio_tai_thoi_diem` được lưu cứng tại kỳ tính lương — đảm bảo lịch sử tài chính không đổi khi mức lương điều chỉnh.
+> **Nguyên tắc Snapshot:** Mức lương theo ca tại thời điểm chốt công được lưu cố định cùng kỳ tính lương — đảm bảo lịch sử tài chính không đổi khi đơn giá ca được điều chỉnh.
 
 ### 2.4. ERD Chi tiết — Nhóm Bảng Nhân sự (UC04)
 
@@ -123,8 +123,8 @@ classDiagram
 | --------- | ----------- | -------------------- |
 | BR-01 | Không thể có 2 ca chồng chéo giờ trong cùng ngày | Trigger kiểm tra overlap khi INSERT vào `shift_assignment` |
 | BR-02 | Chỉ Check-out sau khi đã Check-in | `check_out_time` chỉ UPDATE khi `check_in_time IS NOT NULL` |
-| BR-03 | `so_gio_lam` = 0 nếu `check_out_time IS NULL` | `CASE WHEN` trong câu truy vấn tính lương |
+| BR-03 | Chỉ ca có đủ `check_in_time` và `check_out_time` mới được đưa vào bảng lương | `CASE WHEN` hoặc cờ trạng thái hợp lệ khi tổng hợp lương |
 | BR-04 | Giờ làm tối đa 16h/ca; nếu vượt → đánh dấu xem xét thủ công | `CHECK(so_gio_lam <= 16)` hoặc cờ `needs_review = 1` |
-| BR-05 | Ca cuối tuần (T7, CN) nhân hệ số 1.5 | Hàm tính lương kiểm tra `DAYOFWEEK(ngay_lam_viec)` |
+| BR-05 | Mỗi ca phải thuộc đúng 1 trong 2 loại: `sang` hoặc `toi` | Ràng buộc ENUM / validation tại bảng `shift_template` và `shift` |
 
 ---

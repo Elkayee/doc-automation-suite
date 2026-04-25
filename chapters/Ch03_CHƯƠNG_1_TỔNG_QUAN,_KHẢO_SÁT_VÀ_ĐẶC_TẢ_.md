@@ -95,7 +95,7 @@ Yêu cầu chức năng được thu thập, phân loại và đánh mã theo ch
 | FR-07 | Kho | Cảnh báo khi tồn kho nguyên liệu xuống dưới ngưỡng tối thiểu định trước | Trung bình |
 | FR-08 | Nhân sự | Quản lý tạo và phân công ca làm cho từng nhân viên theo ngày/tuần | Cao |
 | FR-09 | Nhân sự | Nhân viên thực hiện Check-in/Check-out, hệ thống ghi nhận giờ làm thực tế | Cao |
-| FR-10 | Nhân sự | Hệ thống tính lương đa biến theo Nghị định 38/2022/NĐ-CP: giờ hành chính, tăng ca (hệ số 1.5/2.0/3.0), ca đêm (hệ số +30%), phụ cấp và khấu trừ | Cao |
+| FR-10 | Nhân sự | Hệ thống tính lương theo 2 loại ca cố định: ca sáng và ca tối; áp dụng hệ số riêng cho ngày thường, cuối tuần và ngày lễ | Cao |
 | FR-11 | Báo cáo | Tổng hợp và trực quan hóa doanh thu theo ngày, tuần, tháng | Trung bình |
 | FR-12 | Báo cáo | Thống kê top 10 mặt hàng bán chạy nhất trong kỳ được chọn | Thấp |
 | FR-13 | AI — Kho | Module AI dự báo nhu cầu nguyên liệu dựa trên lịch sử bán hàng và yếu tố thời tiết, tự động tạo đề xuất phiếu nhập | Trung bình |

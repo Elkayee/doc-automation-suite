@@ -2,6 +2,7 @@
 make.py — Tool duy nhat: Ghep chapters -> MD -> convert DOCX
 Usage: uv run python make.py
 """
+import argparse
 import base64
 import glob
 import os
@@ -12,11 +13,14 @@ import time
 from pathlib import Path
 
 import requests
+import split_chapters
 from docx import Document
 from docx.shared import Pt, RGBColor, Inches, Cm
-from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
+
+from convert_docx_to_md import convert_docx_to_markdown
 
 sys.stdout.reconfigure(encoding='utf-8')
 
@@ -37,14 +41,25 @@ COLOR_H4 = RGBColor(0x44, 0x9D, 0xD1)
 # ════════════════════════════════════════════════════════════════════════════
 # BƯỚC 1: GỘP CHAPTERS → MD
 # ════════════════════════════════════════════════════════════════════════════
+def chapter_sort_key(file_path):
+    name = os.path.basename(file_path)
+    lower_name = name.lower()
+
+    if lower_name == 'ch00_header.md':
+        return (0, 0, '')
+    if lower_name == 'ch00_toc.md':
+        return (0, 1, '')
+
+    match = re.match(r'^Ch(\d+)(.*)\.md$', name, re.IGNORECASE)
+    if not match:
+        return (99, 99, lower_name)
+
+    return (1, int(match.group(1)), match.group(2).lower())
+
+
 def collect_chapter_files(chapter_dir):
-    all_files = sorted(glob.glob(os.path.join(chapter_dir, 'Ch0*.md')))
-    return [
-        file_path
-        for file_path in all_files
-        if not os.path.basename(file_path).startswith('Ch08')
-        and not os.path.basename(file_path).startswith('Ch09')
-    ]
+    all_files = glob.glob(os.path.join(chapter_dir, 'Ch*.md'))
+    return sorted(all_files, key=chapter_sort_key)
 
 
 def assemble_markdown(chapter_dir, output_path):
@@ -87,8 +102,8 @@ def get_png_dimensions(path):
         h = struct.unpack('>I', f.read(4))[0]
     return w, h
 
-def render_mermaid(code, idx):
-    cache_file = os.path.join(IMG_CACHE, f'diagram_{idx:03d}.png')
+def render_mermaid(code, idx, img_cache):
+    cache_file = os.path.join(img_cache, f'diagram_{idx:03d}.png')
     if os.path.exists(cache_file):
         print(f'  [cache] diagram_{idx:03d}.png')
         return cache_file
@@ -145,6 +160,75 @@ def strip_md_markup(text):
     text = re.sub(r'`([^`]+)`',       r'\1', text)
     return text
 
+def resolve_media_path(md_path, asset_path):
+    asset = Path(asset_path)
+    if asset.is_absolute():
+        return asset
+    primary = (Path(md_path).resolve().parent / asset).resolve()
+    if primary.exists():
+        return primary
+    fallback_text = asset_path.replace('../', '').replace('..\\', '').replace('./', '').replace('.\\', '')
+    return (BASE / Path(fallback_text)).resolve()
+
+def add_markdown_image(doc, md_path, image_ref):
+    image_path = resolve_media_path(md_path, image_ref)
+    if not image_path.exists():
+        p = doc.add_paragraph()
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        r = p.add_run(f'[Khong tim thay anh: {image_ref}]')
+        r.italic = True
+        r.font.color.rgb = RGBColor(0x88, 0x88, 0x88)
+        return
+
+    p = doc.add_paragraph()
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = p.add_run()
+    run.add_picture(str(image_path), width=Inches(2.2))
+
+def add_page_break(doc):
+    doc.add_paragraph().add_run().add_break(WD_BREAK.PAGE)
+
+def add_table_of_contents(doc):
+    p = doc.add_paragraph()
+    begin_run = OxmlElement('w:r')
+    fld_begin = OxmlElement('w:fldChar')
+    fld_begin.set(qn('w:fldCharType'), 'begin')
+    begin_run.append(fld_begin)
+
+    instr_run = OxmlElement('w:r')
+    instr = OxmlElement('w:instrText')
+    instr.set(qn('xml:space'), 'preserve')
+    instr.text = 'TOC \\o "1-4" \\h \\z \\u'
+    instr_run.append(instr)
+
+    separate_run = OxmlElement('w:r')
+    fld_separate = OxmlElement('w:fldChar')
+    fld_separate.set(qn('w:fldCharType'), 'separate')
+    separate_run.append(fld_separate)
+
+    hint_run = OxmlElement('w:r')
+    hint_text = OxmlElement('w:t')
+    hint_text.text = 'Cap nhat Muc luc trong Word bang Update Field.'
+    hint_run.append(hint_text)
+
+    end_run = OxmlElement('w:r')
+    fld_end = OxmlElement('w:fldChar')
+    fld_end.set(qn('w:fldCharType'), 'end')
+    end_run.append(fld_end)
+
+    p._p.append(begin_run)
+    p._p.append(instr_run)
+    p._p.append(separate_run)
+    p._p.append(hint_run)
+    p._p.append(end_run)
+
+def get_heading_indent(text):
+    match = re.match(r'^\s*(\d+(?:\.\d+)+)\b', text)
+    if not match:
+        return None
+    depth = match.group(1).count('.')
+    return Cm(0.5 * depth)
+
 def add_formatted_run(para, text):
     text = strip_md_links(text)
     tokens = re.split(r'(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)', text)
@@ -167,7 +251,7 @@ def add_formatted_run(para, text):
             run.text = token
 
 # ── Parser MD → DOCX ─────────────────────────────────────────────────────────
-def parse_and_write(doc, md_path):
+def parse_and_write(doc, md_path, img_cache=IMG_CACHE):
     with open(md_path, encoding='utf-8') as f:
         lines = f.readlines()
 
@@ -190,7 +274,7 @@ def parse_and_write(doc, md_path):
             else:
                 if mermaid_block and mermaid_buf:
                     diagram_idx += 1
-                    img_path = render_mermaid('\n'.join(mermaid_buf), diagram_idx)
+                    img_path = render_mermaid('\n'.join(mermaid_buf), diagram_idx, img_cache)
                     if img_path:
                         p = doc.add_paragraph()
                         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -272,12 +356,42 @@ def parse_and_write(doc, md_path):
             i += 1
             continue
 
+        # Centered text
+        m_center = re.match(r'^\s*<center>(.*?)</center>\s*$', line)
+        if m_center:
+            text = m_center.group(1).strip()
+            p = doc.add_paragraph()
+            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            add_formatted_run(p, text)
+            i += 1
+            continue
+
+        # Markdown image
+        m_image = re.match(r'^\s*!\[.*?\]\(([^)]+)\)\s*$', line)
+        if m_image:
+            add_markdown_image(doc, md_path, m_image.group(1).strip())
+            i += 1
+            continue
+
+        if line.strip() == '[[PAGEBREAK]]':
+            add_page_break(doc)
+            i += 1
+            continue
+
+        if line.strip() == '[[TOC]]':
+            add_table_of_contents(doc)
+            i += 1
+            continue
+
         # Heading
         m = re.match(r'^(#{1,6})\s+(.*)', line)
         if m:
             level = len(m.group(1))
             text  = strip_md_markup(m.group(2))
             p     = doc.add_paragraph(style=f'Heading {min(level, 4)}')
+            heading_indent = get_heading_indent(text)
+            if heading_indent is not None:
+                p.paragraph_format.left_indent = heading_indent
             run   = p.add_run(text)
             run.font.name = 'Times New Roman'
             run.font.color.rgb = [COLOR_H1,COLOR_H2,COLOR_H3,COLOR_H4,COLOR_H4,COLOR_H4][level-1]
@@ -345,27 +459,28 @@ def parse_and_write(doc, md_path):
         add_formatted_run(p, line.strip())
         i += 1
 
-def step_convert():
+def step_convert(md_out=MD_OUT, docx_out=DOCX_OUT, img_cache=IMG_CACHE):
     print('=' * 55)
     print('BƯỚC 2: Convert MD → DOCX')
     print('=' * 55)
-    print(f'  Input : {MD_OUT}')
-    print(f'  Output: {DOCX_OUT}')
+    print(f'  Input : {md_out}')
+    print(f'  Output: {docx_out}')
     print()
 
+    os.makedirs(img_cache, exist_ok=True)
     doc = Document()
     set_page_setup(doc)
     for para in doc.paragraphs:
         para._element.getparent().remove(para._element)
 
-    parse_and_write(doc, MD_OUT)
+    parse_and_write(doc, md_out, img_cache)
 
     # Thu save; neu bi khoa (Word dang mo) thi dung ten _new
-    out = DOCX_OUT
+    out = docx_out
     try:
         doc.save(out)
     except PermissionError:
-        out = DOCX_OUT.replace('.docx', '_new.docx')
+        out = docx_out.replace('.docx', '_new.docx')
         print(f'  [WARN] File goc bi khoa. Luu sang: {out}')
         doc.save(out)
 
@@ -373,9 +488,185 @@ def step_convert():
     print(f'\n[DONE] {out}  ({size} KB)')
     print('  => Mo file Word va dong lai neu can dung ten goc.')
 
+
+def run_build_pipeline(chapters_dir=CH_DIR, md_out=MD_OUT, docx_out=DOCX_OUT, img_cache=IMG_CACHE):
+    os.makedirs(img_cache, exist_ok=True)
+    print('=' * 55)
+    print('BƯỚC 1: Ghép chapters → MD')
+    print('=' * 55)
+    final, chapter_files = assemble_markdown(chapters_dir, md_out)
+    kb = len(final.encode('utf-8')) // 1024
+    print(f'\n  => {md_out}')
+    print(f'     {len(final.splitlines())} dong | {kb} KB | {len(chapter_files)} chapters\n')
+    step_convert(md_out=md_out, docx_out=docx_out, img_cache=img_cache)
+    return Path(docx_out)
+
+
+def launch_workflow_ui():
+    import tkinter as tk
+    from tkinter import filedialog, messagebox, ttk
+
+    root = tk.Tk()
+    root.title('NMCNPM Workflow')
+    root.geometry('920x620')
+    root.configure(bg='#f3efe5')
+
+    style = ttk.Style()
+    style.theme_use('clam')
+    style.configure('TFrame', background='#f3efe5')
+    style.configure('TLabel', background='#f3efe5', foreground='#2b241b', font=('Georgia', 11))
+    style.configure('Header.TLabel', background='#f3efe5', foreground='#1f3f5b', font=('Georgia', 18, 'bold'))
+    style.configure('TButton', font=('Georgia', 10, 'bold'))
+    style.configure('TNotebook', background='#f3efe5', borderwidth=0)
+    style.configure('TNotebook.Tab', font=('Georgia', 10, 'bold'))
+
+    container = ttk.Frame(root, padding=18)
+    container.pack(fill='both', expand=True)
+
+    ttk.Label(container, text='NMCNPM Report Workflow', style='Header.TLabel').pack(anchor='w')
+    ttk.Label(
+        container,
+        text='Thiết lập đường dẫn và chạy các bước build, split, convert ngay trong một UI cục bộ.',
+    ).pack(anchor='w', pady=(4, 14))
+
+    notebook = ttk.Notebook(container)
+    notebook.pack(fill='both', expand=True)
+
+    log_box = tk.Text(container, height=10, bg='#fffdf8', fg='#2b241b', font=('Consolas', 10))
+    log_box.pack(fill='x', pady=(14, 0))
+
+    def log(message):
+        log_box.insert('end', message + '\n')
+        log_box.see('end')
+        root.update_idletasks()
+
+    def add_path_row(parent, label, variable, browse_kind, filetypes=None):
+        row = ttk.Frame(parent)
+        row.pack(fill='x', pady=6)
+        ttk.Label(row, text=label, width=18).pack(side='left')
+        entry = ttk.Entry(row, textvariable=variable)
+        entry.pack(side='left', fill='x', expand=True, padx=(0, 8))
+
+        def choose():
+            if browse_kind == 'dir':
+                value = filedialog.askdirectory(initialdir=str(BASE))
+            elif browse_kind == 'save':
+                value = filedialog.asksaveasfilename(initialdir=str(BASE), filetypes=filetypes)
+            else:
+                value = filedialog.askopenfilename(initialdir=str(BASE), filetypes=filetypes)
+            if value:
+                variable.set(value)
+
+        ttk.Button(row, text='Browse', command=choose).pack(side='left')
+        return entry
+
+    build_tab = ttk.Frame(notebook, padding=14)
+    split_tab = ttk.Frame(notebook, padding=14)
+    convert_tab = ttk.Frame(notebook, padding=14)
+    notebook.add(build_tab, text='Build DOCX')
+    notebook.add(split_tab, text='Split Chapters')
+    notebook.add(convert_tab, text='DOCX → MD')
+
+    build_chapters = tk.StringVar(value=CH_DIR)
+    build_md = tk.StringVar(value=MD_OUT)
+    build_docx = tk.StringVar(value=DOCX_OUT)
+    build_cache = tk.StringVar(value=IMG_CACHE)
+
+    add_path_row(build_tab, 'Chapters dir', build_chapters, 'dir')
+    add_path_row(build_tab, 'Output MD', build_md, 'save', [('Markdown', '*.md')])
+    add_path_row(build_tab, 'Output DOCX', build_docx, 'save', [('Word Document', '*.docx')])
+    add_path_row(build_tab, 'Mermaid cache', build_cache, 'dir')
+
+    ttk.Button(
+        build_tab,
+        text='Run Build Pipeline',
+        command=lambda: run_ui_action(
+            root,
+            log,
+            lambda: run_build_pipeline(
+                chapters_dir=build_chapters.get(),
+                md_out=build_md.get(),
+                docx_out=build_docx.get(),
+                img_cache=build_cache.get(),
+            ),
+            'Build hoàn tất.',
+        ),
+    ).pack(anchor='w', pady=(14, 0))
+
+    split_source = tk.StringVar(value=MD_OUT)
+    split_output = tk.StringVar(value=str(BASE / 'chapters'))
+    add_path_row(split_tab, 'Source MD', split_source, 'open', [('Markdown', '*.md')])
+    add_path_row(split_tab, 'Output dir', split_output, 'dir')
+    ttk.Button(
+        split_tab,
+        text='Split Markdown',
+        command=lambda: run_ui_action(
+            root,
+            log,
+            lambda: split_chapters.write_chapter_files(split_source.get(), split_output.get()),
+            'Tách chapter hoàn tất.',
+        ),
+    ).pack(anchor='w', pady=(14, 0))
+
+    convert_input = tk.StringVar(value=DOCX_OUT)
+    convert_output = tk.StringVar(value=str(BASE / 'Bao_Cao_Tieu_Luan_NMCNPM_from_docx.md'))
+    convert_media = tk.StringVar(value=str(BASE / 'extracted_media' / 'Bao_Cao_Tieu_Luan_NMCNPM'))
+    add_path_row(convert_tab, 'Input DOCX', convert_input, 'open', [('Word Document', '*.docx')])
+    add_path_row(convert_tab, 'Output MD', convert_output, 'save', [('Markdown', '*.md')])
+    add_path_row(convert_tab, 'Media dir', convert_media, 'dir')
+    ttk.Button(
+        convert_tab,
+        text='Convert DOCX to Markdown',
+        command=lambda: run_ui_action(
+            root,
+            log,
+            lambda: convert_docx_to_markdown(convert_input.get(), convert_output.get(), convert_media.get()),
+            'Convert DOCX → Markdown hoàn tất.',
+        ),
+    ).pack(anchor='w', pady=(14, 0))
+
+    messagebox.showinfo(
+        'NMCNPM Workflow',
+        'UI đã sẵn sàng. Bạn có thể thiết lập đường dẫn file/folder và chạy từng bước ngay tại đây.',
+    )
+    root.mainloop()
+
+
+def run_ui_action(root, log, action, success_message):
+    try:
+        log('---')
+        result = action()
+        log(f'OK: {result}')
+        from tkinter import messagebox
+
+        messagebox.showinfo('NMCNPM Workflow', success_message)
+    except Exception as exc:
+        log(f'ERROR: {exc}')
+        from tkinter import messagebox
+
+        messagebox.showerror('NMCNPM Workflow', str(exc))
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description='NMCNPM report workflow')
+    parser.add_argument('--ui', action='store_true', help='Launch local workflow UI')
+    parser.add_argument('--chapters-dir', default=CH_DIR)
+    parser.add_argument('--md-out', default=MD_OUT)
+    parser.add_argument('--docx-out', default=DOCX_OUT)
+    parser.add_argument('--img-cache', default=IMG_CACHE)
+    return parser.parse_args()
+
 # ════════════════════════════════════════════════════════════════════════════
 # MAIN
 # ════════════════════════════════════════════════════════════════════════════
 if __name__ == '__main__':
-    step_assemble()
-    step_convert()
+    args = parse_args()
+    if args.ui:
+        launch_workflow_ui()
+    else:
+        run_build_pipeline(
+            chapters_dir=args.chapters_dir,
+            md_out=args.md_out,
+            docx_out=args.docx_out,
+            img_cache=args.img_cache,
+        )

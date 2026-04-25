@@ -28,7 +28,7 @@ graph LR
         UC01["UC01: Quản lý Thực đơn & Đồ uống"]
         UC02["UC02: Quản lý Đơn hàng & Bàn"]
         UC03["UC03: Quản lý Thanh toán & Hóa đơn"]
-        UC04["⭐ UC04: Quản lý Ca làm & Chấm công"]
+        UC04["UC04: Quản lý Ca làm & Chấm công"]
         UC05["UC05: Quản lý Kho & Nguyên liệu"]
         UC06["UC06: Thống kê & Báo cáo"]
     end
@@ -50,14 +50,14 @@ graph LR
 
 ### 1.3. Bảng Tóm tắt Chức năng Toàn Hệ thống
 
-| **UC** | **Phân hệ** | **Chức năng cốt lõi** | **Người phụ trách** | **Mức chi tiết** |
-|:------:|-------------|----------------------|---------------------|:----------------:|
-| UC01 | Thực đơn & Đồ uống | CRUD sản phẩm, nhóm, topping, công thức pha chế | Bảo | Tóm tắt |
-| UC02 | Đơn hàng & Bàn | Tạo/sửa đơn, quản lý trạng thái bàn real-time | Thành | Tóm tắt |
-| UC03 | Thanh toán & Hóa đơn | Xử lý thanh toán đa kênh (tiền mặt/thẻ/QR), in hóa đơn | Thành | Tóm tắt |
-| UC05 | Kho & Nguyên liệu | Nhập kho, trừ tồn theo công thức Recipe, cảnh báo ngưỡng | Nguyễn Quang Đạo | Tóm tắt |
-| UC06 | Báo cáo & Cửa hàng | Thống kê doanh thu, top sản phẩm, quản lý chi nhánh | Hồng Nhung | Tóm tắt |
-| **UC04** | **Nhân sự & Chấm công** | **Hồ sơ NV, phân ca, GPS check-in/out, tính lương NĐ38, RBAC** | **Nguyễn Viết Tùng** | **⭐ Chuyên sâu (Chương 3)** |
+|  **UC**  | **Phân hệ**             | **Chức năng cốt lõi**                                                                             | **Người phụ trách**  |       **Mức chi tiết**       |
+| :------: | ----------------------- | ------------------------------------------------------------------------------------------------- | -------------------- | :--------------------------: |
+|   UC01   | Thực đơn & Đồ uống      | CRUD sản phẩm, nhóm, topping, công thức pha chế                                                   | Bảo                  |           Tóm tắt            |
+|   UC02   | Đơn hàng & Bàn          | Tạo/sửa đơn, quản lý trạng thái bàn real-time                                                     | Thành                |           Tóm tắt            |
+|   UC03   | Thanh toán & Hóa đơn    | Xử lý thanh toán đa kênh (tiền mặt/thẻ/QR), in hóa đơn                                            | Thành                |           Tóm tắt            |
+|   UC05   | Kho & Nguyên liệu       | Nhập kho, trừ tồn theo công thức Recipe, cảnh báo ngưỡng                                          | Nguyễn Quang Đạo     |           Tóm tắt            |
+|   UC06   | Báo cáo & Cửa hàng      | Thống kê doanh thu, top sản phẩm, quản lý chi nhánh                                               | Hồng Nhung           |           Tóm tắt            |
+| **UC04** | **Nhân sự & Chấm công** | **Hồ sơ NV, phân ca sáng/tối, GPS check-in/out, tính lương theo ca với hệ số cuối tuần/lễ, RBAC** | **Nguyễn Viết Tùng** | **⭐ Chuyên sâu (Chương 3)** |
 
 ---
 
@@ -65,24 +65,24 @@ graph LR
 
 Yêu cầu chức năng được phân loại theo chuẩn **IEEE 830**, đảm bảo tính truy vết từ yêu cầu đến thiết kế:
 
-| **Mã** | **Phân hệ** | **Mô tả yêu cầu** | **Ưu tiên** |
-| ------ | ----------- | ----------------- | :---------: |
-| FR-01 | Đơn hàng | Nhân viên tạo mới, sửa đổi và hủy đơn hàng trên bàn đang hoạt động | Cao |
-| FR-02 | Đơn hàng | Hệ thống tự động thông báo khu vực pha chế khi có đơn mới | Cao |
-| FR-03 | Bàn | Trạng thái bàn cập nhật theo thời gian thực, không cần làm mới trang | Cao |
-| FR-04 | Thanh toán | Hỗ trợ tối thiểu 3 hình thức: tiền mặt, thẻ và QR Pay | Trung bình |
-| FR-05 | Thanh toán | Hóa đơn xuất ra máy in nhiệt theo định dạng chuẩn ESC/POS | Cao |
-| FR-06 | Kho | Tự động cập nhật tồn kho khi đơn xác nhận, theo công thức Recipe | Cao |
-| FR-07 | Kho | Cảnh báo khi tồn kho xuống dưới ngưỡng tối thiểu | Trung bình |
-| **FR-08** | **Nhân sự** | **Quản lý tạo và phân công ca làm cho từng nhân viên theo ngày/tuần** | **Cao** |
-| **FR-09** | **Nhân sự** | **Nhân viên Check-in/Check-out, hệ thống ghi nhận giờ làm thực tế** | **Cao** |
-| **FR-10** | **Nhân sự** | **Tính lương đa biến theo NĐ 38/2022: giờ hành chính, tăng ca (×1.5/2.0/3.0), ca đêm (+30%)** | **Cao** |
-| **FR-15** | **Chấm công** | **Chấm công bằng GPS Geofencing + xác thực khuôn mặt, ngăn chấm công hộ** | **Cao** |
-| FR-11 | Báo cáo | Tổng hợp và trực quan hóa doanh thu theo ngày/tuần/tháng | Trung bình |
-| FR-12 | Báo cáo | Thống kê top 10 mặt hàng bán chạy nhất trong kỳ | Thấp |
-| FR-13 | AI — Kho | Module AI dự báo nhu cầu nguyên liệu, tự động tạo đề xuất phiếu nhập | Kiến nghị |
-| FR-14 | AI — Nhân sự | Module AI tự động đề xuất lịch phân ca theo dự báo lưu lượng khách | Kiến nghị |
-| FR-16 | Khách hàng | Quản lý khách hàng thân thiết; AI cá nhân hóa khuyến mãi | Kiến nghị |
+| **Mã**    | **Phân hệ**   | **Mô tả yêu cầu**                                                                                              | **Ưu tiên** |
+| --------- | ------------- | -------------------------------------------------------------------------------------------------------------- | :---------: |
+| FR-01     | Đơn hàng      | Nhân viên tạo mới, sửa đổi và hủy đơn hàng trên bàn đang hoạt động                                             |     Cao     |
+| FR-02     | Đơn hàng      | Hệ thống tự động thông báo khu vực pha chế khi có đơn mới                                                      |     Cao     |
+| FR-03     | Bàn           | Trạng thái bàn cập nhật theo thời gian thực, không cần làm mới trang                                           |     Cao     |
+| FR-04     | Thanh toán    | Hỗ trợ tối thiểu 3 hình thức: tiền mặt, thẻ và QR Pay                                                          | Trung bình  |
+| FR-05     | Thanh toán    | Hóa đơn xuất ra máy in nhiệt theo định dạng chuẩn ESC/POS                                                      |     Cao     |
+| FR-06     | Kho           | Tự động cập nhật tồn kho khi đơn xác nhận, theo công thức Recipe                                               |     Cao     |
+| FR-07     | Kho           | Cảnh báo khi tồn kho xuống dưới ngưỡng tối thiểu                                                               | Trung bình  |
+| **FR-08** | **Nhân sự**   | **Quản lý tạo và phân công ca làm cho từng nhân viên theo ngày/tuần**                                          |   **Cao**   |
+| **FR-09** | **Nhân sự**   | **Nhân viên Check-in/Check-out, hệ thống ghi nhận giờ làm thực tế**                                            |   **Cao**   |
+| **FR-10** | **Nhân sự**   | **Tính lương theo 2 loại ca cố định: ca sáng và ca tối; có hệ số riêng cho ngày thường, cuối tuần và ngày lễ** |   **Cao**   |
+| **FR-15** | **Chấm công** | **Chấm công bằng GPS Geofencing + xác thực khuôn mặt, ngăn chấm công hộ**                                      |   **Cao**   |
+| FR-11     | Báo cáo       | Tổng hợp và trực quan hóa doanh thu theo ngày/tuần/tháng                                                       | Trung bình  |
+| FR-12     | Báo cáo       | Thống kê top 10 mặt hàng bán chạy nhất trong kỳ                                                                |    Thấp     |
+| FR-13     | AI — Kho      | Module AI dự báo nhu cầu nguyên liệu, tự động tạo đề xuất phiếu nhập                                           |  Kiến nghị  |
+| FR-14     | AI — Nhân sự  | Module AI tự động đề xuất lịch phân ca theo dự báo lưu lượng khách                                             |  Kiến nghị  |
+| FR-16     | Khách hàng    | Quản lý khách hàng thân thiết; AI cá nhân hóa khuyến mãi                                                       |  Kiến nghị  |
 
 > **Lưu ý:** FR-08, FR-09, FR-10, FR-15 (in đậm) là trọng tâm phân tích của báo cáo, được đặc tả đầy đủ tại Chương 3.
 
@@ -92,24 +92,24 @@ Yêu cầu chức năng được phân loại theo chuẩn **IEEE 830**, đảm 
 
 Phân tích theo mô hình chất lượng **ISO/IEC 25010**:
 
-| **Thuộc tính** | **Yêu cầu cụ thể** | **Cách đo lường** |
-| -------------- | ------------------ | ----------------- |
-| **Hiệu năng** | Phản hồi < 3 giây trong điều kiện LAN, 20 người dùng đồng thời | Profiling tool |
-| **Tính sẵn sàng** | 24/7; RTO < 30 phút khi có sự cố | Uptime log |
-| **Bảo mật** | RBAC nghiêm ngặt; BCrypt hash; Audit Log ≥ 90 ngày | Penetration Test cơ bản |
-| **Tính khả dụng** | Nhân viên mới thành thạo chức năng cơ bản sau ≤ 2 giờ đào tạo | User Testing 5 người |
-| **Tương thích** | Windows 7 SP1+; máy in nhiệt chuẩn ESC/POS | Kiểm thử 3 cấu hình POS |
-| **Bảo trì** | Code Coverage ≥ 70%; tài liệu hóa đầy đủ | JaCoCo |
+| **Thuộc tính**    | **Yêu cầu cụ thể**                                             | **Cách đo lường**       |
+| ----------------- | -------------------------------------------------------------- | ----------------------- |
+| **Hiệu năng**     | Phản hồi < 3 giây trong điều kiện LAN, 20 người dùng đồng thời | Profiling tool          |
+| **Tính sẵn sàng** | 24/7; RTO < 30 phút khi có sự cố                               | Uptime log              |
+| **Bảo mật**       | RBAC nghiêm ngặt; BCrypt hash; Audit Log ≥ 90 ngày             | Penetration Test cơ bản |
+| **Tính khả dụng** | Nhân viên mới thành thạo chức năng cơ bản sau ≤ 2 giờ đào tạo  | User Testing 5 người    |
+| **Tương thích**   | Windows 7 SP1+; máy in nhiệt chuẩn ESC/POS                     | Kiểm thử 3 cấu hình POS |
+| **Bảo trì**       | Code Coverage ≥ 70%; tài liệu hóa đầy đủ                       | JaCoCo                  |
 
 ---
 
 ### 1.6. Phân tích Rủi ro Dự án
 
-| **Rủi ro** | **Xác suất** | **Tác động** | **Biện pháp giảm thiểu** |
-| ---------- | :----------: | :----------: | ------------------------ |
-| Yêu cầu thay đổi giữa chừng (Scope Creep) | Cao | Cao | Use Case Specification làm tài liệu ký kết; Change Management |
-| Thiếu dữ liệu thực tế để kiểm thử | Trung bình | Trung bình | Sinh Seed Data mô phỏng thực tế |
-| Thành viên nhóm vắng giữa sprint | Thấp | Cao | Phân công chéo; tài liệu handover |
-| Lỗi tích hợp phần cứng POS | Trung bình | Cao | Kiểm thử thiết bị sớm; driver dự phòng |
+| **Rủi ro**                                | **Xác suất** | **Tác động** | **Biện pháp giảm thiểu**                                      |
+| ----------------------------------------- | :----------: | :----------: | ------------------------------------------------------------- |
+| Yêu cầu thay đổi giữa chừng (Scope Creep) |     Cao      |     Cao      | Use Case Specification làm tài liệu ký kết; Change Management |
+| Thiếu dữ liệu thực tế để kiểm thử         |  Trung bình  |  Trung bình  | Sinh Seed Data mô phỏng thực tế                               |
+| Thành viên nhóm vắng giữa sprint          |     Thấp     |     Cao      | Phân công chéo; tài liệu handover                             |
+| Lỗi tích hợp phần cứng POS                |  Trung bình  |     Cao      | Kiểm thử thiết bị sớm; driver dự phòng                        |
 
 ---

@@ -1,13 +1,59 @@
+import base64
 import subprocess
 import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
 
+from docx import Document
+
 import make
 
 
+PNG_DATA = base64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aRX0AAAAASUVORK5CYII="
+)
+
+
 class MakeAndSplitTests(unittest.TestCase):
+    def test_make_pipeline_uses_explicit_paths(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            chapters_dir = root / "chapters"
+            chapters_dir.mkdir()
+            md_out = root / "custom.md"
+            docx_out = root / "custom.docx"
+            cache_dir = root / "cache"
+
+            (chapters_dir / "Ch00_header.md").write_text("# Header", encoding="utf-8")
+
+            make.run_build_pipeline(
+                chapters_dir=str(chapters_dir),
+                md_out=str(md_out),
+                docx_out=str(docx_out),
+                img_cache=str(cache_dir),
+            )
+
+            self.assertTrue(md_out.exists())
+            self.assertTrue(docx_out.exists())
+            self.assertTrue(cache_dir.exists())
+
+    def test_collect_chapter_files_includes_all_numbered_chapters_in_order(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            (root / "Ch00_header.md").write_text("header", encoding="utf-8")
+            (root / "Ch00_toc.md").write_text("toc", encoding="utf-8")
+            (root / "Ch01_Intro.md").write_text("intro", encoding="utf-8")
+            (root / "Ch08_Foo.md").write_text("foo", encoding="utf-8")
+            (root / "Ch10_Bar.md").write_text("bar", encoding="utf-8")
+
+            files = [Path(path).name for path in make.collect_chapter_files(str(root))]
+
+            self.assertEqual(
+                files,
+                ["Ch00_header.md", "Ch00_toc.md", "Ch01_Intro.md", "Ch08_Foo.md", "Ch10_Bar.md"],
+            )
+
     def test_step_assemble_merges_chapters_and_skips_ch08_ch09(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
@@ -17,8 +63,8 @@ class MakeAndSplitTests(unittest.TestCase):
 
             (chapters_dir / "Ch00_Header.md").write_text("Header", encoding="utf-8")
             (chapters_dir / "Ch01_Intro.md").write_text("Intro", encoding="utf-8")
-            (chapters_dir / "Ch08_Ignore.md").write_text("Ignore 8", encoding="utf-8")
-            (chapters_dir / "Ch09_Ignore.md").write_text("Ignore 9", encoding="utf-8")
+            (chapters_dir / "Ch08_Keep.md").write_text("Keep 8", encoding="utf-8")
+            (chapters_dir / "Ch10_Keep.md").write_text("Keep 10", encoding="utf-8")
 
             with mock.patch.object(make, "CH_DIR", str(chapters_dir)), mock.patch.object(
                 make, "MD_OUT", str(output_path)
@@ -26,9 +72,7 @@ class MakeAndSplitTests(unittest.TestCase):
                 make.step_assemble()
 
             content = output_path.read_text(encoding="utf-8")
-            self.assertEqual(content, "Header\n\nIntro")
-            self.assertNotIn("Ignore 8", content)
-            self.assertNotIn("Ignore 9", content)
+            self.assertEqual(content, "Header\n\nIntro\n\nKeep 8\n\nKeep 10")
 
     def test_split_script_creates_numbered_chapter_files(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -54,6 +98,68 @@ class MakeAndSplitTests(unittest.TestCase):
                 ["Ch00_header.md", "Ch01_Chapter_One.md", "Ch02_Chapter_Two.md"],
             )
             self.assertIn("Da tao 3 file chapter", completed.stdout)
+
+    def test_parse_and_write_supports_centered_text_and_markdown_images(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            image_path = root / "logo.png"
+            image_path.write_bytes(PNG_DATA)
+
+            markdown_path = root / "cover.md"
+            markdown_path.write_text(
+                f"<center>**BÁO CÁO BÀI TẬP LỚN**</center>\n\n![PTIT]({image_path.as_posix()})\n",
+                encoding="utf-8",
+            )
+
+            doc = Document()
+            make.parse_and_write(doc, str(markdown_path))
+
+            rendered_paragraphs = [p for p in doc.paragraphs if p.text.strip()]
+            self.assertEqual(rendered_paragraphs[0].text.strip(), "BÁO CÁO BÀI TẬP LỚN")
+            self.assertEqual(rendered_paragraphs[0].alignment, make.WD_ALIGN_PARAGRAPH.CENTER)
+            self.assertEqual(len(doc.inline_shapes), 1)
+
+    def test_parse_and_write_resolves_repo_relative_image_paths(self) -> None:
+        relative_asset = Path("extracted_media/test_ui_logo.png")
+        asset_path = Path(make.BASE) / relative_asset
+        asset_path.parent.mkdir(parents=True, exist_ok=True)
+        asset_path.write_bytes(PNG_DATA)
+
+        try:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                root = Path(temp_dir)
+                markdown_path = root / "cover.md"
+                markdown_path.write_text(
+                    "![PTIT](../extracted_media/test_ui_logo.png)\n",
+                    encoding="utf-8",
+                )
+
+                doc = Document()
+                make.parse_and_write(doc, str(markdown_path))
+                self.assertEqual(len(doc.inline_shapes), 1)
+        finally:
+            if asset_path.exists():
+                asset_path.unlink()
+
+    def test_parse_and_write_inserts_word_toc_and_indents_numbered_headings(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            markdown_path = root / "toc.md"
+            markdown_path.write_text(
+                "## MỤC LỤC\n[[TOC]]\n\n## 2.1 Xác định các ACTOR\n",
+                encoding="utf-8",
+            )
+
+            doc = Document()
+            make.parse_and_write(doc, str(markdown_path))
+
+            heading_paragraphs = [p for p in doc.paragraphs if p.text.strip()]
+            self.assertEqual(heading_paragraphs[0].text.strip(), "MỤC LỤC")
+            self.assertIn('TOC \\o "1-4" \\h \\z \\u', doc.paragraphs[1]._p.xml)
+            self.assertIn('<w:r>', doc.paragraphs[1]._p.xml)
+            self.assertIn('w:fldCharType="begin"', doc.paragraphs[1]._p.xml)
+            self.assertEqual(heading_paragraphs[-1].text.strip(), "2.1 Xác định các ACTOR")
+            self.assertAlmostEqual(heading_paragraphs[-1].paragraph_format.left_indent.cm, 0.5, places=1)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 ## CHƯƠNG 3: NGHIÊN CỨU CHUYÊN SÂU — UC04: QUẢN LÝ CA LÀM VIỆC, CHẤM CÔNG & PHÂN QUYỀN
 
-> **Trái tim của báo cáo — Chiếm ~50%.** Đặc tả đầy đủ nghiệp vụ UC04 do **Nguyễn Viết Tùng** phụ trách: phân công ca, check-in/out sinh trắc học, tính lương đa biến NĐ38 và phân quyền RBAC.
+> **Trái tim của báo cáo — Chiếm ~50%.** Đặc tả đầy đủ nghiệp vụ UC04 do **Nguyễn Viết Tùng** phụ trách: phân công ca, check-in/out sinh trắc học, tính lương đơn giản theo 2 ca sáng/tối và phân quyền RBAC.
 
 ### 3.1. Biểu đồ Use Case Chi tiết UC04
 
@@ -199,17 +199,17 @@ sequenceDiagram
 | **Điều kiện tiên quyết** | Tồn tại ít nhất một bản ghi Attendance có đủ cặp check-in/check-out trong kỳ tính lương |
 | **Kết quả**              | Hệ thống tổng hợp bảng lương cho từng nhân viên theo kỳ                                 |
 
-**Công thức tính lương:**
+**Công thức tính lương đơn giản:**
 
-$$L_{nv} = \sum_{i=1}^{n} \left[ (t_{checkout_i} - t_{checkin_i}) \times r_{ca_i} \right] - P_{tre} + B_{bonus}$$
+$$L_{nv} = (N_{sang} \times R_{sang}) + (N_{toi} \times R_{toi})$$
 
 Trong đó:
 
 - $L_{nv}$: Tổng lương của nhân viên trong kỳ
-- $t_{checkout_i} - t_{checkin_i}$: Số giờ làm thực tế của ca $i$ (tính bằng giờ, làm tròn 2 chữ số thập phân)
-- $r_{ca_i}$: Đơn giá giờ của ca $i$ (có thể khác nhau giữa ca thường và ca cuối tuần/lễ)
-- $P_{tre}$: Khoản khấu trừ do đi muộn (nếu có, theo chính sách)
-- $B_{bonus}$: Thưởng thêm (nếu Quản lý nhập thủ công)
+- $N_{sang}$: Số ca sáng đã hoàn thành trong kỳ
+- $N_{toi}$: Số ca tối đã hoàn thành trong kỳ
+- $R_{sang}$: Mức lương cố định cho một ca sáng
+- $R_{toi}$: Mức lương cố định cho một ca tối
 
 ### 3.4. Xử lý Ngoại lệ Thông minh
 
@@ -296,64 +296,12 @@ graph TD
 > **Lưu trữ:** Ảnh selfie được mã hóa và lưu kèm bản ghi `attendance`, giữ tối thiểu 90 ngày để phục vụ kiểm toán nội bộ.
 
 
-Hệ thống loại bỏ công thức tính lương đơn giản và triển khai **động cơ tính lương đa biến** tuân thủ đầy đủ pháp luật lao động Việt Nam:
+Hệ thống áp dụng **mô hình tính lương tối giản** với 2 loại ca cố định: sáng và tối.
 
-$$S_{total} = \sum_{i=1}^{n} \left( H_{basic,i} \times R \right) + \sum_{j=1}^{m} \left( H_{OT,j} \times R \times M_j \right) + \sum_{k=1}^{p} \left( H_{night,k} \times R \times N_k \right) + A_{total} - D_{total}$$
-
-**Giải thích các biến số:**
-
-| **Biến**      | **Ý nghĩa**                      | **Giá trị theo luật**                                           |
-| ------------- | -------------------------------- | --------------------------------------------------------------- |
-| $H_{basic,i}$ | Giờ hành chính tiêu chuẩn        | ≤ 8h/ngày, ≤ 48h/tuần                                           |
-| $R$           | Lương cơ bản theo giờ            | ≥ 22.500 đ/giờ (Vùng I, 2024)                                   |
-| $H_{OT,j}$    | Giờ làm thêm (tăng ca)           | ≤ 40h/tháng, ≤ 200h/năm                                         |
-| $M_j$         | Hệ số tăng ca                    | **1.5** (ngày thường) / **2.0** (ngày nghỉ) / **3.0** (Lễ, Tết) |
-| $H_{night,k}$ | Giờ làm ca đêm (22:00–06:00)     | Theo lịch thực tế                                               |
-| $N_k$         | Hệ số phụ cấp đêm                | **+30%** (≥ 1.3); nếu vừa tăng ca vừa đêm → cộng thêm **+20%**  |
-| $A_{total}$   | Tổng phụ cấp (ăn ca, xăng xe...) | Theo chính sách quán                                            |
-| $D_{total}$   | Tổng khấu trừ (BHXH, đi muộn...) | Theo chính sách + pháp luật                                     |
-
-**Kiến trúc tách biệt hệ số khỏi mã nguồn:**
-
-> Mọi hệ số $M_j$ và $N_k$ được lưu trong **Bảng ma trận cấu hình (Compliance Matrix)** riêng biệt trong CSDL, không hardcode vào logic code. Khi Chính phủ ban hành quy định mới, Nhân sự chỉ cần cập nhật bảng cấu hình mà **không cần phát hành phiên bản phần mềm mới**.
-
-| **Bảng**          | `compliance_matrix`                                  |
-| ----------------- | ---------------------------------------------------- |
-| `loai_ca`         | ENUM: 'ngay_thuong', 'ngay_nghi', 'le_tet', 'ca_dem' |
-| `he_so`           | DECIMAL(4,2) — hệ số áp dụng                         |
-| `hieu_luc_tu`     | DATE — ngày bắt đầu hiệu lực                         |
-| `van_ban_phap_ly` | VARCHAR — số nghị định tham chiếu                    |
-
-### 3.6. Payroll Engine Đa biến — Tuân thủ NĐ 38/2022/NĐ-CP
+### 3.6. Tính lương theo 2 ca cố định
 
 
-Hệ thống loại bỏ công thức tính lương đơn giản và triển khai **động cơ tính lương đa biến** tuân thủ đầy đủ pháp luật lao động Việt Nam:
-
-$$S_{total} = \sum_{i=1}^{n} \left( H_{basic,i} \times R \right) + \sum_{j=1}^{m} \left( H_{OT,j} \times R \times M_j \right) + \sum_{k=1}^{p} \left( H_{night,k} \times R \times N_k \right) + A_{total} - D_{total}$$
-
-**Giải thích các biến số:**
-
-| **Biến**      | **Ý nghĩa**                      | **Giá trị theo luật**                                           |
-| ------------- | -------------------------------- | --------------------------------------------------------------- |
-| $H_{basic,i}$ | Giờ hành chính tiêu chuẩn        | ≤ 8h/ngày, ≤ 48h/tuần                                           |
-| $R$           | Lương cơ bản theo giờ            | ≥ 22.500 đ/giờ (Vùng I, 2024)                                   |
-| $H_{OT,j}$    | Giờ làm thêm (tăng ca)           | ≤ 40h/tháng, ≤ 200h/năm                                         |
-| $M_j$         | Hệ số tăng ca                    | **1.5** (ngày thường) / **2.0** (ngày nghỉ) / **3.0** (Lễ, Tết) |
-| $H_{night,k}$ | Giờ làm ca đêm (22:00–06:00)     | Theo lịch thực tế                                               |
-| $N_k$         | Hệ số phụ cấp đêm                | **+30%** (≥ 1.3); nếu vừa tăng ca vừa đêm → cộng thêm **+20%**  |
-| $A_{total}$   | Tổng phụ cấp (ăn ca, xăng xe...) | Theo chính sách quán                                            |
-| $D_{total}$   | Tổng khấu trừ (BHXH, đi muộn...) | Theo chính sách + pháp luật                                     |
-
-**Kiến trúc tách biệt hệ số khỏi mã nguồn:**
-
-> Mọi hệ số $M_j$ và $N_k$ được lưu trong **Bảng ma trận cấu hình (Compliance Matrix)** riêng biệt trong CSDL, không hardcode vào logic code. Khi Chính phủ ban hành quy định mới, Nhân sự chỉ cần cập nhật bảng cấu hình mà **không cần phát hành phiên bản phần mềm mới**.
-
-| **Bảng**          | `compliance_matrix`                                  |
-| ----------------- | ---------------------------------------------------- |
-| `loai_ca`         | ENUM: 'ngay_thuong', 'ngay_nghi', 'le_tet', 'ca_dem' |
-| `he_so`           | DECIMAL(4,2) — hệ số áp dụng                         |
-| `hieu_luc_tu`     | DATE — ngày bắt đầu hiệu lực                         |
-| `van_ban_phap_ly` | VARCHAR — số nghị định tham chiếu                    |
+$$S_{total} = (N_{sang} \times R_{sang}) + (N_{toi} \times R_{toi})$$
 
 ---
 
@@ -409,9 +357,9 @@ classDiagram
 | --------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------- |
 | BR-01     | Một nhân viên không thể có 2 ca chồng chéo thời gian trong cùng ngày | Trigger kiểm tra overlap khi INSERT vào `shift_assignment`              |
 | BR-02     | Chỉ có thể Check-out sau khi đã Check-in                             | `check_out_time` chỉ được UPDATE khi `check_in_time IS NOT NULL`        |
-| BR-03     | `so_gio_lam` không được tính nếu `check_out_time IS NULL`            | Dùng `CASE WHEN` trong câu truy vấn tính lương                          |
+| BR-03     | Chỉ ca có đủ `check_in_time` và `check_out_time` mới được đưa vào bảng lương | Dùng `CASE WHEN` hoặc cờ trạng thái hợp lệ khi tổng hợp lương |
 | BR-04     | Giờ làm tối đa 16 giờ/ca; nếu vượt → đánh dấu cần xem xét thủ công   | Constraint: `CHECK(so_gio_lam <= 16)` hoặc cờ `needs_review = 1`        |
-| BR-05     | Ca cuối tuần (Thứ 7, Chủ nhật) được nhân hệ số 1.5                   | Hàm tính lương kiểm tra `DAYOFWEEK(ngay_lam_viec)` trước khi áp đơn giá |
+| BR-05     | Mỗi ca phải thuộc đúng 1 trong 2 loại: `sang` hoặc `toi`             | Ràng buộc ENUM / validation tại bảng `shift_template` và `shift` |
 
 
 ### 3.7. Business Rules và Ràng buộc Nghiệp vụ
@@ -421,9 +369,9 @@ classDiagram
 | --------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------- |
 | BR-01     | Một nhân viên không thể có 2 ca chồng chéo thời gian trong cùng ngày | Trigger kiểm tra overlap khi INSERT vào `shift_assignment`              |
 | BR-02     | Chỉ có thể Check-out sau khi đã Check-in                             | `check_out_time` chỉ được UPDATE khi `check_in_time IS NOT NULL`        |
-| BR-03     | `so_gio_lam` không được tính nếu `check_out_time IS NULL`            | Dùng `CASE WHEN` trong câu truy vấn tính lương                          |
+| BR-03     | Chỉ ca có đủ `check_in_time` và `check_out_time` mới được đưa vào bảng lương | Dùng `CASE WHEN` hoặc cờ trạng thái hợp lệ khi tổng hợp lương |
 | BR-04     | Giờ làm tối đa 16 giờ/ca; nếu vượt → đánh dấu cần xem xét thủ công   | Constraint: `CHECK(so_gio_lam <= 16)` hoặc cờ `needs_review = 1`        |
-| BR-05     | Ca cuối tuần (Thứ 7, Chủ nhật) được nhân hệ số 1.5                   | Hàm tính lương kiểm tra `DAYOFWEEK(ngay_lam_viec)` trước khi áp đơn giá |
+| BR-05     | Mỗi ca phải thuộc đúng 1 trong 2 loại: `sang` hoặc `toi`             | Ràng buộc ENUM / validation tại bảng `shift_template` và `shift` |
 
 
 **Business Rules bổ sung — Quản lý Tài khoản:**
