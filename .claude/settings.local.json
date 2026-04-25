@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pandoc Bao_Cao_Ca_Nhan_UC04.docx -o content.md)",
+      "Bash(python scripts/office/unpack.py Bao_Cao_Ca_Nhan_UC04.docx unpacked/)",
+      "Bash(python skills/handling-docx-files/scripts/office/unpack.py Bao_Cao_Ca_Nhan_UC04.docx unpacked/)",
+      "Bash(python *)",
+      "Bash(pip install *)",
+      "Bash(pandoc *)"
+    ]
+  }
+}
