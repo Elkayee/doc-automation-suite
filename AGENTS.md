@@ -9,7 +9,7 @@ This guide helps AI agents rapidly become productive in this document-processing
 - **Processing:** Assemble → Render Mermaid diagrams → Convert MD → DOCX
 - **Output:** Professional `.docx` report
 
-**Critical:** The repo is split across **Python workflows** (file processing) and **`/skills`** (modular guidance). Most active work happens in `/chapters` (content) and root-level scripts (`make.py`, `merge_reports.py`, `split_chapters.py`).
+**Critical:** The repo is split across **Python workflows** (file processing) and **`/skills`** (modular guidance). Most active work happens in `/chapters` (content) and three root-level scripts: `make.py`, `split_chapters.py`, and `convert_docx_to_md.py`.
 
 ## Essential Workflows
 
@@ -25,6 +25,8 @@ This guide helps AI agents rapidly become productive in this document-processing
 - File save handles permission errors by appending `_new` suffix
 
 ### 2. Document Manipulation
+- **Convert DOCX → Markdown:** `python convert_docx_to_md.py [input.docx] [output.md]`
+- **Split Markdown into chapters:** `python split_chapters.py [input.md] [output_dir]`
 - **Unpack DOCX to XML:** `python skills/xu-ly-van-phong/scripts/office/unpack.py file.docx output_dir`
 - **Repack XML to DOCX:** `python skills/xu-ly-van-phong/scripts/office/pack.py input_dir output.docx`
 - **Convert PDF → DOCX:** `python skills/xu-ly-van-phong/scripts/convert/convert_pdf_to_docx.py in.pdf out.docx`
@@ -83,7 +85,7 @@ def set_page_setup(doc):
 - **`soffice` (LibreOffice):** Headless document conversion
 
 ### Cross-Component Communication
-- Root scripts (`make.py`, `merge_reports.py`) call into `/skills/xu-ly-van-phong/scripts/` for low-level operations
+- Root scripts (`make.py`, `split_chapters.py`, `convert_docx_to_md.py`) own the primary report workflow
 - `/skills/handling-docx-files/` provides XML-level DOCX manipulation for advanced use cases
 - All office scripts write to consistent output directories (`chapters/`, `Bao_Cao_*.md`, `Bao_Cao_*.docx`)
 
@@ -99,10 +101,10 @@ Before implementing, check:
 ## Key Files to Read First
 
 1. **`CLAUDE.md`** — Behavioral guidelines (caution-over-speed, simplicity, surgical changes)
-2. **`make.py`** — The main build pipeline; demonstrates the full workflow
-3. **`skills/xu-ly-van-phong/SKILL.md`** — 4-layer architecture for Vietnamese document standards
-4. **`skills/handling-docx-files/SKILL.md`** — XML manipulation and DOCX internals
-5. **`package.json`** — Minimal (only `docx` as npm dependency; most work is Python)
+2. **`make.py`** — The main build pipeline; assembles chapters and renders DOCX
+3. **`split_chapters.py`** — Splits the assembled markdown back into chapter files
+4. **`convert_docx_to_md.py`** — Converts the generated report back to markdown with extracted media
+5. **`skills/xu-ly-van-phong/SKILL.md`** — 4-layer architecture for Vietnamese document standards
 
 ---
 

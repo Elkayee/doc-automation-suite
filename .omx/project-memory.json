@@ -1,0 +1,28 @@
+{
+  "updated_at": "2026-04-25",
+  "project": "NMCNPM",
+  "root_python_workflow": {
+    "active_scripts": [
+      "make.py",
+      "split_chapters.py",
+      "convert_docx_to_md.py"
+    ],
+    "retired_root_scripts": [
+      "assemble_final.py",
+      "build_tshape_report.py",
+      "check_report.py",
+      "clean_ch05.py",
+      "convert_md_to_docx.py",
+      "diagnose.py",
+      "fix_ascii.py",
+      "fix_headings.py",
+      "merge_reports.py",
+      "scratch_fix_mermaid.py"
+    ]
+  },
+  "notes": [
+    "Use make.py for the forward workflow: chapters -> markdown -> docx.",
+    "Use split_chapters.py to break Bao_Cao_Tieu_Luan_NMCNPM.md back into chapter files.",
+    "Use convert_docx_to_md.py for docx -> markdown recovery with extracted media."
+  ]
+}

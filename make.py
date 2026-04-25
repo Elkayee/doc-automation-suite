@@ -2,7 +2,15 @@
 make.py — Tool duy nhat: Ghep chapters -> MD -> convert DOCX
 Usage: uv run python make.py
 """
-import re, base64, io, os, sys, glob, struct, time
+import base64
+import glob
+import os
+import re
+import struct
+import sys
+import time
+from pathlib import Path
+
 import requests
 from docx import Document
 from docx.shared import Pt, RGBColor, Inches, Cm
@@ -13,11 +21,11 @@ from docx.oxml import OxmlElement
 sys.stdout.reconfigure(encoding='utf-8')
 
 # ── CONFIG ───────────────────────────────────────────────────────────────────
-BASE      = r'c:\Users\Home33\IdeaProjects\NMCNPM'
-CH_DIR    = os.path.join(BASE, 'chapters')
-MD_OUT    = os.path.join(BASE, 'Bao_Cao_Tieu_Luan_NMCNPM.md')
-DOCX_OUT  = os.path.join(BASE, 'Bao_Cao_Tieu_Luan_NMCNPM.docx')
-IMG_CACHE = os.path.join(BASE, 'mermaid_cache')
+BASE = Path(__file__).resolve().parent
+CH_DIR = str(BASE / 'chapters')
+MD_OUT = str(BASE / 'Bao_Cao_Tieu_Luan_NMCNPM.md')
+DOCX_OUT = str(BASE / 'Bao_Cao_Tieu_Luan_NMCNPM.docx')
+IMG_CACHE = str(BASE / 'mermaid_cache')
 os.makedirs(IMG_CACHE, exist_ok=True)
 
 # ── MÀUSẮC ───────────────────────────────────────────────────────────────────
@@ -29,29 +37,43 @@ COLOR_H4 = RGBColor(0x44, 0x9D, 0xD1)
 # ════════════════════════════════════════════════════════════════════════════
 # BƯỚC 1: GỘP CHAPTERS → MD
 # ════════════════════════════════════════════════════════════════════════════
+def collect_chapter_files(chapter_dir):
+    all_files = sorted(glob.glob(os.path.join(chapter_dir, 'Ch0*.md')))
+    return [
+        file_path
+        for file_path in all_files
+        if not os.path.basename(file_path).startswith('Ch08')
+        and not os.path.basename(file_path).startswith('Ch09')
+    ]
+
+
+def assemble_markdown(chapter_dir, output_path):
+    chapter_files = collect_chapter_files(chapter_dir)
+    parts = []
+
+    for file_path in chapter_files:
+        with open(file_path, encoding='utf-8') as handle:
+            content = handle.read().strip()
+        parts.append(content)
+        print(f'  [OK] {os.path.basename(file_path)}  ({len(content.splitlines())} dong)')
+
+    final = '\n\n'.join(parts)
+    with open(output_path, 'w', encoding='utf-8') as handle:
+        handle.write(final)
+
+    return final, chapter_files
+
+
 def step_assemble():
     print('=' * 55)
     print('BƯỚC 1: Ghép chapters → MD')
     print('=' * 55)
 
-    all_files = sorted(glob.glob(os.path.join(CH_DIR, 'Ch0*.md')))
-    keep = [f for f in all_files
-            if not os.path.basename(f).startswith('Ch08')
-            and not os.path.basename(f).startswith('Ch09')]
-
-    parts = []
-    for fp in keep:
-        content = open(fp, encoding='utf-8').read().strip()
-        parts.append(content)
-        print(f'  [OK] {os.path.basename(fp)}  ({len(content.splitlines())} dong)')
-
-    final = '\n\n'.join(parts)
-    with open(MD_OUT, 'w', encoding='utf-8') as f:
-        f.write(final)
+    final, chapter_files = assemble_markdown(CH_DIR, MD_OUT)
 
     kb = len(final.encode('utf-8')) // 1024
     print(f'\n  => {MD_OUT}')
-    print(f'     {len(final.splitlines())} dong | {kb} KB | {len(keep)} chapters\n')
+    print(f'     {len(final.splitlines())} dong | {kb} KB | {len(chapter_files)} chapters\n')
 
 # ════════════════════════════════════════════════════════════════════════════
 # BƯỚC 2: CONVERT MD → DOCX
