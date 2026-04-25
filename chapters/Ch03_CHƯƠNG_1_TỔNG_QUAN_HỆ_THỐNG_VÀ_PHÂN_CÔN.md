@@ -1,22 +1,58 @@
 ## CHƯƠNG 1: TỔNG QUAN HỆ THỐNG VÀ PHÂN CÔNG NHÓM
 
-> **Mục tiêu chương:** Trình bày bức tranh toàn cảnh gồm 6 phân hệ ca sử dụng, tác nhân, yêu cầu chức năng và yêu cầu phi chức năng. Phần này chiếm khoảng 10% báo cáo.
+> **Mục tiêu chương:** Trình bày actor, yêu cầu chức năng, yêu cầu phi chức năng và biểu đồ ca sử dụng tổng quát của toàn hệ thống. Đây là phần tổng quan chung của cả nhóm trước khi đi vào các chương chuyên sâu.
 
-### 1.1. Bối cảnh và Tầm nhìn Dự án
+### 1.1. Phân tích và Xác định Actor
 
-Dự án xây dựng nền tảng quản lý café tích hợp, giải quyết đồng thời bài toán vận hành (POS, thu ngân, kho bãi) và quản trị nhân sự. Bộ sản phẩm gồm ba nền tảng:
+Hệ thống quản lý café phục vụ nhiều vai trò khác nhau. Mỗi actor có mục tiêu sử dụng, phạm vi quyền hạn và điểm tiếp xúc riêng với hệ thống:
 
-| **Nền tảng**               | **Đối tượng**   | **Công nghệ**                     |
-| -------------------------- | --------------- | --------------------------------- |
-| Ứng dụng bảng điều khiển trên web | Quản lý cấp cao | React / Next.js, triển khai trên đám mây |
-| Phần mềm POS máy tính bảng | Thu ngân        | Android tablet, giao thức ESC/POS |
-| Ứng dụng di động nhân viên | Nhân viên       | Flutter, GPS + nhận diện khuôn mặt |
+| **Actor** | **Mô tả** | **Mục tiêu chính khi sử dụng hệ thống** |
+| --- | --- | --- |
+| Quản lý | Người điều hành chi nhánh hoặc cửa hàng | Quản lý thực đơn, nhân sự, phân ca, kho, doanh thu và cấu hình vận hành |
+| Thu ngân | Nhân viên trực tiếp tiếp nhận và xử lý giao dịch bán hàng | Tạo đơn, cập nhật bàn, áp dụng món/topping, thanh toán và in hóa đơn |
+| Nhân viên phục vụ / pha chế | Nhân sự làm việc theo ca tại cửa hàng | Nhận đơn, theo dõi công việc theo ca, vào ca và kết thúc ca |
+| Khách hàng | Người mua sản phẩm, tác động gián tiếp đến hệ thống thông qua yêu cầu phục vụ | Đặt món, thanh toán, nhận hóa đơn và trải nghiệm phục vụ nhanh, chính xác |
 
----
+Việc xác định rõ actor giúp nhóm phân biệt đâu là yêu cầu của người dùng cuối và đâu là yêu cầu quản trị nội bộ, từ đó tránh thiết kế các chức năng bị trùng vai trò hoặc vượt quyền sử dụng thực tế.
 
-### 1.2. Biểu đồ Ca sử dụng Tổng quát
+### 1.2. Yêu cầu Chức năng
 
-Biểu đồ thể hiện phạm vi hệ thống và tương tác giữa tác nhân với 6 ca sử dụng. **UC04 (tô màu tím)** là trọng tâm phân tích chuyên sâu của báo cáo này.
+Yêu cầu chức năng được phân loại theo chuẩn **IEEE 830**, bảo đảm tính truy vết từ yêu cầu người dùng đến thiết kế ca sử dụng:
+
+| **Mã**    | **Phân hệ**   | **Mô tả yêu cầu**                                                                                              | **Ưu tiên** |
+| --------- | ------------- | -------------------------------------------------------------------------------------------------------------- | :---------: |
+| FR-01     | Đơn hàng      | Thu ngân tạo mới, chỉnh sửa và hủy đơn hàng theo tình trạng phục vụ thực tế                                   |     Cao     |
+| FR-02     | Đơn hàng      | Hệ thống tự động chuyển thông tin món đến khu vực pha chế khi đơn được xác nhận                               |     Cao     |
+| FR-03     | Bàn           | Hệ thống quản lý trạng thái bàn theo thời gian thực: trống, đang phục vụ, chờ thanh toán                     |     Cao     |
+| FR-04     | Thanh toán    | Hỗ trợ tối thiểu ba hình thức thanh toán: tiền mặt, thẻ và QR Pay                                             | Trung bình  |
+| FR-05     | Thanh toán    | Hóa đơn được in theo định dạng chuẩn để giao cho khách hàng                                                   |     Cao     |
+| FR-06     | Thực đơn      | Quản lý danh mục đồ uống, nhóm món, topping và công thức pha chế                                              |     Cao     |
+| FR-07     | Kho           | Tự động cập nhật tồn kho theo công thức nguyên liệu khi đơn hàng được hoàn tất                                |     Cao     |
+| FR-08     | Kho           | Cảnh báo khi nguyên liệu xuống dưới ngưỡng tối thiểu                                                           | Trung bình  |
+| **FR-09** | **Ca làm việc** | **Quản lý tạo mẫu ca, lập lịch và phân công ca làm cho nhân viên theo ngày hoặc tuần**                        |   **Cao**   |
+| **FR-10** | **Chấm công** | **Nhân viên thực hiện vào ca và kết thúc ca; hệ thống ghi nhận giờ làm thực tế**                              |   **Cao**   |
+| **FR-11** | **Nhân sự**   | **Quản lý hồ sơ nhân viên, cấp tài khoản đăng nhập và phân quyền theo vai trò**                               |   **Cao**   |
+| **FR-12** | **Nhân sự**   | **Quản lý khóa tài khoản, đặt lại mật khẩu và theo dõi danh sách nhân viên**                                  | Trung bình  |
+| **FR-13** | **Lương**     | **Tính lương theo loại ca, thời gian làm thực tế và hệ số ngày thường, cuối tuần, ngày lễ**                  |   **Cao**   |
+| FR-14     | Báo cáo       | Thống kê doanh thu theo ngày, tuần, tháng và theo chi nhánh                                                   | Trung bình  |
+| FR-15     | Báo cáo       | Thống kê top sản phẩm bán chạy, chi phí vận hành và biến động hoạt động cửa hàng                              |    Thấp     |
+
+### 1.3. Yêu cầu Phi chức năng
+
+Phân tích theo mô hình chất lượng **ISO/IEC 25010**:
+
+| **Thuộc tính**    | **Yêu cầu cụ thể** | **Cách đo lường** |
+| ----------------- | ------------------ | ----------------- |
+| Hiệu năng | Thao tác tạo đơn, chấm công và truy vấn danh sách chính phải phản hồi trong thời gian ngắn trong giờ cao điểm | Kiểm thử hiệu năng với dữ liệu mô phỏng |
+| Tính sẵn sàng | Hệ thống phải hoạt động ổn định trong ca làm việc của cửa hàng và có cơ chế sao lưu dữ liệu | Theo dõi nhật ký vận hành |
+| Bảo mật | Dữ liệu tài khoản, phân quyền và chấm công phải được kiểm soát theo vai trò; mật khẩu không lưu dạng thô | Kiểm tra phân quyền và chính sách lưu mật khẩu |
+| Tính khả dụng | Giao diện phải đơn giản để nhân viên mới có thể sử dụng sau thời gian hướng dẫn ngắn | Kiểm thử thao tác với người dùng đại diện |
+| Tính toàn vẹn dữ liệu | Dữ liệu đơn hàng, kho, ca làm và chấm công phải nhất quán, tránh trùng lặp hoặc mất liên kết | Ràng buộc khóa và kiểm thử luồng nghiệp vụ |
+| Bảo trì | Hệ thống được tổ chức theo các phân hệ rõ ràng để dễ mở rộng và sửa lỗi | Đánh giá cấu trúc mô-đun và tài liệu hóa |
+
+### 1.4. Biểu đồ Ca sử dụng Tổng quát
+
+Biểu đồ sau mô tả phạm vi toàn hệ thống và mối quan hệ giữa các actor với các ca sử dụng chính:
 
 ```plantuml
 @startuml
@@ -24,6 +60,7 @@ left to right direction
 skinparam packageStyle rectangle
 
 actor "Quản lý" as Manager
+actor "Thu ngân" as Cashier
 actor "Nhân viên" as Employee
 actor "Khách hàng" as Customer
 
@@ -31,87 +68,43 @@ rectangle "HỆ THỐNG QUẢN LÝ CAFÉ" {
   usecase "UC01: Quản lý Thực đơn và Đồ uống" as UC01
   usecase "UC02: Quản lý Đơn hàng và Bàn" as UC02
   usecase "UC03: Quản lý Thanh toán và Hóa đơn" as UC03
-  usecase "UC04: Quản lý Ca làm và Chấm công" as UC04
+  usecase "UC04: Quản lý Ca làm việc và Chấm công" as UC04
   usecase "UC05: Quản lý Kho và Nguyên liệu" as UC05
   usecase "UC06: Thống kê và Báo cáo" as UC06
+  usecase "UC07: Quản lý Tài khoản và Phân quyền Nhân sự" as UC07
 }
 
 Manager --> UC01
 Manager --> UC04
 Manager --> UC05
 Manager --> UC06
-Employee --> UC01
-Employee --> UC02
-Employee --> UC03
+Manager --> UC07
+Cashier --> UC02
+Cashier --> UC03
 Employee --> UC04
-Customer ..> UC02 : gián tiếp
+Customer ..> UC02 : yêu cầu phục vụ gián tiếp
+UC04 ..> UC07 : include
 @enduml
 ```
 
----
+### 1.5. Bảng Tóm tắt Chức năng Toàn Hệ thống
 
-### 1.3. Bảng Tóm tắt Chức năng Toàn Hệ thống
+| **UC** | **Phân hệ** | **Chức năng cốt lõi** | **Người phụ trách** | **Mức chi tiết** |
+| :---: | --- | --- | --- | :---: |
+| UC01 | Thực đơn & Đồ uống | Quản lý sản phẩm, nhóm món, topping và công thức pha chế | Bảo | Tóm tắt |
+| UC02 | Đơn hàng & Bàn | Tạo đơn, cập nhật trạng thái bàn và điều phối phục vụ | Thành | Tóm tắt |
+| UC03 | Thanh toán & Hóa đơn | Xử lý thanh toán và in hóa đơn | Thành | Tóm tắt |
+| UC05 | Kho & Nguyên liệu | Nhập kho, xuất kho theo công thức và cảnh báo tồn tối thiểu | Nguyễn Quang Đạo | Tóm tắt |
+| UC06 | Báo cáo & Cửa hàng | Thống kê doanh thu, chi phí và tình hình hoạt động cửa hàng | Hồng Nhung | Tóm tắt |
+| **UC04 + UC07** | **Nhân sự, tài khoản & chấm công** | **Quản lý ca làm việc, chấm công, hồ sơ nhân viên, tài khoản đăng nhập và phân quyền theo vai trò** | **Nguyễn Viết Tùng** | **Chuyên sâu (Chương 6-7)** |
 
-|  **UC**  | **Phân hệ**             | **Chức năng cốt lõi**                                                                             | **Người phụ trách**  |       **Mức chi tiết**       |
-| :------: | ----------------------- | ------------------------------------------------------------------------------------------------- | -------------------- | :--------------------------: |
-|   UC01   | Thực đơn & Đồ uống      | CRUD sản phẩm, nhóm, topping, công thức pha chế                                                   | Bảo                  |           Tóm tắt            |
-|   UC02   | Đơn hàng & Bàn          | Tạo/sửa đơn, quản lý trạng thái bàn theo thời gian thực                                            | Thành                |           Tóm tắt            |
-|   UC03   | Thanh toán & Hóa đơn    | Xử lý thanh toán đa kênh (tiền mặt/thẻ/QR), in hóa đơn                                            | Thành                |           Tóm tắt            |
-|   UC05   | Kho & Nguyên liệu       | Nhập kho, trừ tồn theo công thức pha chế, cảnh báo ngưỡng                                          | Nguyễn Quang Đạo     |           Tóm tắt            |
-|   UC06   | Báo cáo & Cửa hàng      | Thống kê doanh thu, top sản phẩm, quản lý chi nhánh                                               | Hồng Nhung           |           Tóm tắt            |
-| **UC04** | **Nhân sự & Chấm công** | **Usecase quản lý chấm công và nhân sự: hồ sơ nhân viên, phân ca sáng/tối, chấm công bằng GPS, tính lương theo ca với hệ số cuối tuần/lễ, RBAC** | **Nguyễn Viết Tùng** | **Chuyên sâu (Chương 3)** |
-
----
-
-### 1.4. Yêu cầu Chức năng
-
-Yêu cầu chức năng được phân loại theo chuẩn **IEEE 830**, đảm bảo tính truy vết từ yêu cầu đến thiết kế:
-
-| **Mã**    | **Phân hệ**   | **Mô tả yêu cầu**                                                                                              | **Ưu tiên** |
-| --------- | ------------- | -------------------------------------------------------------------------------------------------------------- | :---------: |
-| FR-01     | Đơn hàng      | Nhân viên tạo mới, sửa đổi và hủy đơn hàng trên bàn đang hoạt động                                             |     Cao     |
-| FR-02     | Đơn hàng      | Hệ thống tự động thông báo khu vực pha chế khi có đơn mới                                                      |     Cao     |
-| FR-03     | Bàn           | Trạng thái bàn cập nhật theo thời gian thực, không cần làm mới trang                                           |     Cao     |
-| FR-04     | Thanh toán    | Hỗ trợ tối thiểu 3 hình thức: tiền mặt, thẻ và QR Pay                                                          | Trung bình  |
-| FR-05     | Thanh toán    | Hóa đơn xuất ra máy in nhiệt theo định dạng chuẩn ESC/POS                                                      |     Cao     |
-| FR-06     | Kho           | Tự động cập nhật tồn kho khi đơn xác nhận, theo công thức Recipe                                               |     Cao     |
-| FR-07     | Kho           | Cảnh báo khi tồn kho xuống dưới ngưỡng tối thiểu                                                               | Trung bình  |
-| **FR-08** | **Nhân sự**   | **Quản lý tạo và phân công ca làm cho từng nhân viên theo ngày/tuần**                                          |   **Cao**   |
-| **FR-09** | **Nhân sự**   | **Nhân viên chấm công vào ca và kết thúc ca, hệ thống ghi nhận giờ làm thực tế**                               |   **Cao**   |
-| **FR-10** | **Nhân sự**   | **Tính lương theo 2 loại ca cố định: ca sáng và ca tối; có hệ số riêng cho ngày thường, cuối tuần và ngày lễ** |   **Cao**   |
-| **FR-15** | **Chấm công** | **Chấm công bằng định vị GPS theo vùng kết hợp xác thực khuôn mặt, ngăn chấm công hộ**                         |   **Cao**   |
-| FR-11     | Báo cáo       | Tổng hợp và trực quan hóa doanh thu theo ngày/tuần/tháng                                                       | Trung bình  |
-| FR-12     | Báo cáo       | Thống kê top 10 mặt hàng bán chạy nhất trong kỳ                                                                |    Thấp     |
-| FR-13     | AI — Kho      | Module AI dự báo nhu cầu nguyên liệu, tự động tạo đề xuất phiếu nhập                                           |  Kiến nghị  |
-| FR-14     | AI — Nhân sự  | Module AI tự động đề xuất lịch phân ca theo dự báo lưu lượng khách                                             |  Kiến nghị  |
-| FR-16     | Khách hàng    | Quản lý khách hàng thân thiết; AI cá nhân hóa khuyến mãi                                                       |  Kiến nghị  |
-
-> **Lưu ý:** FR-08, FR-09, FR-10, FR-15 (in đậm) là trọng tâm phân tích của báo cáo, được đặc tả đầy đủ tại Chương 3.
-
----
-
-### 1.5. Yêu cầu Phi chức năng
-
-Phân tích theo mô hình chất lượng **ISO/IEC 25010**:
-
-| **Thuộc tính**    | **Yêu cầu cụ thể**                                             | **Cách đo lường**       |
-| ----------------- | -------------------------------------------------------------- | ----------------------- |
-| **Hiệu năng**     | Phản hồi dưới 3 giây trong điều kiện LAN, 20 người dùng đồng thời | Công cụ phân tích hiệu năng |
-| **Tính sẵn sàng** | Hoạt động liên tục; thời gian phục hồi dưới 30 phút khi có sự cố | Nhật ký thời gian hoạt động |
-| **Bảo mật**       | RBAC nghiêm ngặt; mật khẩu băm bằng BCrypt; nhật ký thao tác lưu ít nhất 90 ngày | Kiểm tra thâm nhập cơ bản |
-| **Tính khả dụng** | Nhân viên mới thành thạo chức năng cơ bản sau không quá 2 giờ đào tạo | Kiểm thử người dùng với 5 người |
-| **Tương thích**   | Windows 7 SP1+; máy in nhiệt chuẩn ESC/POS                     | Kiểm thử 3 cấu hình POS |
-| **Bảo trì**       | Độ bao phủ kiểm thử từ 70% trở lên; tài liệu hóa đầy đủ        | JaCoCo                  |
-
----
+> **Lưu ý:** Phần chuyên sâu của nhóm tập trung vào khối nghiệp vụ nhân sự, gồm `UC04` và `UC07`, được đặc tả chi tiết tại `Chương 6` và `Chương 7`.
 
 ### 1.6. Phân tích Rủi ro Dự án
 
-| **Rủi ro**                                | **Xác suất** | **Tác động** | **Biện pháp giảm thiểu**                                      |
-| ----------------------------------------- | :----------: | :----------: | ------------------------------------------------------------- |
-| Yêu cầu thay đổi giữa chừng (phình phạm vi) |     Cao      |     Cao      | Đặc tả ca sử dụng làm tài liệu ký kết; quản lý thay đổi |
-| Thiếu dữ liệu thực tế để kiểm thử         |  Trung bình  |  Trung bình  | Sinh dữ liệu mẫu mô phỏng thực tế |
-| Thành viên nhóm vắng giữa sprint          |     Thấp     |     Cao      | Phân công chéo; tài liệu handover                             |
-| Lỗi tích hợp phần cứng POS                |  Trung bình  |     Cao      | Kiểm thử thiết bị sớm; driver dự phòng                        |
-
----
+| **Rủi ro** | **Xác suất** | **Tác động** | **Biện pháp giảm thiểu** |
+| --- | :---: | :---: | --- |
+| Yêu cầu thay đổi giữa chừng | Cao | Cao | Chốt phạm vi bằng đặc tả use case và duyệt lại trước khi ghép báo cáo |
+| Thiếu dữ liệu mô phỏng để kiểm thử | Trung bình | Trung bình | Chuẩn bị bộ dữ liệu mẫu đủ cho các phân hệ bán hàng, kho và nhân sự |
+| Nội dung các thành viên bị lệch format | Trung bình | Cao | Thống nhất cấu trúc: UC chi tiết, đặc tả UC, biểu đồ hoạt động |
+| Trùng lặp hoặc mâu thuẫn giữa phần chung và phần cá nhân | Trung bình | Cao | Soát lại mã UC, actor, thực thể và tên chương trước khi xuất bản cuối cùng |

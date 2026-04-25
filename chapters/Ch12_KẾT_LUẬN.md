@@ -1,16 +1,11 @@
 ## KẾT LUẬN
 
-Bài tiểu luận này đã trình bày một cách có hệ thống và toàn diện toàn bộ vòng đời phát triển phần mềm (SDLC) cho Hệ thống Quản lý Quán Café, áp dụng nhất quán các phương pháp luận và công cụ chuẩn mực của ngành Công nghệ phần mềm.
+Bài tiểu luận đã xây dựng được một báo cáo tương đối đầy đủ cho bài toán **hệ thống quản lý quán café**, bám theo cấu trúc của học phần NMCNPM từ phần mô tả bài toán, xác định yêu cầu, biểu đồ ca sử dụng tổng quát, biểu đồ lớp thực thể đến phần nghiên cứu chuyên sâu cho từng Use Case do các thành viên phụ trách.
 
-**Tóm tắt thành quả chính:**
+Điểm nổi bật của báo cáo là phần chung của nhóm đã làm rõ được nhu cầu người dùng, actor, yêu cầu chức năng, yêu cầu phi chức năng và mối liên hệ giữa các phân hệ bán hàng, thực đơn, kho, báo cáo và nhân sự. Trên nền đó, từng thành viên tiếp tục phát triển phần nghiên cứu chuyên sâu cho Use Case của mình theo đúng yêu cầu môn học gồm: biểu đồ UC chi tiết, đặc tả UC và biểu đồ hoạt động.
 
-| **Chương** | **Giai đoạn SDLC** | **Thành quả chính** |
-| --- | --- | --- |
-| Chương 1 | Khảo sát & Đặc tả | 12 Yêu cầu chức năng (FR), 6 Yêu cầu phi chức năng (NFR), Ma trận rủi ro |
-| Chương 2 | Phân tích & Thiết kế | Biểu đồ lớp của 5 nhóm lớp, ERD chuẩn 3NF, biểu đồ tuần tự/trạng thái, kiến trúc 3 tầng |
-| Chương 3 | Hiện thực & SQA | Ngăn xếp công nghệ, quy trình viết mã sạch, tháp kiểm thử, hơn 10 ca kiểm thử, kế hoạch bảo trì 4 loại |
-| Chương 4 | Nghiên cứu UC04 | Đặc tả đầy đủ 5 luồng ngoại lệ, ERD 4 bảng nhân sự, 5 quy tắc nghiệp vụ, 9 ca kiểm thử |
+Riêng khối nghiệp vụ nhân sự được nhóm chọn làm trọng tâm phân tích sâu, bao gồm **UC04 — Quản lý ca làm việc và chấm công** và **UC07 — Quản lý tài khoản và phân quyền nhân sự**. Việc tách dữ liệu kế hoạch ca làm khỏi dữ liệu chấm công thực tế, cùng với các ràng buộc về phân quyền, phân ca và ghi nhận giờ công, cho thấy hệ thống không chỉ giải quyết thao tác vận hành mà còn hướng tới tính minh bạch và khả năng đối soát trong quản trị cửa hàng.
 
-**Bài học rút ra:** Quá trình thực hiện dự án khẳng định một nguyên lý căn bản trong kỹ nghệ phần mềm: _"Đầu tư vào giai đoạn đặc tả và thiết kế tốt sẽ giảm thiểu đáng kể chi phí sửa lỗi ở giai đoạn sau."_ Cụ thể, việc xây dựng quy tắc nghiệp vụ BR-01 (ngăn ca chồng chéo) bằng bộ kích hoạt ở cơ sở dữ liệu thay vì chỉ kiểm tra ở tầng ứng dụng là một quyết định thiết kế có tầm nhìn, bảo đảm toàn vẹn dữ liệu bất kể lỗi từ phía ứng dụng.
+Qua quá trình thực hiện, nhóm rút ra rằng chất lượng của một hệ thống phần mềm phụ thuộc rất lớn vào giai đoạn phân tích yêu cầu và mô hình hóa ban đầu. Khi actor, Use Case, thực thể và ràng buộc nghiệp vụ được xác định rõ, việc triển khai phần chuyên sâu sẽ mạch lạc hơn, giảm mâu thuẫn giữa các phần do từng thành viên thực hiện. Đây cũng là ý nghĩa quan trọng nhất mà bài tập nhóm mang lại: không chỉ xây dựng một bài báo cáo hoàn chỉnh, mà còn giúp nhóm hiểu cách chuyển một bài toán thực tế thành mô hình phân tích và thiết kế phần mềm có cấu trúc.
 
-**Hướng phát triển tiếp theo:** Hệ thống hiện tại được xây dựng cho mô hình một chi nhánh. Để mở rộng lên quy mô chuỗi nhiều chi nhánh, cần nghiên cứu chuyển đổi sang kiến trúc vi dịch vụ và bổ sung cơ chế đồng bộ dữ liệu phân tán — đây là bài toán nghiên cứu cho học phần Kiến trúc Phần mềm ở các cấp độ cao hơn.
+Trong tương lai, nếu tiếp tục phát triển đề tài này, nhóm có thể mở rộng theo hướng quản lý đa chi nhánh, đồng bộ dữ liệu thời gian thực, phân tích doanh thu nâng cao và tối ưu lịch làm bằng dữ liệu thực tế. Tuy nhiên, trong phạm vi môn học hiện tại, kết quả đạt được đã đáp ứng mục tiêu chính là xây dựng báo cáo nhóm có tính hệ thống, có chiều sâu nghiệp vụ và có sự phân công rõ ràng giữa các thành viên.

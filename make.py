@@ -955,6 +955,7 @@ def step_convert(md_out=MD_OUT, docx_out=DOCX_OUT, img_cache=IMG_CACHE):
     size = os.path.getsize(out) // 1024
     print(f'\n[DONE] {out}  ({size} KB)')
     print('  => Mo file Word va dong lai neu can dung ten goc.')
+    return out
 
 
 def run_build_pipeline(chapters_dir=CH_DIR, md_out=MD_OUT, docx_out=DOCX_OUT, img_cache=IMG_CACHE):
@@ -966,8 +967,8 @@ def run_build_pipeline(chapters_dir=CH_DIR, md_out=MD_OUT, docx_out=DOCX_OUT, im
     kb = len(final.encode('utf-8')) // 1024
     print(f'\n  => {md_out}')
     print(f'     {len(final.splitlines())} dong | {kb} KB | {len(chapter_files)} chapters\n')
-    step_convert(md_out=md_out, docx_out=docx_out, img_cache=img_cache)
-    return Path(docx_out)
+    saved_path = step_convert(md_out=md_out, docx_out=docx_out, img_cache=img_cache)
+    return Path(saved_path)
 
 
 def launch_workflow_ui():
@@ -1271,10 +1272,11 @@ img { max-width: 100%; }
     add_path_row(build_tab, 'Output DOCX', build_docx, 'save', [('Word Document', '*.docx')])
     add_path_row(build_tab, 'Diagram cache', build_cache, 'dir')
 
-    ttk.Button(
-        build_tab,
-        text='Run Build Pipeline',
-        command=lambda: run_ui_action(
+    build_res_frame = ttk.Frame(build_tab)
+    build_res_frame.pack(anchor='w', pady=(10, 0))
+
+    def do_build():
+        res = run_ui_action(
             root,
             log,
             lambda: run_build_pipeline(
@@ -1284,8 +1286,15 @@ img { max-width: 100%; }
                 img_cache=build_cache.get(),
             ),
             'Build hoàn tất.',
-        ),
-    ).pack(anchor='w', pady=(14, 0))
+        )
+        if res:
+            btn_open_file.pack(side='left', padx=5)
+            btn_open_folder.pack(side='left', padx=5)
+
+    ttk.Button(build_tab, text='Run Build Pipeline', command=do_build).pack(anchor='w', pady=(14, 0))
+
+    btn_open_file = ttk.Button(build_res_frame, text='Mở file Word', command=lambda: os.startfile(build_docx.get()))
+    btn_open_folder = ttk.Button(build_res_frame, text='Mở thư mục chứa', command=lambda: os.startfile(os.path.dirname(os.path.abspath(build_docx.get()))))
 
     split_source = tk.StringVar(value=MD_OUT)
     split_output = tk.StringVar(value=str(BASE / 'chapters'))
@@ -1334,6 +1343,7 @@ def run_ui_action(root, log, action, success_message):
         from tkinter import messagebox
 
         messagebox.showinfo('NMCNPM Workflow', success_message)
+        return result
     except Exception as exc:
         log(f'ERROR: {exc}')
         from tkinter import messagebox

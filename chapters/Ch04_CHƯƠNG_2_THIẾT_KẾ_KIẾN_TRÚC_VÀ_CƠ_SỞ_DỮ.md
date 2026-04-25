@@ -1,142 +1,251 @@
 ## CHƯƠNG 2: THIẾT KẾ KIẾN TRÚC VÀ CƠ SỞ DỮ LIỆU
 
-> **Mục tiêu chương:** Trình bày kiến trúc triển khai 3 tầng và lược đồ quan hệ thực thể chi tiết cho nhóm bảng UC04 (Nhân sự). Chiếm khoảng 15% báo cáo.
+> **Mục tiêu chương:** Trình bày biểu đồ lớp thực thể chung của hệ thống, mô tả các thực thể chính và làm rõ nhóm thực thể nhân sự là trọng tâm được phân tích sâu ở các chương sau.
 
-### 2.1. Kiến trúc Triển khai 3 Tầng
+### 2.1. Nguyên tắc Xây dựng Mô hình Thực thể
 
-Hệ thống áp dụng kiến trúc **3 lớp** nhằm tách biệt ba mối quan tâm: hiển thị, xử lý nghiệp vụ và lưu trữ dữ liệu:
+Biểu đồ lớp thực thể của hệ thống được xây dựng theo ba nguyên tắc:
+
+- Mỗi thực thể phải đại diện cho một đối tượng nghiệp vụ có ý nghĩa trong vận hành quán café.
+- Quan hệ giữa các thực thể phải phản ánh đúng luồng dữ liệu thực tế giữa bán hàng, kho, nhân sự và báo cáo.
+- Nhóm thực thể chung chỉ mô tả mức khái quát để nhìn được toàn hệ thống; các nhóm trọng tâm sẽ được phân tích sâu hơn ở phần chuyên sâu.
+
+### 2.2. Biểu đồ Lớp Thực thể Tổng quát
+
+Biểu đồ sau mô tả các thực thể chính và quan hệ cốt lõi trong toàn hệ thống:
 
 ```plantuml
 @startuml
-top to bottom direction
-skinparam packageStyle rectangle
+hide circle
+skinparam classAttributeIconSize 0
 
-rectangle "TẦNG TRÌNH DIỄN" {
-  rectangle "Máy POS Thu ngân\n(Windows)" as POS
-  rectangle "Màn hình Pha chế\n(KDS)" as KDS
-  rectangle "Máy tính bảng / Điện thoại\n(Android/iOS)" as MOB
+class cua_hang {
+  id
+  ten_cua_hang
+  dia_chi
+  trang_thai
 }
 
-rectangle "TẦNG NGHIỆP VỤ" {
-  rectangle "Máy chủ ứng dụng\nAPI REST" as API
-  rectangle "Dịch vụ đơn hàng" as OS
-  rectangle "Dịch vụ thanh toán" as PS
-  rectangle "Dịch vụ ca làm" as SS
-  rectangle "Dịch vụ kho" as IS
+class nhan_vien {
+  id_nhan_vien
+  ho_ten
+  so_dien_thoai
+  vai_tro
+  trang_thai
 }
 
-rectangle "TẦNG DỮ LIỆU" {
-  database "Máy chủ cơ sở dữ liệu\nMySQL / SQL Server" as DB
-  rectangle "Sao lưu hằng ngày\nlúc 2:00" as BK
+class tai_khoan {
+  id_tai_khoan
+  ten_dang_nhap
+  mat_khau_bam
+  quyen_han
+  kich_hoat
 }
 
-POS --> API : HTTP/HTTPS qua LAN
-KDS --> API : HTTP/HTTPS qua WiFi
-MOB --> API : HTTP/HTTPS qua WiFi
-API --> OS
-API --> PS
-API --> SS
-API --> IS
-API --> DB : JDBC / ORM Hibernate
-DB --> BK
+class shift_template {
+  id_template
+  ten_ca
+  gio_bat_dau
+  gio_ket_thuc
+}
+
+class shift {
+  id_ca
+  ngay_lam_viec
+  gio_bat_dau
+  gio_ket_thuc
+  trang_thai
+}
+
+class shift_assignment {
+  id_phan_cong
+  vai_tro_ca
+  trang_thai
+}
+
+class attendance {
+  id_cham_cong
+  check_in
+  check_out
+  working_hours
+  status
+}
+
+class do_uong {
+  id_do_uong
+  ten_do_uong
+  don_gia
+  trang_thai
+}
+
+class topping {
+  id_topping
+  ten_topping
+  don_gia
+}
+
+class nguyen_lieu {
+  id_nguyen_lieu
+  ten_nguyen_lieu
+  don_vi
+  ton_hien_tai
+}
+
+class cong_thuc {
+  id_cong_thuc
+  dinh_luong
+}
+
+class ban {
+  id_ban
+  so_ban
+  trang_thai
+}
+
+class hoa_don {
+  id_hoa_don
+  thoi_gian_tao
+  tong_tien
+  trang_thai
+}
+
+class hoa_don_chi_tiet {
+  id_chi_tiet
+  so_luong
+  don_gia
+}
+
+class chi_phi {
+  id_chi_phi
+  loai_chi_phi
+  so_tien
+  ngay_ghi_nhan
+}
+
+cua_hang "1" -- "N" nhan_vien
+nhan_vien "1" -- "1" tai_khoan
+shift_template "1" -- "N" shift
+shift "1" -- "N" shift_assignment
+nhan_vien "1" -- "N" shift_assignment
+shift_assignment "1" -- "0..1" attendance
+cua_hang "1" -- "N" ban
+ban "1" -- "N" hoa_don
+hoa_don "1" -- "N" hoa_don_chi_tiet
+do_uong "1" -- "N" hoa_don_chi_tiet
+do_uong "1" -- "N" cong_thuc
+nguyen_lieu "1" -- "N" cong_thuc
+do_uong "1" -- "N" topping
+cua_hang "1" -- "N" chi_phi
 @enduml
 ```
 
+### 2.3. Mô tả Các Thực thể Chính
 
-### 2.2. Quyết định Kiến trúc và Đánh đổi
+| **Thực thể** | **Thuộc tính chính** | **Vai trò / phương thức nghiệp vụ điển hình** |
+| --- | --- | --- |
+| `cua_hang` | id, tên, địa chỉ, trạng thái | quản lý thông tin chi nhánh, làm nút liên kết cho nhân sự và chi phí |
+| `nhan_vien` | id, họ tên, số điện thoại, vai trò | thêm mới nhân viên, cập nhật hồ sơ, vô hiệu hóa nhân sự |
+| `tai_khoan` | tên đăng nhập, mật khẩu băm, quyền hạn, kích hoạt | cấp tài khoản, khóa tài khoản, đặt lại mật khẩu |
+| `shift_template` | tên ca, giờ bắt đầu, giờ kết thúc | tạo mẫu ca dùng lại nhiều lần |
+| `shift` | ngày làm việc, thời gian thực tế, trạng thái | sinh ca cụ thể từ mẫu ca |
+| `shift_assignment` | id ca, id nhân viên, vai trò ca | phân công nhân viên vào ca làm |
+| `attendance` | check_in, check_out, working_hours, status | ghi nhận vào ca, kết thúc ca, đối soát giờ công |
+| `do_uong` | tên món, đơn giá, trạng thái | quản lý thực đơn và giá bán |
+| `topping` | tên topping, đơn giá | bổ sung thành phần cho món |
+| `nguyen_lieu` | tên nguyên liệu, đơn vị, tồn hiện tại | theo dõi mức tồn và tiêu hao |
+| `cong_thuc` | mã đồ uống, mã nguyên liệu, định lượng | quy định mức tiêu hao nguyên liệu theo món |
+| `ban` | số bàn, trạng thái | kiểm soát trạng thái bàn phục vụ |
+| `hoa_don` | thời gian tạo, tổng tiền, trạng thái | tạo đơn, thanh toán, kết thúc giao dịch |
+| `hoa_don_chi_tiet` | số lượng, đơn giá | lưu từng món trong hóa đơn |
+| `chi_phi` | loại chi phí, số tiền, ngày ghi nhận | tổng hợp chi phí vận hành phục vụ báo cáo |
 
-| **Quyết định** | **Lý do lựa chọn** | **Đánh đổi** |
-| -------------- | ------------------ | ------------ |
-| REST API thay vì kết nối CSDL trực tiếp | Bảo mật cao hơn; tách biệt logic | Tăng độ trễ nhỏ |
-| MySQL/SQL Server thay vì NoSQL | ACID cho nghiệp vụ tài chính | Kém linh hoạt khi schema đổi thường xuyên |
-| LAN nội bộ (triển khai tại chỗ) | Chi phí thấp; bảo mật dữ liệu | Không truy cập từ xa nếu không có VPN |
-| Ứng dụng máy tính trên Windows | Tương thích POS; trình điều khiển máy in ổn định | Khó hỗ trợ đa nền tảng |
+### 2.4. Kiến trúc Dữ liệu Theo Nhóm Phân hệ
 
-**Bảo mật tầng triển khai:**
-- **TLS 1.2+:** Mã hóa toàn bộ giao tiếp giữa thiết bị khách và máy chủ API.
-- **Tường lửa cơ sở dữ liệu:** Chỉ máy chủ ứng dụng được kết nối tới cơ sở dữ liệu; thiết bị khách không truy cập trực tiếp.
-- **Nhật ký thao tác:** Mọi thao tác thêm/sửa/xóa được ghi vào `audit_log` kèm thời điểm và mã nhân viên.
+Hệ thống gồm 5 nhóm bảng lớn, tương ứng với các nhóm nghiệp vụ chính:
 
----
+| **Nhóm bảng** | **Bảng chính** | **Use Case liên quan** |
+| --- | --- | :---: |
+| Thực đơn | `do_uong`, `topping`, `cong_thuc`, `nguyen_lieu` | UC01 |
+| Giao dịch bán hàng | `ban`, `hoa_don`, `hoa_don_chi_tiet` | UC02, UC03 |
+| Kho | `nguyen_lieu`, các bảng nhập/xuất kho, cảnh báo tồn | UC05 |
+| Báo cáo | `chi_phi`, bảng tổng hợp doanh thu, dữ liệu cửa hàng | UC06 |
+| Nhân sự | `nhan_vien`, `tai_khoan`, `shift_template`, `shift`, `shift_assignment`, `attendance` | UC04, UC07 |
 
-### 2.3. Tổng quan Lược đồ CSDL — Nhóm Bảng Toàn Hệ thống
+### 2.5. ERD Chi tiết — Nhóm Thực thể Nhân sự (UC04 + UC07)
 
-Hệ thống gồm **5 nhóm bảng** tương ứng với 5 phân hệ UC, đều chuẩn hóa 3NF:
-
-| **Nhóm bảng** | **Bảng chính** | **UC** |
-|---|---|:---:|
-| Thực đơn | `do_uong`, `nhom_do_uong`, `topping`, `cong_thuc` | UC01 |
-| Giao dịch | `hoa_don`, `hoa_don_chi_tiet`, `ban`, `khu_vuc` | UC02, UC03 |
-| Kho | `nguyen_lieu`, `nhap_kho`, `canh_bao_kho` | UC05 |
-| Báo cáo | `bao_cao_doanh_thu`, `chi_phi`, `danh_sach_cua_hang` | UC06 |
-| **Nhân sự** *(trọng tâm)* | **`nhan_vien`, `tai_khoan`, `shift_template`, `shift`, `shift_assignment`, `attendance`** | **UC04** |
-
-> **Nguyên tắc chụp ảnh dữ liệu tại thời điểm chốt công:** Mức lương theo ca tại thời điểm chốt công được lưu cố định cùng kỳ tính lương, bảo đảm lịch sử tài chính không đổi khi đơn giá ca được điều chỉnh.
-
-### 2.4. ERD Chi tiết — Nhóm Bảng Nhân sự (UC04)
-
-Nguyên tắc thiết kế cốt lõi của UC04 là **tách biệt hoàn toàn** dữ liệu kế hoạch khỏi dữ liệu thực tế, tương tự mô hình đối chiếu kế hoạch và thực tế phổ biến trong kế toán quản trị:
+Trong phạm vi báo cáo này, nhóm thực thể nhân sự được chọn làm trọng tâm vì vừa có dữ liệu định danh, vừa có dữ liệu kế hoạch ca làm và dữ liệu thực tế chấm công. Đây cũng là nơi tập trung nhiều ràng buộc nghiệp vụ nhất.
 
 ```plantuml
 @startuml
 hide methods
 hide stereotypes
 
+class nhan_vien {
+  id_nhan_vien : INT <<PK>>
+  ho_ten : NVARCHAR
+  so_dien_thoai : VARCHAR
+  email : VARCHAR
+  vai_tro : ENUM
+  trang_thai : ENUM
+}
+
+class tai_khoan {
+  id_tai_khoan : INT <<PK>>
+  id_nhan_vien : INT <<FK>>
+  ten_dang_nhap : VARCHAR
+  mat_khau_bam : VARCHAR
+  kich_hoat : BIT
+}
+
 class shift_template {
   id_template : INT <<PK>>
   ten_ca : NVARCHAR
   gio_bat_dau : TIME
   gio_ket_thuc : TIME
-  don_gia_gio : DECIMAL
 }
 
 class shift {
   id_ca : INT <<PK>>
   id_template : INT <<FK>>
   ngay_lam_viec : DATE
-  don_gia_gio : DECIMAL
+  gio_bat_dau : TIME
+  gio_ket_thuc : TIME
+  trang_thai : ENUM
 }
 
 class shift_assignment {
   id_phan_cong : INT <<PK>>
   id_ca : INT <<FK>>
   id_nhan_vien : INT <<FK>>
+  vai_tro_ca : VARCHAR
   trang_thai : ENUM
 }
 
 class attendance {
   id_cham_cong : INT <<PK>>
   id_phan_cong : INT <<FK>>
-  check_in_time : DATETIME
-  check_out_time : DATETIME
-  so_gio_lam : DECIMAL
-  is_late : BIT
-  ghi_chu : VARCHAR
+  check_in : DATETIME
+  check_out : DATETIME
+  working_hours : DECIMAL
+  status : ENUM
 }
 
-class nhan_vien {
-  id_nhan_vien : INT <<PK>>
-  ho_ten : NVARCHAR
-  luong_gio : DECIMAL
-}
-
-shift_template "1" -- "N" shift : tao ra
-shift "1" -- "N" shift_assignment : phan cong
-nhan_vien "1" -- "N" shift_assignment : duoc giao
-shift_assignment "1" -- "1" attendance : ghi nhan
+nhan_vien "1" -- "1" tai_khoan : so huu
+shift_template "1" -- "N" shift : sinh ra
+shift "1" -- "N" shift_assignment : duoc phan cong
+nhan_vien "1" -- "N" shift_assignment : tham gia
+shift_assignment "1" -- "0..1" attendance : ghi nhan
 @enduml
 ```
 
-> **Ghi chú thiết kế:** Tách biệt **Kế hoạch** (`shift_template`, `shift`, `shift_assignment`) khỏi **Thực tế** (`attendance`) — cho phép đối soát chênh lệch (đi muộn/về sớm) và kiểm toán lao động minh bạch.
+> **Ghi chú thiết kế:** Dữ liệu **kế hoạch** (`shift_template`, `shift`, `shift_assignment`) được tách khỏi dữ liệu **thực tế** (`attendance`). Cách tách này giúp đối chiếu việc phân công với giờ làm thực tế, xử lý đi muộn, thiếu check-out và phục vụ tính lương minh bạch.
 
-### 2.5. Quy tắc nghiệp vụ tầng CSDL — UC04
+### 2.6. Quy tắc Nghiệp vụ ở Tầng Dữ liệu
 
 | **Mã BR** | **Quy tắc** | **Cơ chế kiểm soát** |
-| --------- | ----------- | -------------------- |
-| BR-01 | Không thể có 2 ca chồng chéo giờ trong cùng ngày | Trigger kiểm tra overlap khi INSERT vào `shift_assignment` |
-| BR-02 | Chỉ kết thúc ca sau khi đã vào ca | `check_out_time` chỉ UPDATE khi `check_in_time IS NOT NULL` |
-| BR-03 | Chỉ ca có đủ `check_in_time` và `check_out_time` mới được đưa vào bảng lương | `CASE WHEN` hoặc cờ trạng thái hợp lệ khi tổng hợp lương |
-| BR-04 | Giờ làm tối đa 16h/ca; nếu vượt thì đánh dấu xem xét thủ công | `CHECK(so_gio_lam <= 16)` hoặc cờ `needs_review = 1` |
-| BR-05 | Mỗi ca phải thuộc đúng 1 trong 2 loại: `sang` hoặc `toi` | Ràng buộc ENUM hoặc kiểm tra hợp lệ tại bảng `shift_template` và `shift` |
-
----
+| --- | --- | --- |
+| BR-01 | Một nhân viên không thể được phân vào hai ca chồng chéo trong cùng ngày | Kiểm tra overlap khi tạo `shift_assignment` |
+| BR-02 | Chỉ được ghi `check_out` sau khi đã có `check_in` | Điều kiện kiểm tra khi cập nhật `attendance` |
+| BR-03 | Tài khoản bị vô hiệu hóa không được tiếp tục nhận ca mới | Kiểm tra `tai_khoan.kich_hoat` trước khi phân công |
+| BR-04 | Chỉ bản ghi chấm công đủ `check_in` và `check_out` mới được dùng để tổng hợp công | Lọc dữ liệu hợp lệ trước khi tính lương |
+| BR-05 | Thực thể `tai_khoan` phải gắn duy nhất với một `nhan_vien` | Ràng buộc 1-1 và khóa ngoại duy nhất |
