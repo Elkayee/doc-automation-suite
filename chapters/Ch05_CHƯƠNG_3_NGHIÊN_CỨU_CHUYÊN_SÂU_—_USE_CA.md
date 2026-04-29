@@ -4,7 +4,7 @@
 
 ![Image 8](extracted_media/Bao_Cao_Tieu_Luan_NMCNPM/image_008.png)
 
-*Biểu đồ 3.1. Biểu đồ UC chi tiết của phân hệ bán hàng (UC01)*
+_Biểu đồ 3.1. Biểu đồ UC chi tiết của phân hệ bán hàng (UC01)_
 
 ### 3.2. Đặc tả UC
 
@@ -116,7 +116,8 @@ Lên đơn vận chuyển giao cho khách
 
 Tại bước 2
 
-Khách yêu cầu đăng ký thành viên để tích điểm, đổi điểm => tạo thông tin khách hàng và gán vào đơn hàng
+Khách yêu cầu đăng ký thành viên để tích điểm, đổi điểm => tạo thông tin khách hàng và gán vào đơn
+hàng
 
 #### 3.2.6. Quy tắc nghiệp vụ
 
@@ -140,4 +141,4 @@ Hỗ trợ xử lý nhiều đơn hàng cùng lúc
 
 ![Image 9](extracted_media/Bao_Cao_Tieu_Luan_NMCNPM/image_009.png)
 
-*Biểu đồ 3.2. Biểu đồ hoạt động của use case bán hàng (UC01)*
+_Biểu đồ 3.2. Biểu đồ hoạt động của use case bán hàng (UC01)_

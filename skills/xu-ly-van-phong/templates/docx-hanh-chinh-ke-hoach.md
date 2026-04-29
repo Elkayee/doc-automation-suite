@@ -1,12 +1,14 @@
 # Kế hoạch
 
 ## Đặc điểm
+
 - Tên loại: "KẾ HOẠCH" (IN HOA, đứng, đậm)
 - Trích yếu: nội dung kế hoạch
 - Số ký hiệu: Số/KH-Viết tắt CQ
 - Bố cục: Mục đích → Yêu cầu → Nội dung → Tổ chức thực hiện
 
 ## Cấu trúc nội dung điển hình
+
 ```
 I. MỤC ĐÍCH, YÊU CẦU
 1. Mục đích

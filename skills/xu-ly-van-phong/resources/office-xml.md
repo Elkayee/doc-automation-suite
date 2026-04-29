@@ -25,6 +25,7 @@ Kết quả: `unpacked_dir/word/document.xml` (Word) hoặc `unpacked_dir/ppt/sl
 ### 2. Sửa nội dung XML
 
 Cấu trúc XML của Word:
+
 - `<w:rPr>` — Định dạng (font, size, bold). **CẤM ĐỤNG CHẠM!**
 - `<w:t>` — Văn bản thô. Chỉ thay nội dung text ở đây.
 
@@ -64,11 +65,11 @@ Kiểm tra XML hợp lệ trước khi đóng gói. Schemas XSD nằm tại `scr
 
 ## Công cụ bổ sung
 
-| Script | Mục đích |
-|---|---|
-| `scripts/office/soffice.py` | Chuyển đổi format qua LibreOffice headless |
-| `scripts/office/helpers/merge_runs.py` | Gộp runs bị tách trong XML |
-| `scripts/office/helpers/simplify_redlines.py` | Đơn giản hóa Track Changes |
-| `scripts/office/validators/` | Validate DOCX, PPTX, Redlining |
+| Script                                        | Mục đích                                   |
+| --------------------------------------------- | ------------------------------------------ |
+| `scripts/office/soffice.py`                   | Chuyển đổi format qua LibreOffice headless |
+| `scripts/office/helpers/merge_runs.py`        | Gộp runs bị tách trong XML                 |
+| `scripts/office/helpers/simplify_redlines.py` | Đơn giản hóa Track Changes                 |
+| `scripts/office/validators/`                  | Validate DOCX, PPTX, Redlining             |
 
 <!-- NDT-0904004920 -->

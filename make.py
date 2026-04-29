@@ -2,9 +2,8 @@
 make.py — Tool duy nhat: Ghep chapters -> MD -> convert DOCX
 Usage: uv run python make.py
 """
+
 import argparse
-import base64
-import glob
 import html as html_lib
 import os
 import re
@@ -12,18 +11,18 @@ import shutil
 import struct
 import sys
 import time
+from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import quote
-from html.parser import HTMLParser
 
 import requests
-import split_chapters
 from docx import Document
-from docx.shared import Pt, RGBColor, Inches, Cm, Emu
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK
-from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
+from docx.shared import Cm, Emu, Inches, Pt, RGBColor
 
+import split_chapters
 from convert_docx_to_md import convert_docx_to_markdown
 
 sys.stdout.reconfigure(encoding='utf-8')
@@ -62,6 +61,7 @@ COLOR_H1 = RGBColor(0x1A, 0x3A, 0x5C)
 COLOR_H2 = RGBColor(0x1F, 0x61, 0x9E)
 COLOR_H3 = RGBColor(0x2E, 0x86, 0xAB)
 COLOR_H4 = RGBColor(0x44, 0x9D, 0xD1)
+
 
 # ════════════════════════════════════════════════════════════════════════════
 # BƯỚC 1: GỘP CHAPTERS → MD
@@ -162,9 +162,11 @@ def step_assemble():
     print(f'\n  => {MD_OUT}')
     print(f'     {len(final.splitlines())} dong | {kb} KB | {len(chapter_files)} chapters\n')
 
+
 # ════════════════════════════════════════════════════════════════════════════
 # BƯỚC 2: CONVERT MD → DOCX
 # ════════════════════════════════════════════════════════════════════════════
+
 
 # ── Diagram render ───────────────────────────────────────────────────────────
 def get_png_dimensions(path):
@@ -192,18 +194,35 @@ def get_jpeg_dimensions(path):
                 marker = f.read(1)
 
             if not marker or marker in {
-                b'\xd8', b'\xd9', b'\x01',
-                b'\xd0', b'\xd1', b'\xd2', b'\xd3',
-                b'\xd4', b'\xd5', b'\xd6', b'\xd7',
+                b'\xd8',
+                b'\xd9',
+                b'\x01',
+                b'\xd0',
+                b'\xd1',
+                b'\xd2',
+                b'\xd3',
+                b'\xd4',
+                b'\xd5',
+                b'\xd6',
+                b'\xd7',
             }:
                 continue
 
             segment_length = struct.unpack('>H', f.read(2))[0]
             if marker in {
-                b'\xc0', b'\xc1', b'\xc2', b'\xc3',
-                b'\xc5', b'\xc6', b'\xc7',
-                b'\xc9', b'\xca', b'\xcb',
-                b'\xcd', b'\xce', b'\xcf',
+                b'\xc0',
+                b'\xc1',
+                b'\xc2',
+                b'\xc3',
+                b'\xc5',
+                b'\xc6',
+                b'\xc7',
+                b'\xc9',
+                b'\xca',
+                b'\xcb',
+                b'\xcd',
+                b'\xce',
+                b'\xcf',
             }:
                 f.read(1)  # precision
                 height = struct.unpack('>H', f.read(2))[0]
@@ -222,6 +241,7 @@ def get_image_dimensions(path):
     if suffix in {'.jpg', '.jpeg'}:
         return get_jpeg_dimensions(path)
     return None, None
+
 
 def plantuml_hex_encode(text):
     return '~h' + text.encode('utf-8').hex()
@@ -243,7 +263,7 @@ def render_plantuml(code, idx, img_cache):
         print(f'  [render] Dang render diagram {idx}...')
         url = plantuml_png_url(code)
         resp = requests.get(url, timeout=30)
-        if resp.status_code == 200 and resp.headers.get('content-type','').startswith('image'):
+        if resp.status_code == 200 and resp.headers.get('content-type', '').startswith('image'):
             with open(cache_file, 'wb') as f:
                 f.write(resp.content)
             print(f'  [OK] Luu vao {cache_file}')
@@ -254,6 +274,7 @@ def render_plantuml(code, idx, img_cache):
     except Exception as e:
         print(f'  [ERROR] {e}')
         return None
+
 
 def render_latex(latex_code, idx, img_cache):
     """Render công thức LaTeX → PNG qua CodeCogs API, cache lại kết quả."""
@@ -277,6 +298,7 @@ def render_latex(latex_code, idx, img_cache):
         print(f'  [ERROR] Render LaTeX: {e}')
         return None
 
+
 # ── DOCX helpers ─────────────────────────────────────────────────────────────
 def set_cell_bg(cell, hex_color):
     tc = cell._tc
@@ -287,6 +309,7 @@ def set_cell_bg(cell, hex_color):
     shd.set(qn('w:fill'), hex_color)
     tcPr.append(shd)
 
+
 def set_para_shading(para, hex_color):
     pPr = para._p.get_or_add_pPr()
     shd = OxmlElement('w:shd')
@@ -295,13 +318,14 @@ def set_para_shading(para, hex_color):
     shd.set(qn('w:fill'), hex_color)
     pPr.append(shd)
 
+
 def set_page_setup(doc):
     sec = doc.sections[0]
-    sec.page_width    = Cm(21)
-    sec.page_height   = Cm(29.7)
-    sec.left_margin   = Cm(3)
-    sec.right_margin  = Cm(2)
-    sec.top_margin    = Cm(2.5)
+    sec.page_width = Cm(21)
+    sec.page_height = Cm(29.7)
+    sec.left_margin = Cm(3)
+    sec.right_margin = Cm(2)
+    sec.top_margin = Cm(2.5)
     sec.bottom_margin = Cm(2.5)
 
 
@@ -332,13 +356,15 @@ def add_picture_fit(run, image_path, doc, max_width=None, max_height=None):
     target_height = Inches(height_inches * scale)
     run.add_picture(str(image_path), width=target_width, height=target_height)
 
+
 def strip_md_links(text):
     return re.sub(r'\[([^\]]+)\]\([^)]*\)', r'\1', text)
 
+
 def strip_md_markup(text):
     text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)
-    text = re.sub(r'\*([^*]+)\*',     r'\1', text)
-    text = re.sub(r'`([^`]+)`',       r'\1', text)
+    text = re.sub(r'\*([^*]+)\*', r'\1', text)
+    text = re.sub(r'`([^`]+)`', r'\1', text)
     return text
 
 
@@ -405,7 +431,7 @@ def collect_inline_segments(text, start=0, end_marker=None, style=None):
                 buffer = []
                 append_inline_segment(
                     segments,
-                    text[i + 1:close_idx],
+                    text[i + 1 : close_idx],
                     {'bold': False, 'italic': False, 'code': True},
                 )
                 i = close_idx + 1
@@ -445,6 +471,7 @@ def collect_inline_segments(text, start=0, end_marker=None, style=None):
     append_inline_segment(segments, ''.join(buffer), style)
     return segments, i, False
 
+
 def normalize_punctuation(text):
     """Chuẩn hóa dấu câu theo NĐ30: dấu sát từ trước, space sau dấu."""
     # Xóa khoảng trắng TRƯỚC dấu câu ngắt (., , : ; ! ? )
@@ -457,6 +484,7 @@ def normalize_punctuation(text):
     text = re.sub(r'([.,;:!?])([^\s\d.,;:!?)\]}\'"\\`*_])', r'\1 \2', text)
     return text
 
+
 def resolve_media_path(md_path, asset_path):
     asset = Path(asset_path)
     if asset.is_absolute():
@@ -466,6 +494,7 @@ def resolve_media_path(md_path, asset_path):
         return primary
     fallback_text = asset_path.replace('../', '').replace('..\\', '').replace('./', '').replace('.\\', '')
     return (BASE / Path(fallback_text)).resolve()
+
 
 def add_markdown_image(doc, md_path, image_ref):
     image_path = resolve_media_path(md_path, image_ref)
@@ -485,8 +514,10 @@ def add_markdown_image(doc, md_path, image_ref):
     max_width, max_height = get_content_frame_size(doc, height_reserve=Cm(2))
     add_picture_fit(run, image_path, doc, max_width=max_width, max_height=max_height)
 
+
 def add_page_break(doc):
     doc.add_paragraph().add_run().add_break(WD_BREAK.PAGE)
+
 
 def add_table_of_contents(doc):
     p = doc.add_paragraph()
@@ -522,12 +553,14 @@ def add_table_of_contents(doc):
     p._p.append(hint_run)
     p._p.append(end_run)
 
+
 def get_heading_indent(text):
     match = re.match(r'^\s*(\d+(?:\.\d+)+)\b', text)
     if not match:
         return None
     depth = match.group(1).count('.')
     return Cm(0.5 * depth)
+
 
 def add_formatted_run(para, text):
     text = strip_md_links(text)
@@ -551,8 +584,24 @@ def add_formatted_run(para, text):
 
 class PreviewTextExtractor(HTMLParser):
     BLOCK_TAGS = {
-        'p', 'div', 'section', 'article', 'header', 'footer', 'aside',
-        'ul', 'ol', 'li', 'pre', 'blockquote', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+        'p',
+        'div',
+        'section',
+        'article',
+        'header',
+        'footer',
+        'aside',
+        'ul',
+        'ol',
+        'li',
+        'pre',
+        'blockquote',
+        'h1',
+        'h2',
+        'h3',
+        'h4',
+        'h5',
+        'h6',
     }
 
     def __init__(self):
@@ -612,7 +661,9 @@ def markdown_to_html_body(md_content):
                 i += 1
             key = f'PLANTUMLBLOCK{idx}PLACEHOLDER'
             img_url = plantuml_png_url('\n'.join(buf))
-            placeholders[key] = f'<p class="diagram"><img src="{quote(img_url, safe=":/?=~")}" alt="PlantUML diagram"></p>'
+            placeholders[key] = (
+                f'<p class="diagram"><img src="{quote(img_url, safe=":/?=~")}" alt="PlantUML diagram"></p>'
+            )
             out.append(key)
             idx += 1
         else:
@@ -621,11 +672,8 @@ def markdown_to_html_body(md_content):
     raw_md = '\n'.join(out)
     try:
         import markdown
-        body = markdown.markdown(
-            raw_md,
-            extensions=['tables', 'fenced_code'],
-            output_format='html'
-        )
+
+        body = markdown.markdown(raw_md, extensions=['tables', 'fenced_code'], output_format='html')
     except ImportError:
         body = '<pre>' + html_lib.escape(raw_md) + '</pre>'
     for key, html_block in placeholders.items():
@@ -772,7 +820,7 @@ def render_markdown_to_preview_widget(preview_text, md_content):
 
     for block in markdown_to_preview_blocks(md_content):
         if block['type'] == 'heading':
-            heading_tag = f"h{min(block['level'], 6)}"
+            heading_tag = f'h{min(block["level"], 6)}'
             insert_preview_segments(preview_text, block['segments'], [heading_tag])
             preview_text.insert('end', '\n\n')
         elif block['type'] == 'quote':
@@ -795,6 +843,7 @@ def render_markdown_to_preview_widget(preview_text, md_content):
 
     preview_text.config(state='disabled')
 
+
 # ── Parser MD → DOCX ─────────────────────────────────────────────────────────
 def parse_and_write(doc, md_path, img_cache=IMG_CACHE):
     with open(md_path, encoding='utf-8') as f:
@@ -805,17 +854,17 @@ def parse_and_write(doc, md_path, img_cache=IMG_CACHE):
     style.font.size = Pt(13)
     # Chuẩn NĐ30: justify + dãn dòng 1.5
     # space_after = 0 vì đã dùng first_line_indent để phân biệt đoạn
-    style.paragraph_format.alignment    = WD_ALIGN_PARAGRAPH.JUSTIFY
+    style.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
     style.paragraph_format.line_spacing = 1.5
     style.paragraph_format.space_before = Pt(0)
-    style.paragraph_format.space_after  = Pt(0)
+    style.paragraph_format.space_after = Pt(0)
 
     # Tiền xử lý: rút gọn ≥2 dòng trống liên tiếp thành tối đa 1
     compressed, blank_run = [], 0
     for _ln in lines:
         if not _ln.strip():
             blank_run += 1
-            if blank_run == 1:           # chỉ giữ dòng trống đầu tiên
+            if blank_run == 1:  # chỉ giữ dòng trống đầu tiên
                 compressed.append(_ln)
         else:
             blank_run = 0
@@ -832,7 +881,7 @@ def parse_and_write(doc, md_path, img_cache=IMG_CACHE):
             if not in_code:
                 in_code = True
                 lang = line.strip()[3:].strip().lower()
-                mermaid_block = (lang in {'plantuml', 'puml'})
+                mermaid_block = lang in {'plantuml', 'puml'}
                 mermaid_buf = []
             else:
                 if mermaid_block and mermaid_buf:
@@ -872,7 +921,7 @@ def parse_and_write(doc, md_path, img_cache=IMG_CACHE):
                 run.font.color.rgb = RGBColor(0x33, 0x33, 0x33)
                 set_para_shading(p, 'F4F4F4')
                 p.paragraph_format.space_before = Pt(0)
-                p.paragraph_format.space_after  = Pt(0)
+                p.paragraph_format.space_after = Pt(0)
             i += 1
             continue
 
@@ -883,8 +932,7 @@ def parse_and_write(doc, md_path, img_cache=IMG_CACHE):
                 cells = [c.strip() for c in lines[i].strip().strip('|').split('|')]
                 table_rows.append(cells)
                 i += 1
-            data_rows = [r for r in table_rows
-                         if not all(re.match(r'^[-: ]+$', c) for c in r)]
+            data_rows = [r for r in table_rows if not all(re.match(r'^[-: ]+$', c) for c in r)]
             if not data_rows:
                 continue
             max_cols = max(len(r) for r in data_rows)
@@ -899,7 +947,7 @@ def parse_and_write(doc, md_path, img_cache=IMG_CACHE):
                     # Căn lề trong cell: header center, body left
                     p.alignment = WD_ALIGN_PARAGRAPH.CENTER if ri == 0 else WD_ALIGN_PARAGRAPH.LEFT
                     p.paragraph_format.space_before = Pt(2)
-                    p.paragraph_format.space_after  = Pt(2)
+                    p.paragraph_format.space_after = Pt(2)
                     run = p.add_run(strip_md_markup(cell_text))
                     run.font.size = Pt(11)
                     run.font.name = 'Times New Roman'
@@ -912,7 +960,7 @@ def parse_and_write(doc, md_path, img_cache=IMG_CACHE):
             # Khoảng cách sau bảng (spacer mỏng, không phải dòng trống đầy)
             _sp = doc.add_paragraph()
             _sp.paragraph_format.space_before = Pt(0)
-            _sp.paragraph_format.space_after  = Pt(6)
+            _sp.paragraph_format.space_after = Pt(6)
             _sp.add_run('').font.size = Pt(4)
             continue
 
@@ -920,7 +968,7 @@ def parse_and_write(doc, md_path, img_cache=IMG_CACHE):
         if re.match(r'^---+\s*$', line):
             p = doc.add_paragraph()
             p.paragraph_format.space_before = Pt(4)
-            p.paragraph_format.space_after  = Pt(4)
+            p.paragraph_format.space_after = Pt(4)
             i += 1
             continue
 
@@ -955,22 +1003,22 @@ def parse_and_write(doc, md_path, img_cache=IMG_CACHE):
         m = re.match(r'^(#{1,6})\s+(.*)', line)
         if m:
             level = len(m.group(1))
-            text  = strip_md_markup(m.group(2))
-            p     = doc.add_paragraph(style=f'Heading {min(level, 4)}')
+            text = strip_md_markup(m.group(2))
+            p = doc.add_paragraph(style=f'Heading {min(level, 4)}')
             heading_indent = get_heading_indent(text)
             if heading_indent is not None:
                 p.paragraph_format.left_indent = heading_indent
             # Khoảng cách trước/sau heading — cân bằng, không quá rộng
             _space_before = [Pt(12), Pt(10), Pt(8), Pt(6), Pt(6), Pt(4)]
-            p.paragraph_format.space_before  = _space_before[level - 1]
-            p.paragraph_format.space_after   = Pt(4)
-            p.paragraph_format.line_spacing  = 1.5
-            p.paragraph_format.alignment     = WD_ALIGN_PARAGRAPH.LEFT  # heading luôn left
-            run   = p.add_run(text)
+            p.paragraph_format.space_before = _space_before[level - 1]
+            p.paragraph_format.space_after = Pt(4)
+            p.paragraph_format.line_spacing = 1.5
+            p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT  # heading luôn left
+            run = p.add_run(text)
             run.font.name = 'Times New Roman'
-            run.font.color.rgb = [COLOR_H1,COLOR_H2,COLOR_H3,COLOR_H4,COLOR_H4,COLOR_H4][level-1]
-            run.font.size      = Pt([16,14,13,12,12,11][level-1])
-            run.bold           = (level <= 3)
+            run.font.color.rgb = [COLOR_H1, COLOR_H2, COLOR_H3, COLOR_H4, COLOR_H4, COLOR_H4][level - 1]
+            run.font.size = Pt([16, 14, 13, 12, 12, 11][level - 1])
+            run.bold = level <= 3
             i += 1
             continue
 
@@ -1036,7 +1084,7 @@ def parse_and_write(doc, md_path, img_cache=IMG_CACHE):
                     p = doc.add_paragraph()
                     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
                     p.paragraph_format.space_before = Pt(6)
-                    p.paragraph_format.space_after  = Pt(6)
+                    p.paragraph_format.space_after = Pt(6)
                     max_width, max_height = get_content_frame_size(doc, height_reserve=Cm(4))
                     add_picture_fit(p.add_run(), img_path, doc, max_width=max_width, max_height=max_height)
                 else:
@@ -1058,7 +1106,7 @@ def parse_and_write(doc, md_path, img_cache=IMG_CACHE):
                     p = doc.add_paragraph()
                     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
                     p.paragraph_format.space_before = Pt(6)
-                    p.paragraph_format.space_after  = Pt(6)
+                    p.paragraph_format.space_after = Pt(6)
                     max_width, max_height = get_content_frame_size(doc, height_reserve=Cm(4))
                     add_picture_fit(p.add_run(), img_path, doc, max_width=max_width, max_height=max_height)
                 else:
@@ -1076,13 +1124,14 @@ def parse_and_write(doc, md_path, img_cache=IMG_CACHE):
 
         # Đoạn văn thường — chuẩn NĐ30: justify, lùi đầu dòng, dãn 1.5
         p = doc.add_paragraph()
-        p.alignment                          = WD_ALIGN_PARAGRAPH.JUSTIFY
+        p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
         p.paragraph_format.first_line_indent = Cm(1.27)  # lùi đầu dòng 1.27 cm
-        p.paragraph_format.line_spacing      = 1.5
-        p.paragraph_format.space_before      = Pt(0)
-        p.paragraph_format.space_after       = Pt(6)     # tối thiểu 6pt giữa đoạn
+        p.paragraph_format.line_spacing = 1.5
+        p.paragraph_format.space_before = Pt(0)
+        p.paragraph_format.space_after = Pt(6)  # tối thiểu 6pt giữa đoạn
         add_formatted_run(p, normalize_punctuation(line.strip()))
         i += 1
+
 
 def step_convert(md_out=MD_OUT, docx_out=DOCX_OUT, img_cache=IMG_CACHE):
     print('=' * 55)
@@ -1201,6 +1250,7 @@ def launch_workflow_ui():
     _htmlframe_error = None
     try:
         from tkinterweb import HtmlFrame as _HtmlFrame
+
         _has_htmlframe = True
     except Exception as exc:
         _has_htmlframe = False
@@ -1249,8 +1299,7 @@ def launch_workflow_ui():
     else:
         # Fallback: tk.Text hiển thị nội dung thô (chỉ dùng khi tkinterweb chưa cài)
         preview_text = tk.Text(
-            preview_frame, font=('Consolas', 10), wrap='word',
-            bg='#fffdf8', fg='#2b241b', state='disabled'
+            preview_frame, font=('Consolas', 10), wrap='word', bg='#fffdf8', fg='#2b241b', state='disabled'
         )
         preview_text.pack(fill='both', expand=True)
         configure_preview_text_tags(preview_text)
@@ -1262,7 +1311,8 @@ def launch_workflow_ui():
                 f'Python hiện tại: {sys.executable}\n'
                 + (f'Lý do không tải được HtmlFrame: {_htmlframe_error}' if _htmlframe_error else '')
             ),
-            foreground='#888', font=('Consolas', 9)
+            foreground='#888',
+            font=('Consolas', 9),
         ).pack(anchor='w', padx=6)
 
         def _update_preview_widget(html_content):
@@ -1335,7 +1385,7 @@ img { max-width: 100%; height: auto; display: block; margin: 8px auto; }
         filepath = os.path.join(CH_DIR, filename)
         current_file.set(filepath)
         try:
-            with open(filepath, 'r', encoding='utf-8') as f:
+            with open(filepath, encoding='utf-8') as f:
                 editor_text.delete(1.0, tk.END)
                 editor_text.insert(tk.END, f.read())
             # Render ngay khi mở file mới
@@ -1360,7 +1410,9 @@ img { max-width: 100%; height: auto; display: block; margin: 8px auto; }
         if not filepath:
             messagebox.showwarning('Cảnh báo', 'Vui lòng chọn file để preview!')
             return
-        import webbrowser, tempfile
+        import tempfile
+        import webbrowser
+
         content = editor_text.get(1.0, tk.END)
         body = markdown_to_html_body(content)
         css = """
@@ -1401,13 +1453,15 @@ img { max-width: 100%; }
 
     def docx_to_chapters():
         docx_path = filedialog.askopenfilename(initialdir=str(BASE), filetypes=[('Word', '*.docx')])
-        if not docx_path: return
+        if not docx_path:
+            return
         log('Đang tách DOCX -> Markdown...')
         try:
             tmp_md = str(BASE / 'temp_split.md')
             convert_docx_to_markdown(docx_path, tmp_md, str(BASE / 'extracted_media' / 'temp_split'))
             split_chapters.write_chapter_files(tmp_md, CH_DIR)
-            if os.path.exists(tmp_md): os.remove(tmp_md)
+            if os.path.exists(tmp_md):
+                os.remove(tmp_md)
             log('Tách thành công!')
             load_files()
             messagebox.showinfo('Thành công', 'Đã tách DOCX thành các chapters.')
@@ -1453,7 +1507,11 @@ img { max-width: 100%; }
     ttk.Button(build_tab, text='Run Build Pipeline', command=do_build).pack(anchor='w', pady=(14, 0))
 
     btn_open_file = ttk.Button(build_res_frame, text='Mở file Word', command=lambda: os.startfile(build_docx.get()))
-    btn_open_folder = ttk.Button(build_res_frame, text='Mở thư mục chứa', command=lambda: os.startfile(os.path.dirname(os.path.abspath(build_docx.get()))))
+    btn_open_folder = ttk.Button(
+        build_res_frame,
+        text='Mở thư mục chứa',
+        command=lambda: os.startfile(os.path.dirname(os.path.abspath(build_docx.get()))),
+    )
 
     split_source = tk.StringVar(value=MD_OUT)
     split_output = tk.StringVar(value=str(BASE / 'chapters'))
@@ -1518,6 +1576,7 @@ def parse_args():
     parser.add_argument('--docx-out', default=DOCX_OUT)
     parser.add_argument('--img-cache', default=IMG_CACHE)
     return parser.parse_args()
+
 
 # ════════════════════════════════════════════════════════════════════════════
 # MAIN

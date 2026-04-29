@@ -1,6 +1,8 @@
 ## CHƯƠNG 6: NGHIÊN CỨU CHUYÊN SÂU — CA SỬ DỤNG QUẢN LÝ CA LÀM VIỆC VÀ CHẤM CÔNG (UC04)
 
-Chương này trình bày chuyên sâu **UC04 - Quản lý Ca làm việc và Chấm công**. Nội dung tập trung vào các chức năng chính gồm phân công ca, vào ca, kết thúc ca và tổng hợp lương, phù hợp với yêu cầu phân tích use case của môn học.
+Chương này trình bày chuyên sâu **UC04 - Quản lý Ca làm việc và Chấm công**. Nội dung tập trung vào
+các chức năng chính gồm phân công ca, vào ca, kết thúc ca và tổng hợp lương, phù hợp với yêu cầu
+phân tích use case của môn học.
 
 ### 6.1. Biểu đồ Ca sử dụng chi tiết UC04
 
@@ -101,7 +103,8 @@ $$
 
 #### 6.2.3. Ghi chú ngoại lệ
 
-Trường hợp nhân viên quên kết thúc ca, hệ thống không tự ý xóa dữ liệu hoặc tính lương bằng 0. Bản ghi sẽ được chuyển sang trạng thái chờ xử lý để quản lý kiểm tra và xác nhận lại giờ ra thực tế.
+Trường hợp nhân viên quên kết thúc ca, hệ thống không tự ý xóa dữ liệu hoặc tính lương bằng 0. Bản
+ghi sẽ được chuyển sang trạng thái chờ xử lý để quản lý kiểm tra và xác nhận lại giờ ra thực tế.
 
 ### 6.3. Biểu đồ Hoạt động — Quy trình Chấm công
 

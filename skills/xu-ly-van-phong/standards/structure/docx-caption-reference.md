@@ -13,12 +13,12 @@ Bảng 2.1. Nhiệt độ không khí trung bình tháng và năm (°C)
 [Bảng số liệu]
 ```
 
-| Yếu tố | Quy chuẩn |
-|---|---|
-| Font | 12pt bold italic |
-| Align | Center |
+| Yếu tố   | Quy chuẩn                                    |
+| -------- | -------------------------------------------- |
+| Font     | 12pt bold italic                             |
+| Align    | Center                                       |
 | Cấu trúc | `Bảng [Chương].[STT]. [Tên bảng] ([Đơn vị])` |
-| Đơn vị | Trong ngoặc đơn ở cuối |
+| Đơn vị   | Trong ngoặc đơn ở cuối                       |
 
 ---
 
@@ -31,17 +31,18 @@ Bảng 2.1. Nhiệt độ không khí trung bình tháng và năm (°C)
 Hình 2.3. Đường tần suất mực nước (1984-2009)
 ```
 
-| Yếu tố | Quy chuẩn |
-|---|---|
-| Font | 12pt bold italic |
-| Align | Center |
+| Yếu tố   | Quy chuẩn                                           |
+| -------- | --------------------------------------------------- |
+| Font     | 12pt bold italic                                    |
+| Align    | Center                                              |
 | Cấu trúc | `Hình [Chương].[STT]. [Tên hình] ([Mô tả bổ sung])` |
 
 ---
 
 ## Đánh số tự động
 
-Dùng tính năng **Caption** của Word để tự đánh số. Không đánh số tay — đảm bảo tự cập nhật khi thêm/xóa.
+Dùng tính năng **Caption** của Word để tự đánh số. Không đánh số tay — đảm bảo tự cập nhật khi
+thêm/xóa.
 
 ---
 
@@ -52,11 +53,11 @@ Ghi chú: Hệ cao độ sử dụng là Hải Đồ.
 (Nguồn: Dự án cảng giai đoạn II)
 ```
 
-| Yếu tố | Quy chuẩn |
-|---|---|
-| Font | 11-12pt italic |
-| Align | Justify (ghi chú) hoặc Right (nguồn) |
-| Spacing | Cách bảng 4pt |
+| Yếu tố  | Quy chuẩn                            |
+| ------- | ------------------------------------ |
+| Font    | 11-12pt italic                       |
+| Align   | Justify (ghi chú) hoặc Right (nguồn) |
+| Spacing | Cách bảng 4pt                        |
 
 ---
 

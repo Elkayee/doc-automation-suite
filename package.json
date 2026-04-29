@@ -1,5 +1,18 @@
 {
   "dependencies": {
     "docx": "^9.6.1"
+  },
+  "devDependencies": {
+    "prettier": "^3.2.5"
+  },
+  "scripts": {
+    "format": "prettier --write \"**/*.{json,md}\"",
+    "lint": "prettier --check \"**/*.{json,md}\""
+  },
+  "prettier": {
+    "printWidth": 100,
+    "proseWrap": "always",
+    "singleQuote": true,
+    "tabWidth": 2
   }
 }

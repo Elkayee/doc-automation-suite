@@ -1,6 +1,7 @@
 # Tờ trình
 
 ## Đặc điểm
+
 - Có tên loại: "TỜ TRÌNH" (IN HOA, đứng, đậm)
 - Trích yếu: "Về việc ..." (thường, đứng, đậm)
 - Có phần "Kính gửi:" (giống công văn)

@@ -1,13 +1,17 @@
 ---
 name: handling-docx-files
-description: Use when the user requests generating, editing, reading, or analyzing Microsoft Word (.docx) documents. Triggers include mentions of '.docx', 'Word doc', or requests for professional deliverables with complex formatting like TOCs, headers, and tracked changes.
+description:
+  Use when the user requests generating, editing, reading, or analyzing Microsoft Word (.docx)
+  documents. Triggers include mentions of '.docx', 'Word doc', or requests for professional
+  deliverables with complex formatting like TOCs, headers, and tracked changes.
 ---
 
 # Handling DOCX Files
 
 ## Overview
 
-Microsoft Word documents (.docx) are ZIP archives containing XML (OOXML). This skill provides patterns for programmatic creation and advanced editing through direct XML manipulation.
+Microsoft Word documents (.docx) are ZIP archives containing XML (OOXML). This skill provides
+patterns for programmatic creation and advanced editing through direct XML manipulation.
 
 ## When to Use
 
@@ -37,17 +41,23 @@ pandoc --track-changes=all document.docx -o output.md
 
 ## Implementation
 
-**Programmatic Creation:** Detailed documentation on `docx-js` API patterns, styles, and page layouts can be found in [docx-js.md](docx-js.md).
+**Programmatic Creation:** Detailed documentation on `docx-js` API patterns, styles, and page
+layouts can be found in [docx-js.md](docx-js.md).
 
-**Advanced Editing:** XML schema reference, manual tracked changes, and comment insertion logic is available in [ooxml.md](ooxml.md).
+**Advanced Editing:** XML schema reference, manual tracked changes, and comment insertion logic is
+available in [ooxml.md](ooxml.md).
 
 ## Common Mistakes
 
-- **Dual Table Widths:** Tables render incorrectly if both `table.width` and `cell.width` are not set (recommend using DXA units).
+- **Dual Table Widths:** Tables render incorrectly if both `table.width` and `cell.width` are not
+  set (recommend using DXA units).
 - **Page Break Placement:** Inserting a `PageBreak` outside of a `Paragraph` results in invalid XML.
-- **Manual Bullets:** Inserting unicode symbols (•) manually instead of using `LevelFormat.BULLET` in numbering configurations.
-- **Table Shading:** Using `ShadingType.SOLID` instead of `ShadingType.CLEAR`, which can cause black backgrounds in some viewers.
-- **Missing xml:space:** Failing to set `xml:space="preserve"` on `<w:t>` elements with leading/trailing whitespace.
+- **Manual Bullets:** Inserting unicode symbols (•) manually instead of using `LevelFormat.BULLET`
+  in numbering configurations.
+- **Table Shading:** Using `ShadingType.SOLID` instead of `ShadingType.CLEAR`, which can cause black
+  backgrounds in some viewers.
+- **Missing xml:space:** Failing to set `xml:space="preserve"` on `<w:t>` elements with
+  leading/trailing whitespace.
 
 ## Dependencies
 
@@ -58,6 +68,8 @@ pandoc --track-changes=all document.docx -o output.md
 
 ## Real-World Impact
 
-- **Professional Deliverables:** Enables creation of complex, board-ready reports with consistent branding.
+- **Professional Deliverables:** Enables creation of complex, board-ready reports with consistent
+  branding.
 - **Audit Trails:** Preserves authorship and history through precise tracked changes manipulation.
-- **Automated Workflows:** Allows for large-scale document generation from data sources with pixel-perfect layout control.
+- **Automated Workflows:** Allows for large-scale document generation from data sources with
+  pixel-perfect layout control.

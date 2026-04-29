@@ -3,14 +3,14 @@ Script chuyển đổi MD sang DOCX theo format template
 Sử dụng python-docx để tạo DOCX với format chuẩn văn bản hành chính
 """
 
-import sys
-from docx import Document
-from docx.shared import Pt, Cm, Inches
-from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.enum.style import WD_STYLE_TYPE
-from docx.oxml.ns import qn
-from docx.oxml import OxmlElement
 import re
+import sys
+
+from docx import Document
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml.ns import qn
+from docx.shared import Cm, Pt
+
 
 def set_run_font(run, font_name='Times New Roman', font_size=12, bold=False, italic=False):
     """Set font properties for a run"""
@@ -20,6 +20,7 @@ def set_run_font(run, font_name='Times New Roman', font_size=12, bold=False, ita
     run.font.italic = italic
     # Set font for Asian characters
     run._element.rPr.rFonts.set(qn('w:eastAsia'), font_name)
+
 
 def add_paragraph_with_format(doc, text, alignment='left', font_size=12, bold=False, italic=False, spacing_after=6):
     """Add a paragraph with specific formatting"""
@@ -43,6 +44,7 @@ def add_paragraph_with_format(doc, text, alignment='left', font_size=12, bold=Fa
 
     return para
 
+
 def parse_md_line(line):
     """Parse markdown formatting from a line"""
     # Remove ** for bold markers
@@ -52,9 +54,10 @@ def parse_md_line(line):
 
     # Clean markdown syntax
     text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)  # Remove bold markers
-    text = re.sub(r'\*([^*]+)\*', r'\1', text)      # Remove italic markers
+    text = re.sub(r'\*([^*]+)\*', r'\1', text)  # Remove italic markers
 
     return text, is_bold, is_italic
+
 
 def add_mixed_paragraph(doc, text, alignment='justify', base_size=12, spacing_after=6):
     """Add paragraph with mixed bold/normal text"""
@@ -87,11 +90,12 @@ def add_mixed_paragraph(doc, text, alignment='justify', base_size=12, spacing_af
 
     return para
 
+
 def convert_md_to_docx(md_file, output_file):
     """Convert MD file to DOCX with proper formatting"""
 
     # Read MD content
-    with open(md_file, 'r', encoding='utf-8') as f:
+    with open(md_file, encoding='utf-8') as f:
         lines = f.readlines()
 
     # Create new document
@@ -144,11 +148,12 @@ def convert_md_to_docx(md_file, output_file):
 
     # Save document
     doc.save(output_file)
-    print(f"Created: {output_file}")
+    print(f'Created: {output_file}')
+
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
-        print("Usage: python convert_md_to_docx.py input.md output.docx")
+        print('Usage: python convert_md_to_docx.py input.md output.docx')
         sys.exit(1)
 
     convert_md_to_docx(sys.argv[1], sys.argv[2])

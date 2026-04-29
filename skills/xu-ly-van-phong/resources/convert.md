@@ -47,7 +47,8 @@ Dùng thư viện `pdf2docx`. Giữ layout gốc.
 
 ### PDF scan (image-based)
 
-Không dùng script. Dùng AI Vision để phân tích cấu trúc + màu sắc, sau đó tái tạo DOCX bằng `python-docx` hoặc `docx-js`. Xem `pdf.md` để biết chi tiết.
+Không dùng script. Dùng AI Vision để phân tích cấu trúc + màu sắc, sau đó tái tạo DOCX bằng
+`python-docx` hoặc `docx-js`. Xem `pdf.md` để biết chi tiết.
 
 ---
 
@@ -66,4 +67,3 @@ pip install python-docx pdf2docx
 # Skill: xu-ly-van-phong | Author: NDT | Ref: 0904004920
 winget install pandoc
 ```
-

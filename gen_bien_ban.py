@@ -2,21 +2,25 @@
 gen_bien_ban.py — Tạo 3 biên bản họp nhóm 6 theo format mẫu Lần 1.
 Chạy: python gen_bien_ban.py
 """
+
 import sys
-from docx import Document
-from docx.shared import Pt, Cm, RGBColor
-from docx.enum.text import WD_ALIGN_PARAGRAPH
 from pathlib import Path
+
+from docx import Document
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.shared import Cm, Pt
 
 sys.stdout.reconfigure(encoding='utf-8')
 
 # ── Thông tin nhóm ──────────────────────────────────────────────────────────
 THANH_VIEN = [
-    "Vũ Tất Thành ( Trưởng nhóm)",
-    "Nguyễn Viết Tùng",
-    "Nguyễn Quang Đạo",
-    "Tạ Bảo Anh Ngọc",
-    "Ngô Thị Hồng Nhung",]
+    'Vũ Tất Thành ( Trưởng nhóm)',
+    'Nguyễn Viết Tùng',
+    'Nguyễn Quang Đạo',
+    'Tạ Bảo Anh Ngọc',
+    'Ngô Thị Hồng Nhung',
+]
+
 
 # ── Helper: tạo file DOCX theo đúng cấu trúc mẫu ──────────────────────────
 def tao_bien_ban(ten_file: str, lan: int, ngay: str, gio: str, noi_dung: list, ket_luan: list):
@@ -24,10 +28,10 @@ def tao_bien_ban(ten_file: str, lan: int, ngay: str, gio: str, noi_dung: list, k
 
     # Cài đặt trang: A4, margin chuẩn
     sec = doc.sections[0]
-    sec.page_width  = Cm(21)
+    sec.page_width = Cm(21)
     sec.page_height = Cm(29.7)
     sec.left_margin = sec.right_margin = Cm(2.5)
-    sec.top_margin  = sec.bottom_margin = Cm(2.5)
+    sec.top_margin = sec.bottom_margin = Cm(2.5)
 
     # Đặt font mặc định
     style = doc.styles['Normal']
@@ -86,7 +90,7 @@ def them_muc(doc, text):
     """Dòng tiêu đề mục (bold)."""
     p = doc.add_paragraph()
     p.paragraph_format.space_before = Pt(8)
-    p.paragraph_format.space_after  = Pt(4)
+    p.paragraph_format.space_after = Pt(4)
     run = p.add_run(text)
     run.bold = True
     run.font.name = 'Times New Roman'
@@ -97,7 +101,7 @@ def them_dong(doc, text):
     """Dòng text thường."""
     p = doc.add_paragraph()
     p.paragraph_format.space_before = Pt(0)
-    p.paragraph_format.space_after  = Pt(2)
+    p.paragraph_format.space_after = Pt(2)
     run = p.add_run(text)
     run.font.name = 'Times New Roman'
     run.font.size = Pt(13)
@@ -106,9 +110,9 @@ def them_dong(doc, text):
 def them_bullet(doc, text):
     """Dòng dấu '-'."""
     p = doc.add_paragraph()
-    p.paragraph_format.left_indent  = Cm(0.5)
+    p.paragraph_format.left_indent = Cm(0.5)
     p.paragraph_format.space_before = Pt(0)
-    p.paragraph_format.space_after  = Pt(2)
+    p.paragraph_format.space_after = Pt(2)
     run = p.add_run(f'- {text}')
     run.font.name = 'Times New Roman'
     run.font.size = Pt(13)
@@ -117,9 +121,9 @@ def them_bullet(doc, text):
 def them_sub_bullet(doc, text):
     """Dòng dấu '+'."""
     p = doc.add_paragraph()
-    p.paragraph_format.left_indent  = Cm(1.5)
+    p.paragraph_format.left_indent = Cm(1.5)
     p.paragraph_format.space_before = Pt(0)
-    p.paragraph_format.space_after  = Pt(2)
+    p.paragraph_format.space_after = Pt(2)
     run = p.add_run(f'+ {text}')
     run.font.name = 'Times New Roman'
     run.font.size = Pt(13)

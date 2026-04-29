@@ -14,31 +14,29 @@ import defusedxml.minidom
 
 
 def merge_runs(input_dir: str) -> tuple[int, str]:
-    doc_xml = Path(input_dir) / "word" / "document.xml"
+    doc_xml = Path(input_dir) / 'word' / 'document.xml'
 
     if not doc_xml.exists():
-        return 0, f"Error: {doc_xml} not found"
+        return 0, f'Error: {doc_xml} not found'
 
     try:
-        dom = defusedxml.minidom.parseString(doc_xml.read_text(encoding="utf-8"))
+        dom = defusedxml.minidom.parseString(doc_xml.read_text(encoding='utf-8'))
         root = dom.documentElement
 
-        _remove_elements(root, "proofErr")
+        _remove_elements(root, 'proofErr')
         _strip_run_rsid_attrs(root)
 
-        containers = {run.parentNode for run in _find_elements(root, "r")}
+        containers = {run.parentNode for run in _find_elements(root, 'r')}
 
         merge_count = 0
         for container in containers:
             merge_count += _merge_runs_in(container)
 
-        doc_xml.write_bytes(dom.toxml(encoding="UTF-8"))
-        return merge_count, f"Merged {merge_count} runs"
+        doc_xml.write_bytes(dom.toxml(encoding='UTF-8'))
+        return merge_count, f'Merged {merge_count} runs'
 
     except Exception as e:
-        return 0, f"Error: {e}"
-
-
+        return 0, f'Error: {e}'
 
 
 def _find_elements(root, tag: str) -> list:
@@ -47,7 +45,7 @@ def _find_elements(root, tag: str) -> list:
     def traverse(node):
         if node.nodeType == node.ELEMENT_NODE:
             name = node.localName or node.tagName
-            if name == tag or name.endswith(f":{tag}"):
+            if name == tag or name.endswith(f':{tag}'):
                 results.append(node)
             for child in node.childNodes:
                 traverse(child)
@@ -60,7 +58,7 @@ def _get_child(parent, tag: str):
     for child in parent.childNodes:
         if child.nodeType == child.ELEMENT_NODE:
             name = child.localName or child.tagName
-            if name == tag or name.endswith(f":{tag}"):
+            if name == tag or name.endswith(f':{tag}'):
                 return child
     return None
 
@@ -70,7 +68,7 @@ def _get_children(parent, tag: str) -> list:
     for child in parent.childNodes:
         if child.nodeType == child.ELEMENT_NODE:
             name = child.localName or child.tagName
-            if name == tag or name.endswith(f":{tag}"):
+            if name == tag or name.endswith(f':{tag}'):
                 results.append(child)
     return results
 
@@ -88,8 +86,6 @@ def _is_adjacent(elem1, elem2) -> bool:
     return False
 
 
-
-
 def _remove_elements(root, tag: str):
     for elem in _find_elements(root, tag):
         if elem.parentNode:
@@ -97,12 +93,10 @@ def _remove_elements(root, tag: str):
 
 
 def _strip_run_rsid_attrs(root):
-    for run in _find_elements(root, "r"):
+    for run in _find_elements(root, 'r'):
         for attr in list(run.attributes.values()):
-            if "rsid" in attr.name.lower():
+            if 'rsid' in attr.name.lower():
                 run.removeAttribute(attr.name)
-
-
 
 
 def _merge_runs_in(container) -> int:
@@ -153,37 +147,37 @@ def _next_sibling_run(node):
 
 def _is_run(node) -> bool:
     name = node.localName or node.tagName
-    return name == "r" or name.endswith(":r")
+    return name == 'r' or name.endswith(':r')
 
 
 def _can_merge(run1, run2) -> bool:
-    rpr1 = _get_child(run1, "rPr")
-    rpr2 = _get_child(run2, "rPr")
+    rpr1 = _get_child(run1, 'rPr')
+    rpr2 = _get_child(run2, 'rPr')
 
     if (rpr1 is None) != (rpr2 is None):
         return False
     if rpr1 is None:
         return True
-    return rpr1.toxml() == rpr2.toxml()  
+    return rpr1.toxml() == rpr2.toxml()
 
 
 def _merge_run_content(target, source):
     for child in list(source.childNodes):
         if child.nodeType == child.ELEMENT_NODE:
             name = child.localName or child.tagName
-            if name != "rPr" and not name.endswith(":rPr"):
+            if name != 'rPr' and not name.endswith(':rPr'):
                 target.appendChild(child)
 
 
 def _consolidate_text(run):
-    t_elements = _get_children(run, "t")
+    t_elements = _get_children(run, 't')
 
     for i in range(len(t_elements) - 1, 0, -1):
         curr, prev = t_elements[i], t_elements[i - 1]
 
         if _is_adjacent(prev, curr):
-            prev_text = prev.firstChild.data if prev.firstChild else ""
-            curr_text = curr.firstChild.data if curr.firstChild else ""
+            prev_text = prev.firstChild.data if prev.firstChild else ''
+            curr_text = curr.firstChild.data if curr.firstChild else ''
             merged = prev_text + curr_text
 
             if prev.firstChild:
@@ -191,9 +185,9 @@ def _consolidate_text(run):
             else:
                 prev.appendChild(run.ownerDocument.createTextNode(merged))
 
-            if merged.startswith(" ") or merged.endswith(" "):
-                prev.setAttribute("xml:space", "preserve")
-            elif prev.hasAttribute("xml:space"):
-                prev.removeAttribute("xml:space")
+            if merged.startswith(' ') or merged.endswith(' '):
+                prev.setAttribute('xml:space', 'preserve')
+            elif prev.hasAttribute('xml:space'):
+                prev.removeAttribute('xml:space')
 
             run.removeChild(curr)

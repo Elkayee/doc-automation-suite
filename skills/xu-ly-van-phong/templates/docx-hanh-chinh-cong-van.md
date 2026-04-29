@@ -1,6 +1,7 @@
 # Công văn
 
 ## Đặc điểm
+
 - **Không có tên loại văn bản** (khác với quyết định, tờ trình...)
 - Trích yếu đặt dưới số ký hiệu, chữ "V/v" + nội dung, cỡ 12-13, đứng
 - Số ký hiệu: Số/Viết tắt CQ-Viết tắt đơn vị soạn (VD: [Số]/[Tên CQ]-[Tên ĐV])
@@ -45,6 +46,7 @@ Nơi nhận:                              CHỨC VỤ NGƯỜI KÝ
   ```
 - Nội dung: justified, cỡ 13-14, đứng
 - Công văn thường KHÔNG có phần căn cứ pháp lý riêng (khác quyết định)
-- Quyền ký: "TL." (Thừa lệnh), "KT." (Ký thay), "TUQ." (Thừa ủy quyền) nếu không phải người đứng đầu ký
+- Quyền ký: "TL." (Thừa lệnh), "KT." (Ký thay), "TUQ." (Thừa ủy quyền) nếu không phải người đứng đầu
+  ký
 
 <!-- NDT-0904004920 -->

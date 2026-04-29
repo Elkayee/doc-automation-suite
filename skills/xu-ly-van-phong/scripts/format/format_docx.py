@@ -7,13 +7,15 @@ Specs from user screenshot:
   - Tables: header bold+centered, body left-aligned, auto-fit width
   - Images: centered, no indent
 """
+
 import sys
+
 from docx import Document
-from docx.shared import Pt, Cm, RGBColor, Emu
+from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.enum.table import WD_TABLE_ALIGNMENT, WD_CELL_VERTICAL_ALIGNMENT
-from docx.oxml.ns import qn, nsdecls
 from docx.oxml import parse_xml
+from docx.oxml.ns import nsdecls, qn
+from docx.shared import Cm, Pt, RGBColor
 
 
 def format_docx(input_path, output_path=None):
@@ -56,14 +58,12 @@ def format_docx(input_path, output_path=None):
                         lvl.append(rPr)
                     for old_rf in rPr.findall(qn('w:rFonts')):
                         rPr.remove(old_rf)
-                    rPr.append(parse_xml(
-                        f'<w:rFonts {nsdecls("w")} w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/>'
-                    ))
+                    rPr.append(parse_xml(f'<w:rFonts {nsdecls("w")} w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/>'))
                     if lvlText is not None:
                         if ilvl_val == '0':
                             lvlText.set(qn('w:val'), '\u2013')  # en-dash –
                         elif ilvl_val == '1':
-                            lvlText.set(qn('w:val'), '\u25CF')  # filled circle ●
+                            lvlText.set(qn('w:val'), '\u25cf')  # filled circle ●
 
     # ═══════════ 2. STYLE DEFINITIONS ═══════════
     styles = doc.styles
@@ -162,9 +162,7 @@ def format_docx(input_path, output_path=None):
             element.insert(0, pPr)
         for old in pPr.findall(qn('w:shd')):
             pPr.remove(old)
-        pPr.append(parse_xml(
-            f'<w:shd {nsdecls("w")} w:fill="{color}" w:val="clear"/>'
-        ))
+        pPr.append(parse_xml(f'<w:shd {nsdecls("w")} w:fill="{color}" w:val="clear"/>'))
 
     def add_border_box(element, color='CCCCCC'):
         """Add a border box around a paragraph."""
@@ -174,12 +172,14 @@ def format_docx(input_path, output_path=None):
             element.insert(0, pPr)
         for old in pPr.findall(qn('w:pBdr')):
             pPr.remove(old)
-        pPr.append(parse_xml(f'''<w:pBdr {nsdecls("w")}>
+        pPr.append(
+            parse_xml(f"""<w:pBdr {nsdecls('w')}>
             <w:top w:val="single" w:sz="4" w:space="4" w:color="{color}"/>
             <w:left w:val="single" w:sz="4" w:space="8" w:color="{color}"/>
             <w:bottom w:val="single" w:sz="4" w:space="4" w:color="{color}"/>
             <w:right w:val="single" w:sz="4" w:space="8" w:color="{color}"/>
-        </w:pBdr>'''))
+        </w:pBdr>""")
+        )
 
     def add_bottom_border(element, color='1B5E20', size='6'):
         """Add a bottom border line under a paragraph (for H2 underline)."""
@@ -189,9 +189,11 @@ def format_docx(input_path, output_path=None):
             element.insert(0, pPr)
         for old in pPr.findall(qn('w:pBdr')):
             pPr.remove(old)
-        pPr.append(parse_xml(f'''<w:pBdr {nsdecls("w")}>
+        pPr.append(
+            parse_xml(f"""<w:pBdr {nsdecls('w')}>
             <w:bottom w:val="single" w:sz="{size}" w:space="3" w:color="{color}"/>
-        </w:pBdr>'''))
+        </w:pBdr>""")
+        )
 
     def add_hr_border(element):
         """Style empty paragraph as a horizontal rule."""
@@ -201,9 +203,11 @@ def format_docx(input_path, output_path=None):
             element.insert(0, pPr)
         for old in pPr.findall(qn('w:pBdr')):
             pPr.remove(old)
-        pPr.append(parse_xml(f'''<w:pBdr {nsdecls("w")}>
+        pPr.append(
+            parse_xml(f"""<w:pBdr {nsdecls('w')}>
             <w:bottom w:val="single" w:sz="6" w:space="1" w:color="CCCCCC"/>
-        </w:pBdr>'''))
+        </w:pBdr>""")
+        )
 
     # Detect if this is a proposal/report (not a book with chapters)
     has_chapters = any(p.text.strip().startswith('CHƯƠNG') for p in doc.paragraphs)
@@ -224,9 +228,11 @@ def format_docx(input_path, output_path=None):
                         rf.set(qn(attr), 'Times New Roman')
 
         # --- CODE BLOCKS: gray background + monospace font ---
-        if style_name in ('Source Code', 'Verbatim Char') or \
-           style_name.startswith('Source') or \
-           'code' in style_name.lower():
+        if (
+            style_name in ('Source Code', 'Verbatim Char')
+            or style_name.startswith('Source')
+            or 'code' in style_name.lower()
+        ):
             para.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
             para.paragraph_format.first_line_indent = Cm(0)
             para.paragraph_format.space_before = Pt(2)
@@ -255,7 +261,7 @@ def format_docx(input_path, output_path=None):
                 if has_chapters:
                     para.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
                     # Page break for non-first H1 in chapter books
-                    para.paragraph_format.page_break_before = (idx > 0)
+                    para.paragraph_format.page_break_before = idx > 0
                 else:
                     # Proposal/report: center the main title, no page break for first
                     para.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -279,8 +285,7 @@ def format_docx(input_path, output_path=None):
             continue
 
         # --- BLOCKQUOTES: Pandoc Block Text style → blue left border + light bg ---
-        if style_name in ('Block Text', 'Quote', 'Intense Quote') or \
-           style_name.startswith('Block'):
+        if style_name in ('Block Text', 'Quote', 'Intense Quote') or style_name.startswith('Block'):
             para.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
             para.paragraph_format.first_line_indent = Cm(0)
             para.paragraph_format.left_indent = Cm(0.3)
@@ -295,9 +300,11 @@ def format_docx(input_path, output_path=None):
                 para._element.insert(0, pPr)
             for old in pPr.findall(qn('w:pBdr')):
                 pPr.remove(old)
-            pPr.append(parse_xml(f'''<w:pBdr {nsdecls("w")}>
+            pPr.append(
+                parse_xml(f"""<w:pBdr {nsdecls('w')}>
                 <w:left w:val="single" w:sz="24" w:space="8" w:color="1976D2"/>
-            </w:pBdr>'''))
+            </w:pBdr>""")
+            )
             for run in para.runs:
                 run.font.color.rgb = RGBColor(0x1A, 0x4D, 0x6E)
                 run.font.italic = True
@@ -306,8 +313,7 @@ def format_docx(input_path, output_path=None):
         # --- INLINE CODE: highlight runs with Verbatim Char style ---
         for run in para.runs:
             run_style = run.style.name if run.style else ''
-            if run_style in ('Verbatim Char', 'Source Code Char') or \
-               'code' in run_style.lower():
+            if run_style in ('Verbatim Char', 'Source Code Char') or 'code' in run_style.lower():
                 run.font.name = 'Consolas'
                 run.font.size = Pt(11)
                 run.font.color.rgb = RGBColor(0xC7, 0x25, 0x4E)  # Pink-red
@@ -317,9 +323,7 @@ def format_docx(input_path, output_path=None):
                     run._element.insert(0, rpr)
                 for old in rpr.findall(qn('w:shd')):
                     rpr.remove(old)
-                rpr.append(parse_xml(
-                    f'<w:shd {nsdecls("w")} w:fill="FFF0F5" w:val="clear"/>'
-                ))
+                rpr.append(parse_xml(f'<w:shd {nsdecls("w")} w:fill="FFF0F5" w:val="clear"/>'))
                 rf = rpr.find(qn('w:rFonts'))
                 if rf is not None:
                     for attr in ('w:ascii', 'w:hAnsi', 'w:eastAsia', 'w:cs'):
@@ -339,8 +343,8 @@ def format_docx(input_path, output_path=None):
             para.paragraph_format.space_before = Pt(2)
             para.paragraph_format.space_after = Pt(2)
             # Check if preceded by or followed by headings (acts as section separator)
-            prev_is_heading = (idx > 0 and doc.paragraphs[idx-1].style.name.startswith('Heading'))
-            next_is_heading = (idx < len(doc.paragraphs)-1 and doc.paragraphs[idx+1].style.name.startswith('Heading'))
+            prev_is_heading = idx > 0 and doc.paragraphs[idx - 1].style.name.startswith('Heading')
+            next_is_heading = idx < len(doc.paragraphs) - 1 and doc.paragraphs[idx + 1].style.name.startswith('Heading')
             if not prev_is_heading and not next_is_heading:
                 add_hr_border(para._element)
         elif style_name.startswith('List') or style_name in ('Compact', 'List Paragraph'):
@@ -365,9 +369,7 @@ def format_docx(input_path, output_path=None):
                 if pPr is not None:
                     for old_ind in pPr.findall(qn('w:ind')):
                         pPr.remove(old_ind)
-                    pPr.append(parse_xml(
-                        f'<w:ind {nsdecls("w")} w:left="454" w:hanging="227"/>'
-                    ))
+                    pPr.append(parse_xml(f'<w:ind {nsdecls("w")} w:left="454" w:hanging="227"/>'))
             else:
                 # Level 2+: italic, slightly more indent
                 para.paragraph_format.left_indent = Cm(1.4)
@@ -376,15 +378,16 @@ def format_docx(input_path, output_path=None):
                 if pPr is not None:
                     for old_ind in pPr.findall(qn('w:ind')):
                         pPr.remove(old_ind)
-                    pPr.append(parse_xml(
-                        f'<w:ind {nsdecls("w")} w:left="794" w:hanging="227"/>'
-                    ))
+                    pPr.append(parse_xml(f'<w:ind {nsdecls("w")} w:left="794" w:hanging="227"/>'))
         else:
             # Body text: enforce spacing at paragraph level
             para.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
             # Metadata lines (bold label: value at doc start) should not indent
-            is_metadata = (style_name == 'First Paragraph' and idx < 10 and
-                          any(run.font.bold for run in para.runs if run.text.strip()))
+            is_metadata = (
+                style_name == 'First Paragraph'
+                and idx < 10
+                and any(run.font.bold for run in para.runs if run.text.strip())
+            )
             if is_metadata:
                 para.paragraph_format.first_line_indent = Cm(0)
             else:
@@ -394,10 +397,27 @@ def format_docx(input_path, output_path=None):
 
     # ═══════════ 3b. EMPHASIS KEYWORDS ═══════════
     # Highlight strong/bold text containing emphasis keywords
-    emphasis_red = ['tuyệt đối không', 'không được', 'nghiêm cấm', 'cấm',
-                    'sai lầm', 'thất bại', 'rủi ro', 'nguy hiểm', 'cảnh báo']
-    emphasis_green = ['nên', 'khuyến nghị', 'best practice', 'hiệu quả',
-                      'tối ưu', 'quan trọng', 'cần thiết', 'bắt buộc']
+    emphasis_red = [
+        'tuyệt đối không',
+        'không được',
+        'nghiêm cấm',
+        'cấm',
+        'sai lầm',
+        'thất bại',
+        'rủi ro',
+        'nguy hiểm',
+        'cảnh báo',
+    ]
+    emphasis_green = [
+        'nên',
+        'khuyến nghị',
+        'best practice',
+        'hiệu quả',
+        'tối ưu',
+        'quan trọng',
+        'cần thiết',
+        'bắt buộc',
+    ]
     for para in doc.paragraphs:
         for run in para.runs:
             if not run.font.bold:
@@ -414,9 +434,7 @@ def format_docx(input_path, output_path=None):
                     run._element.insert(0, rpr)
                 for old in rpr.findall(qn('w:shd')):
                     rpr.remove(old)
-                rpr.append(parse_xml(
-                    f'<w:shd {nsdecls("w")} w:fill="FFF3F3" w:val="clear"/>'
-                ))
+                rpr.append(parse_xml(f'<w:shd {nsdecls("w")} w:fill="FFF3F3" w:val="clear"/>'))
             # Green emphasis: positive/recommendation keywords
             elif any(kw in txt_lower for kw in emphasis_green):
                 run.font.color.rgb = RGBColor(0x2E, 0x7D, 0x32)  # Green
@@ -426,9 +444,7 @@ def format_docx(input_path, output_path=None):
                     run._element.insert(0, rpr)
                 for old in rpr.findall(qn('w:shd')):
                     rpr.remove(old)
-                rpr.append(parse_xml(
-                    f'<w:shd {nsdecls("w")} w:fill="F1F8E9" w:val="clear"/>'
-                ))
+                rpr.append(parse_xml(f'<w:shd {nsdecls("w")} w:fill="F1F8E9" w:val="clear"/>'))
 
     # ═══════════ 4. COVER PAGES (runs AFTER paragraph loop) ═══════════
     # Find ALL chapter cover pages (multi-chapter support)
@@ -450,7 +466,7 @@ def format_docx(input_path, output_path=None):
         para.paragraph_format.space_after = Pt(24)
         # First cover: no page break (it's at doc start)
         # Other covers: page break before the CHƯƠNG heading
-        para.paragraph_format.page_break_before = (group_idx > 0)
+        para.paragraph_format.page_break_before = group_idx > 0
         for run in para.runs:
             run.font.size = Pt(32)
             run.font.bold = True
@@ -485,38 +501,38 @@ def format_docx(input_path, output_path=None):
         # Width = 100% of page
         for old in tblPr.findall(qn('w:tblW')):
             tblPr.remove(old)
-        tblPr.append(parse_xml(
-            f'<w:tblW {nsdecls("w")} w:w="5000" w:type="pct"/>'
-        ))
+        tblPr.append(parse_xml(f'<w:tblW {nsdecls("w")} w:w="5000" w:type="pct"/>'))
 
         # Auto-fit layout
         for old in tblPr.findall(qn('w:tblLayout')):
             tblPr.remove(old)
-        tblPr.append(parse_xml(
-            f'<w:tblLayout {nsdecls("w")} w:type="autofit"/>'
-        ))
+        tblPr.append(parse_xml(f'<w:tblLayout {nsdecls("w")} w:type="autofit"/>'))
 
         # Borders: clean gray
         for old in tblPr.findall(qn('w:tblBorders')):
             tblPr.remove(old)
-        tblPr.append(parse_xml(f'''<w:tblBorders {nsdecls("w")}>
+        tblPr.append(
+            parse_xml(f"""<w:tblBorders {nsdecls('w')}>
             <w:top w:val="single" w:sz="4" w:space="0" w:color="AAAAAA"/>
             <w:left w:val="single" w:sz="4" w:space="0" w:color="AAAAAA"/>
             <w:bottom w:val="single" w:sz="4" w:space="0" w:color="AAAAAA"/>
             <w:right w:val="single" w:sz="4" w:space="0" w:color="AAAAAA"/>
             <w:insideH w:val="single" w:sz="4" w:space="0" w:color="AAAAAA"/>
             <w:insideV w:val="single" w:sz="4" w:space="0" w:color="AAAAAA"/>
-        </w:tblBorders>'''))
+        </w:tblBorders>""")
+        )
 
         # Cell padding
         for old in tblPr.findall(qn('w:tblCellMar')):
             tblPr.remove(old)
-        tblPr.append(parse_xml(f'''<w:tblCellMar {nsdecls("w")}>
+        tblPr.append(
+            parse_xml(f"""<w:tblCellMar {nsdecls('w')}>
             <w:top w:w="60" w:type="dxa"/>
             <w:left w:w="100" w:type="dxa"/>
             <w:bottom w:w="60" w:type="dxa"/>
             <w:right w:w="100" w:type="dxa"/>
-        </w:tblCellMar>'''))
+        </w:tblCellMar>""")
+        )
 
         # Format rows
         for i, row in enumerate(table.rows):
@@ -550,17 +566,13 @@ def format_docx(input_path, output_path=None):
                 if i == 0:
                     for old in tcPr.findall(qn('w:shd')):
                         tcPr.remove(old)
-                    tcPr.append(parse_xml(
-                        f'<w:shd {nsdecls("w")} w:fill="1565C0" w:val="clear"/>'
-                    ))
+                    tcPr.append(parse_xml(f'<w:shd {nsdecls("w")} w:fill="1565C0" w:val="clear"/>'))
                 else:
                     # Alternating row colors for readability
                     bg = 'F5F5F5' if i % 2 == 1 else 'FFFFFF'
                     for old in tcPr.findall(qn('w:shd')):
                         tcPr.remove(old)
-                    tcPr.append(parse_xml(
-                        f'<w:shd {nsdecls("w")} w:fill="{bg}" w:val="clear"/>'
-                    ))
+                    tcPr.append(parse_xml(f'<w:shd {nsdecls("w")} w:fill="{bg}" w:val="clear"/>'))
 
     # ═══════════ 6. CENTER IMAGES VIA XML ═══════════
     for para in doc.paragraphs:
@@ -583,10 +595,9 @@ def format_docx(input_path, output_path=None):
     doc.save(output_path)
     para_count = len(doc.paragraphs)
     table_count = len(doc.tables)
-    img_count = sum(1 for p in doc.paragraphs
-                    for _ in p._element.findall('.//' + qn('w:drawing')))
-    print(f"OK — {output_path}")
-    print(f"   {para_count} paragraphs | {table_count} tables | {img_count} images")
+    img_count = sum(1 for p in doc.paragraphs for _ in p._element.findall('.//' + qn('w:drawing')))
+    print(f'OK — {output_path}')
+    print(f'   {para_count} paragraphs | {table_count} tables | {img_count} images')
 
 
 if __name__ == '__main__':

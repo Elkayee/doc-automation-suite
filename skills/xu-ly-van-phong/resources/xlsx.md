@@ -6,7 +6,8 @@ Hướng dẫn tạo và thao tác bảng tính Excel chuyên nghiệp.
 
 ## Nguyên tắc tối thượng: Live Formula
 
-Tuyệt đối cấm hardcode kết quả tính toán vào cell. Excel phải "sống" — tính toán lại khi đổi đầu vào.
+Tuyệt đối cấm hardcode kết quả tính toán vào cell. Excel phải "sống" — tính toán lại khi đổi đầu
+vào.
 
 ```python
 # ❌ SAI
@@ -22,10 +23,10 @@ sheet['C5'] = '=(C4-C2)/C2'
 
 ## Công cụ
 
-| Công cụ | Dùng cho |
-|---|---|
+| Công cụ    | Dùng cho                                               |
+| ---------- | ------------------------------------------------------ |
 | `openpyxl` | Tạo file đẹp, format corporate, conditional formatting |
-| `pandas` | Làm sạch dữ liệu lớn, data cleaning |
+| `pandas`   | Làm sạch dữ liệu lớn, data cleaning                    |
 
 ---
 
@@ -45,20 +46,21 @@ HEADER_FONT = Font(bold=True, color="FFFFFF")
 
 ### Column width chuẩn
 
-| Loại cột | Width | Align |
-|---|---|---|
-| STT | 4-7 | Center |
+| Loại cột       | Width | Align      |
+| -------------- | ----- | ---------- |
+| STT            | 4-7   | Center     |
 | Tên / nội dung | 28-48 | Left, wrap |
-| Trạng thái | 14-17 | Center |
-| Ngày | 12-14 | Center |
-| Phần trăm | 10-12 | Center |
-| Ghi chú | 25-32 | Left, wrap |
+| Trạng thái     | 14-17 | Center     |
+| Ngày           | 12-14 | Center     |
+| Phần trăm      | 10-12 | Center     |
+| Ghi chú        | 25-32 | Left, wrap |
 
 ---
 
 ## Zero Error Policy
 
 Cấm tuyệt đối khi mở file:
+
 - `#REF!` — cell trỏ vùng không tồn tại
 - `#DIV/0!` — chia cho 0 chưa catch `IF`
 - `#VALUE!` — lộn data type

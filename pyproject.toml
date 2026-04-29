@@ -1,0 +1,33 @@
+[project]
+name = "nmcnpm-report-workflow"
+version = "0.1.0"
+description = "Toolkit for document processing and office automation"
+requires-python = ">=3.10"
+dependencies = [
+    "requests>=2.31.0",
+    "python-docx>=1.1.0",
+    "tkinterweb>=3.23.0",
+    "markdown>=3.6.0",
+    "openpyxl>=3.1.2",
+    "pypdf>=4.2.0",
+    "pdfplumber>=0.11.0",
+    "pdf2docx>=0.5.8"
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.4.0",
+    "pre-commit>=3.7.0"
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP"]
+ignore = ["E501"] # Ignore line length in linting, handled by formatter
+
+[tool.ruff.format]
+quote-style = "single"
+indent-style = "space"

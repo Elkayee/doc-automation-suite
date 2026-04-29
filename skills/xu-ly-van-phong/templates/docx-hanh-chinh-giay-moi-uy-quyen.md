@@ -1,11 +1,13 @@
 # Giấy mời
 
 ## Đặc điểm
+
 - Tên loại: "GIẤY MỜI" (IN HOA, đứng, đậm)
 - Số ký hiệu: Số/GM-Viết tắt CQ
 - Nội dung ngắn gọn: ai mời, mời ai, nội dung, thời gian, địa điểm
 
 ## Cấu trúc
+
 ```
 [HEADER 2 CỘT]
 
@@ -30,11 +32,13 @@ Trân trọng kính mời./.
 # Giấy ủy quyền
 
 ## Đặc điểm
+
 - Tên loại: "GIẤY ỦY QUYỀN" (IN HOA, đứng, đậm)
 - Số ký hiệu: Số/GUQ-Viết tắt CQ
 - Xác định rõ: người ủy quyền, người được ủy quyền, nội dung ủy quyền, thời hạn
 
 ## Cấu trúc
+
 ```
 [HEADER 2 CỘT]
 

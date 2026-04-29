@@ -2,9 +2,7 @@
 
 <center>**KHOA CÔNG NGHỆ THÔNG TIN 1**</center>
 
-
 ![Logo PTIT](../extracted_media/Bao_Cao_Tieu_Luan_NMCNPM/image_003.png)
-
 
 <center>**BÁO CÁO BÀI TẬP LỚN**</center>
 
@@ -14,13 +12,11 @@
 
 <center>**Hệ Thống Quản Lý Quán Café**</center>
 
-
 **Nhóm học phần:**
 
 **Nhóm bài tập lớn:**
 
 **Giảng viên: Ths. Mai Ngọc Lương**
-
 
 <center>*Hà Nội, Tháng 04/2026*</center>
 

@@ -39,7 +39,7 @@ const {
   VerticalAlign,
   PageNumber,
   PageBreak,
-} = require("docx");
+} = require('docx');
 
 const doc = new Document({
   sections: [
@@ -50,7 +50,7 @@ const doc = new Document({
     },
   ],
 });
-Packer.toBuffer(doc).then((buffer) => fs.writeFileSync("doc.docx", buffer));
+Packer.toBuffer(doc).then((buffer) => fs.writeFileSync('doc.docx', buffer));
 ```
 
 ## Validation
@@ -91,7 +91,8 @@ sections: [
 | US Letter    | 12,240 | 15,840 | 9,360                      |
 | A4 (default) | 11,906 | 16,838 | 9,026                      |
 
-**Landscape orientation:** docx-js swaps width/height internally, so pass portrait dimensions and let it handle the swap:
+**Landscape orientation:** docx-js swaps width/height internally, so pass portrait dimensions and
+let it handle the swap:
 
 ```javascript
 size: {
@@ -109,25 +110,25 @@ Use Arial as the default font (universally supported). Keep titles black for rea
 ```javascript
 const doc = new Document({
   styles: {
-    default: { document: { run: { font: "Arial", size: 24 } } }, // 12pt default
+    default: { document: { run: { font: 'Arial', size: 24 } } }, // 12pt default
     paragraphStyles: [
       // IMPORTANT: Use exact IDs to override built-in styles
       {
-        id: "Heading1",
-        name: "Heading 1",
-        basedOn: "Normal",
-        next: "Normal",
+        id: 'Heading1',
+        name: 'Heading 1',
+        basedOn: 'Normal',
+        next: 'Normal',
         quickFormat: true,
-        run: { size: 32, bold: true, font: "Arial" },
+        run: { size: 32, bold: true, font: 'Arial' },
         paragraph: { spacing: { before: 240, after: 240 }, outlineLevel: 0 },
       }, // outlineLevel required for TOC
       {
-        id: "Heading2",
-        name: "Heading 2",
-        basedOn: "Normal",
-        next: "Normal",
+        id: 'Heading2',
+        name: 'Heading 2',
+        basedOn: 'Normal',
+        next: 'Normal',
         quickFormat: true,
-        run: { size: 28, bold: true, font: "Arial" },
+        run: { size: 28, bold: true, font: 'Arial' },
         paragraph: { spacing: { before: 180, after: 180 }, outlineLevel: 1 },
       },
     ],
@@ -137,7 +138,7 @@ const doc = new Document({
       children: [
         new Paragraph({
           heading: HeadingLevel.HEADING_1,
-          children: [new TextRun("Title")],
+          children: [new TextRun('Title')],
         }),
       ],
     },
@@ -149,32 +150,32 @@ const doc = new Document({
 
 ```javascript
 // ❌ WRONG - never manually insert bullet characters
-new Paragraph({ children: [new TextRun("• Item")] }); // BAD
-new Paragraph({ children: [new TextRun("\u2022 Item")] }); // BAD
+new Paragraph({ children: [new TextRun('• Item')] }); // BAD
+new Paragraph({ children: [new TextRun('\u2022 Item')] }); // BAD
 
 // ✅ CORRECT - use numbering config with LevelFormat.BULLET
 const doc = new Document({
   numbering: {
     config: [
       {
-        reference: "bullets",
+        reference: 'bullets',
         levels: [
           {
             level: 0,
             format: LevelFormat.BULLET,
-            text: "•",
+            text: '•',
             alignment: AlignmentType.LEFT,
             style: { paragraph: { indent: { left: 720, hanging: 360 } } },
           },
         ],
       },
       {
-        reference: "numbers",
+        reference: 'numbers',
         levels: [
           {
             level: 0,
             format: LevelFormat.DECIMAL,
-            text: "%1.",
+            text: '%1.',
             alignment: AlignmentType.LEFT,
             style: { paragraph: { indent: { left: 720, hanging: 360 } } },
           },
@@ -186,12 +187,12 @@ const doc = new Document({
     {
       children: [
         new Paragraph({
-          numbering: { reference: "bullets", level: 0 },
-          children: [new TextRun("Bullet item")],
+          numbering: { reference: 'bullets', level: 0 },
+          children: [new TextRun('Bullet item')],
         }),
         new Paragraph({
-          numbering: { reference: "numbers", level: 0 },
-          children: [new TextRun("Numbered item")],
+          numbering: { reference: 'numbers', level: 0 },
+          children: [new TextRun('Numbered item')],
         }),
       ],
     },
@@ -201,12 +202,13 @@ const doc = new Document({
 
 ## Tables
 
-**CRITICAL: Tables need dual widths** - set both `columnWidths` on the table AND `width` on each cell. Without both, tables render incorrectly on some platforms.
+**CRITICAL: Tables need dual widths** - set both `columnWidths` on the table AND `width` on each
+cell. Without both, tables render incorrectly on some platforms.
 
 ```javascript
 // CRITICAL: Always set table width for consistent rendering
 // CRITICAL: Use ShadingType.CLEAR (not SOLID) to prevent black backgrounds
-const border = { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" };
+const border = { style: BorderStyle.SINGLE, size: 1, color: 'CCCCCC' };
 const borders = { top: border, bottom: border, left: border, right: border };
 
 new Table({
@@ -218,9 +220,9 @@ new Table({
         new TableCell({
           borders,
           width: { size: 4680, type: WidthType.DXA }, // Also set on each cell
-          shading: { fill: "D5E8F0", type: ShadingType.CLEAR }, // CLEAR not SOLID
+          shading: { fill: 'D5E8F0', type: ShadingType.CLEAR }, // CLEAR not SOLID
           margins: { top: 80, bottom: 80, left: 120, right: 120 }, // Cell padding (internal, not added to width)
-          children: [new Paragraph({ children: [new TextRun("Cell")] })],
+          children: [new Paragraph({ children: [new TextRun('Cell')] })],
         }),
       ],
     }),
@@ -243,10 +245,10 @@ new Table({
 new Paragraph({
   children: [
     new ImageRun({
-      type: "png", // Required: png, jpg, jpeg, gif, bmp, svg
-      data: fs.readFileSync("image.png"),
+      type: 'png', // Required: png, jpg, jpeg, gif, bmp, svg
+      data: fs.readFileSync('image.png'),
       transformation: { width: 200, height: 150 },
-      altText: { title: "Title", description: "Desc", name: "Name" }, // All three required
+      altText: { title: 'Title', description: 'Desc', name: 'Name' }, // All three required
     }),
   ],
 });
@@ -259,7 +261,7 @@ new Paragraph({
 new Paragraph({ children: [new PageBreak()] });
 
 // Or use pageBreakBefore
-new Paragraph({ pageBreakBefore: true, children: [new TextRun("New page")] });
+new Paragraph({ pageBreakBefore: true, children: [new TextRun('New page')] });
 ```
 
 ## Hyperlinks
@@ -269,19 +271,19 @@ new Paragraph({ pageBreakBefore: true, children: [new TextRun("New page")] });
 new Paragraph({
   children: [
     new ExternalHyperlink({
-      children: [new TextRun({ text: "Click here", style: "Hyperlink" })],
-      link: "https://example.com",
+      children: [new TextRun({ text: 'Click here', style: 'Hyperlink' })],
+      link: 'https://example.com',
     }),
   ],
 });
 
 // Internal link (bookmark + reference)
 // 1. Create bookmark at destination
-new Bookmark({ id: "chapter1", children: [new TextRun("Chapter 1")] });
+new Bookmark({ id: 'chapter1', children: [new TextRun('Chapter 1')] });
 // 2. Link to it
 new InternalHyperlink({
-  children: [new TextRun({ text: "See Chapter 1", style: "Hyperlink" })],
-  anchor: "chapter1",
+  children: [new TextRun({ text: 'See Chapter 1', style: 'Hyperlink' })],
+  anchor: 'chapter1',
 });
 ```
 
@@ -290,17 +292,17 @@ new InternalHyperlink({
 ```javascript
 const doc = new Document({
   footnotes: {
-    1: { children: [new Paragraph("Source: Annual Report 2024")] },
-    2: { children: [new Paragraph("See appendix for methodology")] },
+    1: { children: [new Paragraph('Source: Annual Report 2024')] },
+    2: { children: [new Paragraph('See appendix for methodology')] },
   },
   sections: [
     {
       children: [
         new Paragraph({
           children: [
-            new TextRun("Revenue grew 15%"),
+            new TextRun('Revenue grew 15%'),
             new FootnoteReferenceRun(1),
-            new TextRun(" using adjusted metrics"),
+            new TextRun(' using adjusted metrics'),
             new FootnoteReferenceRun(2),
           ],
         }),
@@ -315,14 +317,14 @@ const doc = new Document({
 ```javascript
 // Right-align text on same line (e.g., date opposite a title)
 new Paragraph({
-  children: [new TextRun("Company Name"), new TextRun("\tJanuary 2025")],
+  children: [new TextRun('Company Name'), new TextRun('\tJanuary 2025')],
   tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }],
 });
 
 // Dot leader (e.g., TOC-style)
 new Paragraph({
   children: [
-    new TextRun("Introduction"),
+    new TextRun('Introduction'),
     new TextRun({
       children: [
         new PositionalTab({
@@ -330,7 +332,7 @@ new Paragraph({
           relativeTo: PositionalTabRelativeTo.MARGIN,
           leader: PositionalTabLeader.DOT,
         }),
-        "3",
+        '3',
       ],
     }),
   ],
@@ -362,9 +364,9 @@ sections: [
 
 ```javascript
 // CRITICAL: Headings must use HeadingLevel ONLY - no custom styles
-new TableOfContents("Table of Contents", {
+new TableOfContents('Table of Contents', {
   hyperlink: true,
-  headingStyleRange: "1-3",
+  headingStyleRange: '1-3',
 });
 ```
 
@@ -378,17 +380,14 @@ sections: [
     },
     headers: {
       default: new Header({
-        children: [new Paragraph({ children: [new TextRun("Header")] })],
+        children: [new Paragraph({ children: [new TextRun('Header')] })],
       }),
     },
     footers: {
       default: new Footer({
         children: [
           new Paragraph({
-            children: [
-              new TextRun("Page "),
-              new TextRun({ children: [PageNumber.CURRENT] }),
-            ],
+            children: [new TextRun('Page '), new TextRun({ children: [PageNumber.CURRENT] })],
           }),
         ],
       }),

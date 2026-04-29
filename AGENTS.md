@@ -2,7 +2,8 @@
 
 This guide helps AI agents rapidly become productive in this document-processing codebase.
 
-Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
+Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions
+as needed.
 
 **Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
 
@@ -65,21 +66,26 @@ For multi-step tasks, state a brief plan:
 3. [Step] → verify: [check]
 ```
 
-Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
+Strong success criteria let you loop independently. Weak criteria ("make it work") require constant
+clarification.
 
 ---
 
-**These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+**These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to
+overcomplication, and clarifying questions come before implementation rather than after mistakes.
 
 ## Architecture Overview
 
-**NMCNPM** is a specialized toolkit for Vietnamese academic reports (NMCNPM group project). The workflow is:
+**NMCNPM** is a specialized toolkit for Vietnamese academic reports (NMCNPM group project). The
+workflow is:
 
 - **Input:** Markdown chapters (`/chapters/Ch*.md`)
 - **Processing:** Assemble → Render Mermaid diagrams → Convert MD → DOCX
 - **Output:** Professional `.docx` report
 
-**Critical:** The repo is split across **Python workflows** (file processing) and **`/skills`** (modular guidance). Most active work happens in `/chapters` (content) and three root-level scripts: `make.py`, `split_chapters.py`, and `convert_docx_to_md.py`.
+**Critical:** The repo is split across **Python workflows** (file processing) and **`/skills`**
+(modular guidance). Most active work happens in `/chapters` (content) and three root-level scripts:
+`make.py`, `split_chapters.py`, and `convert_docx_to_md.py`.
 
 ## Essential Workflows
 
@@ -87,7 +93,8 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 **Two-stage pipeline:**
 
-- **Stage 1:** Assembles `chapters/Ch0*.md` (excluding Ch08/09) → concatenates into `Bao_Cao_Tieu_Luan_NMCNPM.md`
+- **Stage 1:** Assembles `chapters/Ch0*.md` (excluding Ch08/09) → concatenates into
+  `Bao_Cao_Tieu_Luan_NMCNPM.md`
 - **Stage 2:** Converts MD → DOCX with formatting (headings, tables, Mermaid diagrams)
 
 **Key mechanics:**
@@ -101,11 +108,15 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 - **Convert DOCX → Markdown:** `python convert_docx_to_md.py [input.docx] [output.md]`
 - **Split Markdown into chapters:** `python split_chapters.py [input.md] [output_dir]`
-- **Unpack DOCX to XML:** `python skills/xu-ly-van-phong/scripts/office/unpack.py file.docx output_dir`
-- **Repack XML to DOCX:** `python skills/xu-ly-van-phong/scripts/office/pack.py input_dir output.docx`
-- **Convert PDF → DOCX:** `python skills/xu-ly-van-phong/scripts/convert/convert_pdf_to_docx.py in.pdf out.docx`
+- **Unpack DOCX to XML:**
+  `python skills/xu-ly-van-phong/scripts/office/unpack.py file.docx output_dir`
+- **Repack XML to DOCX:**
+  `python skills/xu-ly-van-phong/scripts/office/pack.py input_dir output.docx`
+- **Convert PDF → DOCX:**
+  `python skills/xu-ly-van-phong/scripts/convert/convert_pdf_to_docx.py in.pdf out.docx`
 
-**Principle:** For advanced edits (preserve formatting), use Unpack → Edit XML → Repack instead of recreating via python-docx.
+**Principle:** For advanced edits (preserve formatting), use Unpack → Edit XML → Repack instead of
+recreating via python-docx.
 
 ## Code Patterns
 
@@ -144,11 +155,15 @@ def set_page_setup(doc):
 
 ## Project-Specific Conventions
 
-1. **File naming:** Reports use `Bao_Cao_Tieu_Luan_NMCNPM*.docx` (with optional `_Tung`, `_new` suffixes on errors)
-2. **Chapter structure:** `chapters/Ch01.md`, `Ch02.md`, ... `Ch07.md` (Ch08/09 excluded from final build)
+1. **File naming:** Reports use `Bao_Cao_Tieu_Luan_NMCNPM*.docx` (with optional `_Tung`, `_new`
+   suffixes on errors)
+2. **Chapter structure:** `chapters/Ch01.md`, `Ch02.md`, ... `Ch07.md` (Ch08/09 excluded from final
+   build)
 3. **Headings:** Markdown levels (H1–H6) → Heading 1–4 styles with Vietnamese colors
-4. **Unicode handling:** Always use `encoding='utf-8'` and `sys.stdout.reconfigure(encoding='utf-8')`
-5. **Vietnamese standards:** Refer to `skills/xu-ly-van-phong/standards/nd30.md` for administrative document rules
+4. **Unicode handling:** Always use `encoding='utf-8'` and
+   `sys.stdout.reconfigure(encoding='utf-8')`
+5. **Vietnamese standards:** Refer to `skills/xu-ly-van-phong/standards/nd30.md` for administrative
+   document rules
 
 ## Integration Points
 
@@ -161,17 +176,22 @@ def set_page_setup(doc):
 
 ### Cross-Component Communication
 
-- Root scripts (`make.py`, `split_chapters.py`, `convert_docx_to_md.py`) own the primary report workflow
+- Root scripts (`make.py`, `split_chapters.py`, `convert_docx_to_md.py`) own the primary report
+  workflow
 - `/skills/handling-docx-files/` provides XML-level DOCX manipulation for advanced use cases
-- All office scripts write to consistent output directories (`chapters/`, `Bao_Cao_*.md`, `Bao_Cao_*.docx`)
+- All office scripts write to consistent output directories (`chapters/`, `Bao_Cao_*.md`,
+  `Bao_Cao_*.docx`)
 
 ## Debugging Checklist
 
 Before implementing, check:
 
-1. **Encoding issues?** Add `encoding='utf-8'` to file opens and `sys.stdout.reconfigure(encoding='utf-8')`
-2. **Mermaid diagram blank?** Check API response status; if rendering fails, fallback text is inserted
-3. **Table formatting broken?** Verify all rows have same column count; ensure cell background uses `.set(qn('w:fill'), hex)` not `ShadingType.SOLID`
+1. **Encoding issues?** Add `encoding='utf-8'` to file opens and
+   `sys.stdout.reconfigure(encoding='utf-8')`
+2. **Mermaid diagram blank?** Check API response status; if rendering fails, fallback text is
+   inserted
+3. **Table formatting broken?** Verify all rows have same column count; ensure cell background uses
+   `.set(qn('w:fill'), hex)` not `ShadingType.SOLID`
 4. **Permission error on save?** Script handles this—checks if file locked, saves as `_new` suffix
 5. **Chapter not appearing?** Verify filename matches `Ch0*.md` pattern and isn't Ch08/09
 
@@ -184,8 +204,8 @@ Before implementing, check:
 
 ---
 
-**Last Updated:** 2026-04-25
-**Status:** Active development (NMCNPM group project deadline 23:00 same day)
+**Last Updated:** 2026-04-25 **Status:** Active development (NMCNPM group project deadline 23:00
+same day)
 
 YÊU CẦU BÀI TẬP NHÓM MÔN NMCNPM
 
@@ -195,45 +215,32 @@ YÊU CẦU BÀI TẬP NHÓM MÔN NMCNPM
 - Nhóm nhận chủ đề theo phân công. Danh sách kèm theo.
 - Mỗi nhóm cử 1 sinh viên làm trưởng nhóm. Ghi chú trưởng nhóm trên link chia nhóm.
 - Tạo nhóm Zalo để nhóm làm việc.
-- Công việc làm chung của cả nhóm:
-  o Mô tả bài toán (yêu cầu người sử dụng)
-  o Đặc tả yêu cầu phần mềm: yêu cầu chức năng, phi chức năng.
-  o Biểu đồ UC tổng quát.
-  o Biểu đồ lớp thực thể.
-- Mỗi thành viên trong nhóm chủ trì làm ít nhất 1 UseCase với các việc sau: o Biểu đồ UC chi tiết
-  o Đặc tả UC
-  o Biểu đồ hoạt động
-  Chú ý: chọn UC phải đủ lớn, có nghiệp vụ, có ràng buộc. Nếu chọn những UC đơn giản (ví dụ đăng nhập, đăng xuất, đổi mật khẩu hoặc UC kiểu như thêm sửa xóa đơn giản) thì sẽ không đạt hoặc đánh giá kết quả thấp.
+- Công việc làm chung của cả nhóm: o Mô tả bài toán (yêu cầu người sử dụng) o Đặc tả yêu cầu phần
+  mềm: yêu cầu chức năng, phi chức năng. o Biểu đồ UC tổng quát. o Biểu đồ lớp thực thể.
+- Mỗi thành viên trong nhóm chủ trì làm ít nhất 1 UseCase với các việc sau: o Biểu đồ UC chi tiết o
+  Đặc tả UC o Biểu đồ hoạt động Chú ý: chọn UC phải đủ lớn, có nghiệp vụ, có ràng buộc. Nếu chọn
+  những UC đơn giản (ví dụ đăng nhập, đăng xuất, đổi mật khẩu hoặc UC kiểu như thêm sửa xóa đơn
+  giản) thì sẽ không đạt hoặc đánh giá kết quả thấp.
 
-3. Thời hạn:
-   o Đại diện nhóm nộp trên hệ thống LMS của nhà trường. o Thời gian: Trước 23h ngày 25/4/2026.
-   o Báo cáo nộp ghép chung thành một file doc (hoặc pdf) gồm:
-   ▪ Phần 1 là các nội dung chung của cả nhóm
-   ▪ Phần 2 là nội dung của từng thành viên (tham khảo bố cục phía sau)
-   1BỐ CỤC BÁO CÁO BÀI TẬP NHÓM
-4. Trang bìa:
-   ◦ Tên chủ đề của nhóm
-   ◦ Danh sách thành viên nhóm và ghi rõ thành viên đó đảm nhiệm làm UseCase nào trong bài tập
-5. Phần 1 – Công việc chung của nhóm
-   a. Mô tả yêu cầu bài toán, yêu cầu người dùng:
+3. Thời hạn: o Đại diện nhóm nộp trên hệ thống LMS của nhà trường. o Thời gian: Trước 23h ngày
+   25/4/2026. o Báo cáo nộp ghép chung thành một file doc (hoặc pdf) gồm: ▪ Phần 1 là các nội dung
+   chung của cả nhóm ▪ Phần 2 là nội dung của từng thành viên (tham khảo bố cục phía sau) 1BỐ CỤC
+   BÁO CÁO BÀI TẬP NHÓM
+4. Trang bìa: ◦ Tên chủ đề của nhóm ◦ Danh sách thành viên nhóm và ghi rõ thành viên đó đảm nhiệm
+   làm UseCase nào trong bài tập
+5. Phần 1 – Công việc chung của nhóm a. Mô tả yêu cầu bài toán, yêu cầu người dùng:
 
 - Mô tả bằng ngôn ngữ tự nhiên.
 - Mô tả đủ các yêu cầu mà “người dùng” cần.
-- Các ràng buộc nghiệp vụ.
-  Chú ý: Phần này khoảng 2-3 trang và mô tả bằng ngôn ngữ tự nhiên, như
-  mô tả của khách hàng (chứ chưa cần mô hình hóa, vẽ biểu đồ gì cả)
-  b. Mô tả yêu cầu phần mềm
+- Các ràng buộc nghiệp vụ. Chú ý: Phần này khoảng 2-3 trang và mô tả bằng ngôn ngữ tự nhiên, như mô
+  tả của khách hàng (chứ chưa cần mô hình hóa, vẽ biểu đồ gì cả) b. Mô tả yêu cầu phần mềm
 - Phân tích và xác định actor
 - Xác định yêu cầu chức năng: các Usecase
 - Xác định các yêu cầu phi chức năng
-- Vẽ biểu đồ UC tổng quát.
-  c. Xây dựng biểu đồ lớp thực thể
+- Vẽ biểu đồ UC tổng quát. c. Xây dựng biểu đồ lớp thực thể
 - Phân tích và xác định các thực thể
 - Mô tả thực thể (thuộc tính, phương thức,..)
 - Vẽ biểu đồ lớp thực thể.
 
-23. Phần 2 – Kết quả từng thành viên
-    Từng thành viên trên cơ sở UC mà mình chọn làm thì cần thực hiện các nội dung sau:
-    a. Vẽ biểu đồ UC
-    b. Viết đặc tả UC
-    c. Vẽ biểu đồ hoạt động UC
+23. Phần 2 – Kết quả từng thành viên Từng thành viên trên cơ sở UC mà mình chọn làm thì cần thực
+    hiện các nội dung sau: a. Vẽ biểu đồ UC b. Viết đặc tả UC c. Vẽ biểu đồ hoạt động UC

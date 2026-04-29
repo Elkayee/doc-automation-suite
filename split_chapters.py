@@ -37,10 +37,7 @@ def split_markdown_sections(markdown_text: str) -> list[tuple[str, str]]:
 
     sections.append((current_title, current_start, len(lines) - 1))
 
-    return [
-        (title, '\n'.join(lines[start:end + 1]))
-        for title, start, end in sections
-    ]
+    return [(title, '\n'.join(lines[start : end + 1])) for title, start, end in sections]
 
 
 def write_chapter_files(source_path: str | Path, output_dir: str | Path) -> list[Path]:

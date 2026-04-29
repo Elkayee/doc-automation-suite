@@ -1,6 +1,7 @@
 # Thông báo
 
 ## Đặc điểm
+
 - Có tên loại: "THÔNG BÁO" (IN HOA, đứng, đậm)
 - Trích yếu: "Về việc ..." hoặc nội dung ngắn gọn
 - Truyền đạt thông tin, không yêu cầu phản hồi
@@ -26,6 +27,7 @@ Nội dung chính: thông tin cần truyền đạt
 ```
 
 ## Lưu ý
+
 - Thông báo thường KHÔNG có phần căn cứ pháp lý
 - Nội dung ngắn gọn, rõ ràng, dễ hiểu
 - Nơi nhận thường rộng hơn các loại VB khác

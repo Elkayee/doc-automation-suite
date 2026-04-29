@@ -1,12 +1,14 @@
 # Báo cáo
 
 ## Đặc điểm
+
 - Tên loại: "BÁO CÁO" (IN HOA, đứng, đậm)
 - Trích yếu: nội dung báo cáo (VD: "Kết quả thực hiện [Nhiệm vụ] năm [Năm]")
 - Số ký hiệu: Số/BC-Viết tắt CQ
 - Bố cục: Tình hình → Kết quả → Đánh giá → Kiến nghị
 
 ## Cấu trúc nội dung điển hình
+
 ```
 I. TÌNH HÌNH CHUNG / BỐI CẢNH
 

@@ -10,15 +10,18 @@ Manual XML manipulation for advanced DOCX editing.
 python scripts/office/unpack.py document.docx unpacked/
 ```
 
-Extracts XML, pretty-prints, merges adjacent runs, and converts smart quotes to XML entities (`&#x201C;` etc.) so they survive editing. Use `--merge-runs false` to skip run merging.
+Extracts XML, pretty-prints, merges adjacent runs, and converts smart quotes to XML entities
+(`&#x201C;` etc.) so they survive editing. Use `--merge-runs false` to skip run merging.
 
 ### Step 2: Edit XML
 
 Edit files in `unpacked/word/`.
 
-**Use "Claude" as the author** for tracked changes and comments, unless the user explicitly requests use of a different name.
+**Use "Claude" as the author** for tracked changes and comments, unless the user explicitly requests
+use of a different name.
 
-**CRITICAL: Use smart quotes for new content.** When adding text with apostrophes or quotes, use XML entities to produce smart quotes:
+**CRITICAL: Use smart quotes for new content.** When adding text with apostrophes or quotes, use XML
+entities to produce smart quotes:
 
 ```xml
 <!-- Use these entities for professional typography -->
@@ -32,7 +35,8 @@ Edit files in `unpacked/word/`.
 | `&#x201C;` | “ (left double)               |
 | `&#x201D;` | ” (right double)              |
 
-**Adding comments:** Use `comment.py` to handle boilerplate across multiple XML files (text must be pre-escaped XML):
+**Adding comments:** Use `comment.py` to handle boilerplate across multiple XML files (text must be
+pre-escaped XML):
 
 ```bash
 python scripts/comment.py unpacked/ 0 "Comment text"
@@ -72,7 +76,8 @@ Validates with auto-repair, condenses XML, and creates DOCX. Use `--validate fal
 </w:del>
 ```
 
-**Deleting entire paragraphs:** Add `<w:del/>` inside `<w:pPr><w:rPr>` to ensure the paragraph mark itself is deleted.
+**Deleting entire paragraphs:** Add `<w:del/>` inside `<w:pPr><w:rPr>` to ensure the paragraph mark
+itself is deleted.
 
 ### Comments markers
 

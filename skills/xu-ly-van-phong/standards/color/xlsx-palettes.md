@@ -8,15 +8,15 @@ Các bộ phối màu dành riêng cho bảng tính Excel.
 
 Dùng cho bảng kỹ thuật, dự toán, data block.
 
-| Vai trò | Mã HEX | Mô tả |
-|---|---|---|
-| Header fill | `#2C3E50` | Charcoal navy |
-| Header text | `#FFFFFF` | Trắng |
-| Row Chương/Section | `#FFF2CC` | Vàng rất nhạt |
-| Row Hạng mục/CTAC | `#D6EAF8` | Xanh dương nhạt |
-| Row Chi tiết | `#F9F9F9` | Xám rất nhạt |
-| Text chi tiết | `#666666` | Xám |
-| Dòng tổng text | `#FF0000` | Đỏ bold |
+| Vai trò            | Mã HEX    | Mô tả           |
+| ------------------ | --------- | --------------- |
+| Header fill        | `#2C3E50` | Charcoal navy   |
+| Header text        | `#FFFFFF` | Trắng           |
+| Row Chương/Section | `#FFF2CC` | Vàng rất nhạt   |
+| Row Hạng mục/CTAC  | `#D6EAF8` | Xanh dương nhạt |
+| Row Chi tiết       | `#F9F9F9` | Xám rất nhạt    |
+| Text chi tiết      | `#666666` | Xám             |
+| Dòng tổng text     | `#FF0000` | Đỏ bold         |
 
 ---
 
@@ -24,13 +24,13 @@ Dùng cho bảng kỹ thuật, dự toán, data block.
 
 Dùng cho bảng kế hoạch 5W1H, roadmap, tracking tiến độ.
 
-| Vai trò | Mã HEX | Mô tả |
-|---|---|---|
-| Header fill | `#375623` | Xanh lá đậm |
-| Header text | `#FFFFFF` | Trắng |
-| Row nhóm/giai đoạn | `#E2EFDA` | Xanh lá rất nhạt |
-| Row chi tiết | Trắng | Không fill |
-| Title text | `#375623` | Xanh lá đậm, 14pt bold |
+| Vai trò            | Mã HEX    | Mô tả                  |
+| ------------------ | --------- | ---------------------- |
+| Header fill        | `#375623` | Xanh lá đậm            |
+| Header text        | `#FFFFFF` | Trắng                  |
+| Row nhóm/giai đoạn | `#E2EFDA` | Xanh lá rất nhạt       |
+| Row chi tiết       | Trắng     | Không fill             |
+| Title text         | `#375623` | Xanh lá đậm, 14pt bold |
 
 ---
 
@@ -38,24 +38,24 @@ Dùng cho bảng kế hoạch 5W1H, roadmap, tracking tiến độ.
 
 Dùng cho bảng tổng hợp, phiếu khảo sát, dashboard.
 
-| Vai trò | Mã HEX | Mô tả |
-|---|---|---|
-| Header fill | `#4472C4` | Xanh dương corporate |
-| Header text | `#FFFFFF` | Trắng |
-| Zebra row lẻ | `#D9E2F3` | Xanh rất nhạt |
-| Zebra row chẵn | `#FFFFFF` | Trắng |
-| Dòng tổng | Bold, không fill | |
+| Vai trò        | Mã HEX           | Mô tả                |
+| -------------- | ---------------- | -------------------- |
+| Header fill    | `#4472C4`        | Xanh dương corporate |
+| Header text    | `#FFFFFF`        | Trắng                |
+| Zebra row lẻ   | `#D9E2F3`        | Xanh rất nhạt        |
+| Zebra row chẵn | `#FFFFFF`        | Trắng                |
+| Dòng tổng      | Bold, không fill |                      |
 
 ---
 
 ## Traffic Light (dùng chung cho mọi palette)
 
-| Mức | Fill | Text/Icon | Dùng cho |
-|---|---|---|---|
-| OK / Pass | `#D5F5E3` (xanh nhạt) | ✅ | Xác nhận, đạt chuẩn |
-| Warning | `#FDEBD0` (cam nhạt) | ⚠️ | Cảnh báo, cần kiểm tra |
-| Error / Fail | `#FADBD8` (đỏ nhạt) | ❌ | Lỗi, vượt ngưỡng |
-| Info | `#D4E6F1` (xanh nhạt) | ℹ️ | Thông tin tham khảo |
+| Mức          | Fill                  | Text/Icon | Dùng cho               |
+| ------------ | --------------------- | --------- | ---------------------- |
+| OK / Pass    | `#D5F5E3` (xanh nhạt) | ✅        | Xác nhận, đạt chuẩn    |
+| Warning      | `#FDEBD0` (cam nhạt)  | ⚠️        | Cảnh báo, cần kiểm tra |
+| Error / Fail | `#FADBD8` (đỏ nhạt)   | ❌        | Lỗi, vượt ngưỡng       |
+| Info         | `#D4E6F1` (xanh nhạt) | ℹ️        | Thông tin tham khảo    |
 
 ---
 
@@ -81,4 +81,3 @@ ws.conditional_formatting.add('H2:H100',
 ```
 
 <!-- NDT-0904004920 -->
-

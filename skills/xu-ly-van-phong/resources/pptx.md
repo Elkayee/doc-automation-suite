@@ -15,24 +15,25 @@ python scripts/office/unpack.py presentation.pptx unpacked/  # Raw XML
 
 ## Tạo slide
 
-| Tình huống | Dùng |
-|---|---|
-| Có template/file mẫu | Unpack → sửa XML → Pack (xem `office-xml.md`) |
-| Tạo từ đầu | `pptxgenjs` (Node.js): `npm install -g pptxgenjs` |
+| Tình huống           | Dùng                                              |
+| -------------------- | ------------------------------------------------- |
+| Có template/file mẫu | Unpack → sửa XML → Pack (xem `office-xml.md`)     |
+| Tạo từ đầu           | `pptxgenjs` (Node.js): `npm install -g pptxgenjs` |
 
 ---
 
 ## Nguyên tắc thiết kế
 
-- **Mỗi slide cần ít nhất 1 yếu tố thị giác** (image, chart, icon, shape). Slide chỉ text là điều không chấp nhận.
+- **Mỗi slide cần ít nhất 1 yếu tố thị giác** (image, chart, icon, shape). Slide chỉ text là điều
+  không chấp nhận.
 - **Chọn font pairing có cá tính**, không default Arial:
 
-| Header | Body |
-|---|---|
-| Georgia | Calibri |
-| Arial Black | Arial |
-| Cambria | Calibri |
-| Impact | Arial |
+| Header      | Body    |
+| ----------- | ------- |
+| Georgia     | Calibri |
+| Arial Black | Arial   |
+| Cambria     | Calibri |
+| Impact      | Arial   |
 
 - **Cỡ chữ:** Title 36-44pt, section 20-24pt, body 14-16pt, caption 10-12pt.
 - **Margin tối thiểu 0.5"**, gap giữa content blocks 0.3-0.5".
@@ -65,7 +66,8 @@ pdftoppm -jpeg -r 150 output.pdf slide
 
 Kiểm tra: overlap, text overflow, contrast thấp, spacing không đều, placeholder text còn sót.
 
-**Verification loop:** Generate → Convert → Inspect → Fix → Re-verify. Không declare success trước khi hoàn thành ít nhất 1 fix-and-verify cycle.
+**Verification loop:** Generate → Convert → Inspect → Fix → Re-verify. Không declare success trước
+khi hoàn thành ít nhất 1 fix-and-verify cycle.
 
 ---
 
