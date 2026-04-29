@@ -34,3 +34,17 @@ Bao_Cao_Tieu_Luan_NMCNPM_from_docx.md
 # Thư mục test
 tests/
 .omc/
+skills/**/*.md
+skills/**/*.txt
+skills/**/*.xml
+skills/**/*.xsd
+skills/**/*.pdf
+skills/**/*.pptx
+skills/**/*.xlsx
+skills/**/*.dot
+skills/**/*.js
+chapters/
+image/
+AGENTS.md
+CLAUDE.md
+GEMINI.md
