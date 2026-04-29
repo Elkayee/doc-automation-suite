@@ -1,5 +1,5 @@
 [project]
-name = "nmcnpm-report-workflow"
+name = "doc-automation-suite"
 version = "0.1.0"
 description = "Toolkit for document processing and office automation"
 requires-python = ">=3.10"
