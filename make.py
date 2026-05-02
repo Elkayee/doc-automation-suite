@@ -84,19 +84,15 @@ def chapter_sort_key(file_path):
 
 def collect_chapter_files(chapter_dir):
     chapter_dir_path = Path(chapter_dir)
+    chapter_dir_path.mkdir(parents=True, exist_ok=True)
     chapter_files = []
-    missing_files = []
 
     for filename in BUILD_CHAPTER_FILES:
         file_path = chapter_dir_path / filename
-        if file_path.exists():
-            chapter_files.append(str(file_path))
-        else:
-            missing_files.append(filename)
-
-    if missing_files:
-        missing_text = ', '.join(missing_files)
-        print(f'  [WARN] Thieu chapter trong danh sach build: {missing_text}')
+        if not file_path.exists():
+            file_path.write_text(f'# {filename.replace(".md", "")}\n\nNoi dung mau...\n', encoding='utf-8')
+            print(f'  [INFO] Da tao file mau: {filename}')
+        chapter_files.append(str(file_path))
 
     return chapter_files
 
