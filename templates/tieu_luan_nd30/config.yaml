@@ -1,0 +1,16 @@
+name: "Tiểu Luận (Chuẩn Nghị định 30)"
+description: "Mẫu báo cáo tiểu luận chuẩn font Times New Roman, dãn dòng 1.5, thụt lề 1.27cm."
+type: "report"
+docx_template: "template.docx"
+required_files:
+  - "F00_header.md"
+  - "F01_toc.md"
+  - "Ch01_LOI_MO_DAU.md"
+  - "Ch02_NOI_DUNG.md"
+  - "Ch03_KET_LUAN.md"
+  - "Ch04_TAI_LIEU_THAM_KHAO.md"
+settings:
+  font_name: "Times New Roman"
+  font_size: 13
+  line_spacing: 1.5
+  first_line_indent: 1.27

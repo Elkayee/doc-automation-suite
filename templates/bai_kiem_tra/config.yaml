@@ -1,0 +1,11 @@
+name: "Đề Thi Trắc Nghiệm"
+description: "Mẫu đề kiểm tra trắc nghiệm, hỗ trợ sinh tự động đề và đáp án, trộn đề."
+type: "exam"
+docx_template: "template.docx"
+required_files:
+  - "00_Thong_Tin.md"
+  - "01_Cau_Hoi.md"
+settings:
+  font_name: "Times New Roman"
+  font_size: 11
+  columns: 2
