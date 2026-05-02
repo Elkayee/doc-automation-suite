@@ -96,7 +96,7 @@ def collect_chapter_files(chapter_dir):
 
     if missing_files:
         missing_text = ', '.join(missing_files)
-        raise FileNotFoundError(f'Thieu chapter trong danh sach build: {missing_text}')
+        print(f'  [WARN] Thieu chapter trong danh sach build: {missing_text}')
 
     return chapter_files
 
