@@ -3,11 +3,13 @@ from pathlib import Path
 import tkinter as tk
 
 def main():
-    # Install dependencies if needed (check pyyaml)
+    # Install dependencies if needed
     try:
         import yaml
-    except ImportError:
-        print("Missing pyyaml. Please run: pip install -r requirements.txt")
+        import docx
+    except ImportError as e:
+        missing_module = str(e).split("'")[1] if "'" in str(e) else "a required module"
+        print(f"Missing {missing_module}. Please run: pip install -r requirements.txt")
         sys.exit(1)
         
     # Start Dashboard
