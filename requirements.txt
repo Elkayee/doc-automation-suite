@@ -1,0 +1,8 @@
+requests>=2.31.0
+python-docx>=1.1.0
+tkinterweb>=3.23.0
+markdown>=3.6.0
+openpyxl>=3.1.2
+pypdf>=4.2.0
+pdfplumber>=0.11.0
+pdf2docx>=0.5.8
