@@ -18,7 +18,10 @@ class TemplateConfig:
             raise FileNotFoundError(f"Config file not found: {config_path}")
 
         with open(config_path, 'r', encoding='utf-8') as f:
-            data = yaml.safe_load(f)
+            data = yaml.safe_load(f) or {}
+
+        if not isinstance(data, dict):
+            raise ValueError(f"Invalid configuration format in {config_path}. Expected a dictionary.")
 
         return cls(
             name=data.get('name', 'Unknown Template'),
