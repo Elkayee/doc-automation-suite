@@ -1,9 +1,9 @@
 @echo off
-if not exist venv\Scripts\activate (
+if not exist .venv\Scripts\activate (
     echo Creating virtual environment...
-    python -m venv venv
+    python -m venv .venv
 )
-call venv\Scripts\activate
+call .venv\Scripts\activate
 echo Upgrading pip and installing dependencies...
 python -m pip install --upgrade pip
 pip install -r requirements.txt
