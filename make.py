@@ -130,21 +130,18 @@ def ensure_output_docx_closed(docx_out):
         ) from exc
 
 
-def assemble_markdown(chapter_dir, output_path):
-    chapter_files = collect_chapter_files(chapter_dir)
-    parts = []
+from src.core.assembler import DocumentAssembler
 
-    for file_path in chapter_files:
+def assemble_markdown(chapter_dir, output_path):
+    assembler = DocumentAssembler(Path(chapter_dir).parent)
+    final, processed_files = assembler.save_assembled(Path(output_path))
+
+    for file_path in processed_files:
         with open(file_path, encoding='utf-8') as handle:
             content = handle.read().strip()
-        parts.append(content)
         print(f'  [OK] {os.path.basename(file_path)}  ({len(content.splitlines())} dong)')
 
-    final = '\n\n'.join(parts)
-    with open(output_path, 'w', encoding='utf-8') as handle:
-        handle.write(final)
-
-    return final, chapter_files
+    return final, processed_files
 
 
 def step_assemble():
