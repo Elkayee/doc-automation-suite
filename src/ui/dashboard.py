@@ -1,7 +1,10 @@
+import os
+from pathlib import Path
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
-from pathlib import Path
 from src.core.template_manager import TemplateManager
+from src.core.assembler import DocumentAssembler
+from src.core.docx_builder import DocxBuilder
 
 class DashboardApp:
     def __init__(self, root, base_dir: Path):
@@ -97,7 +100,7 @@ class DashboardApp:
                 messagebox.showinfo("Thành công", f"Đã tạo dự án {name}!")
                 dialog.destroy()
                 self.refresh_projects()
-                # TODO: Launch Workspace Editor here
+                self._launch_workspace(dest)
             except Exception as e:
                 messagebox.showerror("Lỗi", str(e))
 
@@ -116,8 +119,44 @@ class DashboardApp:
         self._launch_workspace(self.workspaces_dir / name)
 
     def _launch_workspace(self, path: Path):
-        # Stub for launching the actual editor
-        messagebox.showinfo("Workspace", f"Sẽ mở workspace: {path.name}")
+        # Open directory in OS explorer
+        try:
+            if os.name == 'nt': # Windows
+                os.startfile(path)
+            elif os.name == 'posix': # macOS/Linux
+                import subprocess
+                import sys
+                opener = 'open' if sys.platform == 'darwin' else 'xdg-open'
+                subprocess.call([opener, str(path)])
+        except Exception as e:
+            print(f"Lỗi mở thư mục: {e}")
+
+        # Show a minimal workspace editor window
+        editor = tk.Toplevel(self.root)
+        editor.title(f"Workspace: {path.name}")
+        editor.geometry("400x200")
+        editor.configure(bg="#f3efe5")
+        
+        ttk.Label(editor, text=f"Đang làm việc tại:\n{path.name}", 
+                 style='SubHeader.TLabel', justify='center').pack(pady=20)
+                 
+        def do_build():
+            try:
+                assembler = DocumentAssembler(path)
+                md_content, _ = assembler.assemble_markdown()
+                
+                builder = DocxBuilder(path)
+                img_cache_dir = path / '.img_cache'
+                builder.build_from_markdown(md_content, img_cache_dir)
+                
+                output_docx = path / 'output' / 'final_document.docx'
+                builder.save(output_docx)
+                
+                messagebox.showinfo("Thành công", f"Đã build file docx tại:\n{output_docx}")
+            except Exception as e:
+                messagebox.showerror("Lỗi Build", f"Có lỗi xảy ra:\n{str(e)}")
+                
+        ttk.Button(editor, text="Build DOCX", style='Action.TButton', command=do_build).pack(pady=10)
 
 if __name__ == "__main__":
     root = tk.Tk()
