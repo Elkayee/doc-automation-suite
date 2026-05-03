@@ -66,3 +66,11 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+
+# ignore visual builder specific temp files
+*.temp.md
+*.temp.html
+
+# OSX
+.DS_Store
+
