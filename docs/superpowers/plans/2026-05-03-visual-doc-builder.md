@@ -26,26 +26,37 @@
 - [ ] Show the selected chapter in the editor
 - [ ] Add `Move Up`, `Move Down`, `Save`, `Refresh`, and `Build DOCX` actions
 
-## Task 3: Add Editing Behavior
+## Task 3: Add Editing Behavior and Word-style Formatting
 
 **Files**
 - Modify: `src/ui/visual_builder/window.py`
+- Modify: `src/core/config.py`
 
 - [ ] Add lightweight markdown highlighting in the editor
+- [ ] Implement a "Paragraph Settings" dialog (Alignment, Indent, Spacing)
+- [ ] Save formatting settings to `config.yaml` under a `formatting` key
 - [ ] Add debounced autosave
 - [ ] Track dirty state in the window title and status label
-- [ ] Poll file mtimes to detect external updates without extra dependencies
 
-## Task 4: Add Assembled Preview
+## Task 4: Add Assembled Preview with Custom Styling
 
 **Files**
 - Create: `src/ui/visual_builder/styles.css`
 - Modify: `src/ui/visual_builder/window.py`
 
 - [ ] Render preview from the assembled workspace, not just the current chapter
+- [ ] Dynamic CSS generation: Inject the user's paragraph settings into the HTML preview
 - [ ] Use `tkinterweb.HtmlFrame` when available
-- [ ] Keep a fallback `tk.Text` preview using `PreviewUtils`
 - [ ] Style preview pages as A4-like chapter pages with stable anchors
+
+## Task 5: Hierarchical Navigation (Outline)
+
+**Files**
+- Modify: `src/ui/visual_builder/window.py`
+
+- [ ] Add a "Headings" tab to the Navigator
+- [ ] Parse Markdown headers from the assembled document to build a tree
+- [ ] Implement "Click-to-jump": clicking a heading jumps the editor to that section
 
 ## Task 5: Integrate with Dashboard
 

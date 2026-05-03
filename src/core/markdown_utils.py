@@ -1,7 +1,14 @@
 import re
+
 from docx.shared import Cm, Pt, RGBColor
 
+
 class MarkdownUtils:
+    HEADING_RE = re.compile(r'^(#{1,6})\s+.+$')
+    BULLET_RE = re.compile(r'^\s*[-*+]\s+')
+    ORDERED_RE = re.compile(r'^\s*\d+\.\s+')
+    RULE_RE = re.compile(r'^\s*(---+|\*\*\*+|___+)\s*$')
+
     @staticmethod
     def strip_md_links(text):
         return re.sub(r'\[([^\]]+)\]\([^)]*\)', r'\1', text)
@@ -119,12 +126,93 @@ class MarkdownUtils:
 
     @staticmethod
     def normalize_punctuation(text):
-        """Chuẩn hóa dấu câu theo NĐ30: dấu sát từ trước, space sau dấu."""
         text = re.sub(r'\s+([.,;:!?)])', r'\1', text)
         text = re.sub(r'([([{])\s+', r'\1', text)
         text = re.sub(r'\s+([)\]}])', r'\1', text)
         text = re.sub(r'([.,;:!?])([^\s\d.,;:!?)\]}\'"\\`*_])', r'\1 \2', text)
         return text
+
+    @classmethod
+    def is_markdown_block_line(cls, text):
+        stripped = text.strip()
+        if not stripped:
+            return True
+        return bool(
+            cls.HEADING_RE.match(stripped)
+            or cls.BULLET_RE.match(stripped)
+            or cls.ORDERED_RE.match(stripped)
+            or cls.RULE_RE.match(stripped)
+            or stripped.startswith('>')
+            or stripped.startswith('```')
+            or stripped.startswith('|')
+            or re.match(r'^\*\*.+\*\*$', stripped)
+        )
+
+    @classmethod
+    def normalize_pasted_markdown(cls, text):
+        text = text.replace('\r\n', '\n').replace('\r', '\n')
+        raw_lines = [line.rstrip() for line in text.split('\n')]
+        normalized = []
+        paragraph_parts = []
+
+        def flush_paragraph():
+            nonlocal paragraph_parts
+            if not paragraph_parts:
+                return
+            paragraph = ' '.join(part.strip() for part in paragraph_parts if part.strip())
+            paragraph = re.sub(r'\s+', ' ', paragraph).strip()
+            if paragraph:
+                normalized.append(paragraph)
+            paragraph_parts = []
+
+        for raw_line in raw_lines:
+            stripped = raw_line.strip()
+
+            if not stripped:
+                flush_paragraph()
+                if normalized and normalized[-1] != '':
+                    normalized.append('')
+                continue
+
+            if stripped.startswith('*   '):
+                stripped = '- ' + stripped[4:].strip()
+            elif re.match(r'^\*\s+', stripped):
+                stripped = '- ' + stripped[2:].strip()
+            elif re.match(r'^\+\s+', stripped):
+                stripped = '- ' + stripped[2:].strip()
+
+            if cls.is_markdown_block_line(stripped):
+                flush_paragraph()
+                if normalized and normalized[-1] != '':
+                    previous = normalized[-1]
+                    if (
+                        cls.HEADING_RE.match(stripped)
+                        or re.match(r'^\*\*.+\*\*$', stripped)
+                        or cls.RULE_RE.match(stripped)
+                    ) and previous != '':
+                        normalized.append('')
+                normalized.append(stripped)
+                continue
+
+            paragraph_parts.append(stripped)
+
+        flush_paragraph()
+
+        compact = []
+        blank_run = 0
+        for line in normalized:
+            if line == '':
+                blank_run += 1
+                if blank_run == 1:
+                    compact.append(line)
+            else:
+                blank_run = 0
+                compact.append(line)
+
+        result = '\n'.join(compact).strip()
+        if result:
+            result += '\n'
+        return result
 
     @staticmethod
     def get_heading_indent(text):

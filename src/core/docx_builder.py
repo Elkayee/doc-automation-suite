@@ -25,14 +25,15 @@ class DocxBuilder:
 
     def _init_document(self):
         """Loads template.docx if it exists, otherwise creates a blank Document."""
+        page_settings = DocxHelpers.get_page_settings(self.config)
         if self.config and self.config.docx_template:
             template_path = self.workspace_dir / self.config.docx_template
             if template_path.exists():
                 doc = Document(str(template_path))
-                DocxHelpers.set_page_setup(doc)
+                DocxHelpers.apply_page_settings(doc, page_settings)
                 return doc
         doc = Document()
-        DocxHelpers.set_page_setup(doc)
+        DocxHelpers.apply_page_settings(doc, page_settings)
         return doc
 
     def build_from_markdown(self, md_path: str, img_cache_dir: Path):
@@ -43,13 +44,33 @@ class DocxBuilder:
         with open(md_path, encoding='utf-8') as f:
             lines = f.readlines()
 
+        paragraph_settings = DocxHelpers.get_paragraph_settings(self.config)
         style = self.doc.styles['Normal']
-        style.font.name = 'Times New Roman'
-        style.font.size = Pt(13)
-        style.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-        style.paragraph_format.line_spacing = 1.5
-        style.paragraph_format.space_before = Pt(0)
-        style.paragraph_format.space_after = Pt(0)
+        style.font.name = paragraph_settings.get('font_name', 'Times New Roman')
+        style.font.size = Pt(float(paragraph_settings.get('font_size', 13)))
+        style.paragraph_format.alignment = DocxHelpers.parse_alignment(paragraph_settings.get('alignment', 'justify'))
+        style.paragraph_format.left_indent = Cm(float(paragraph_settings.get('left_indent_cm', 0.0)))
+        style.paragraph_format.right_indent = Cm(float(paragraph_settings.get('right_indent_cm', 0.0)))
+        style.paragraph_format.space_before = Pt(float(paragraph_settings.get('space_before_pt', 0.0)))
+        style.paragraph_format.space_after = Pt(float(paragraph_settings.get('space_after_pt', 6.0)))
+        special_indent = str(paragraph_settings.get('special_indent', 'first_line')).lower()
+        special_indent_by_cm = float(paragraph_settings.get('special_indent_by_cm', 1.27))
+        style.paragraph_format.first_line_indent = None
+        if special_indent == 'first_line':
+            style.paragraph_format.first_line_indent = Cm(special_indent_by_cm)
+        elif special_indent == 'hanging':
+            style.paragraph_format.first_line_indent = Cm(-special_indent_by_cm)
+
+        line_spacing_mode = str(paragraph_settings.get('line_spacing_mode', 'multiple')).lower()
+        line_spacing_value = float(paragraph_settings.get('line_spacing_value', 1.5))
+        if line_spacing_mode == 'single':
+            style.paragraph_format.line_spacing = 1.0
+        elif line_spacing_mode == 'double':
+            style.paragraph_format.line_spacing = 2.0
+        elif line_spacing_mode == 'exactly':
+            style.paragraph_format.line_spacing = Pt(line_spacing_value)
+        else:
+            style.paragraph_format.line_spacing = line_spacing_value
 
         # Tiền xử lý: rút gọn ≥2 dòng trống liên tiếp thành tối đa 1
         compressed, blank_run = [], 0
@@ -310,11 +331,7 @@ class DocxBuilder:
 
             # Đoạn văn thường — chuẩn NĐ30: justify, lùi đầu dòng, dãn 1.5
             p = self.doc.add_paragraph()
-            p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-            p.paragraph_format.first_line_indent = Cm(1.27)
-            p.paragraph_format.line_spacing = 1.5
-            p.paragraph_format.space_before = Pt(0)
-            p.paragraph_format.space_after = Pt(6)
+            DocxHelpers.apply_paragraph_format(p, paragraph_settings)
             MarkdownUtils.add_formatted_run(p, MarkdownUtils.normalize_punctuation(line.strip()))
             i += 1
 

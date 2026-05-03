@@ -16,7 +16,9 @@ The preview is a high-fidelity editing aid, not a byte-for-byte representation o
 
 ### In Scope
 - Navigate and edit files under `workspace/chapters/`
-- Persist chapter order for preview and export
+- Hierarchical document outline (Headings) for quick navigation
+- Global paragraph formatting (Alignment, Indents, Spacing)
+- Persist chapter order and formatting settings for preview and export
 - Debounced autosave back to chapter markdown files
 - Assembled preview rendered inside the app
 - One-click DOCX export through the existing build pipeline
@@ -33,36 +35,34 @@ The preview is a high-fidelity editing aid, not a byte-for-byte representation o
 The application is a Tkinter `Toplevel` with three panes:
 
 ### 1. Navigator
-- Lists chapter files from the active workspace
-- Uses persisted chapter order from `config.yaml`
-- Supports explicit reorder actions (`Move Up` / `Move Down`)
-- Shows dirty state for the currently edited chapter
+- **Outline Tab:** Shows a hierarchical tree of headings parsed from the markdown (similar to Word's Navigation pane).
+- **Files Tab:** Lists chapter files from the active workspace.
+- Supports explicit reorder actions (`Move Up` / `Move Down`).
+- Shows dirty state for the currently edited chapter.
 
 ### 2. Editor
-- Edits one markdown file at a time
-- Applies lightweight markdown highlighting for common patterns
-- Debounces autosave to disk
-- Tracks in-memory dirty state until the pending autosave completes
+- Edits one markdown file at a time.
+- Toolbar for Word-style settings:
+    - **Alignment:** Justify, Left, Center, Right.
+    - **Paragraph:** Dialog for First-line indent, Before/After spacing, and Line spacing.
+- Applies lightweight markdown highlighting for common patterns.
+- Debounces autosave to disk.
 
 ### 3. Visualizer
-- Renders the assembled document preview from all chapters
-- Uses `tkinterweb.HtmlFrame` when available
-- Falls back to the existing styled `tk.Text` preview when `tkinterweb` is unavailable
-- Uses A4-styled page containers and chapter page breaks
+- Renders the assembled document preview from all chapters.
+- Uses `tkinterweb.HtmlFrame` when available.
+- Injects global paragraph styles derived from the Editor settings.
+- Uses A4-styled page containers and chapter page breaks.
 
 ## Data Model
 
 ### Source of Truth
 The `.md` files in `workspace/chapters/` remain the source of truth for content.
 
-### Chapter Order Persistence
-Chapter order is persisted in `workspace/config.yaml` as `chapter_order`.
-
-Rules:
-- `chapter_order` is optional
-- when absent, the app falls back to `required_files`
-- reorder actions update `chapter_order`
-- export and assembled preview must use the same resolved order
+### Persistence
+The `workspace/config.yaml` will store:
+- `chapter_order`: Optional list of filenames.
+- `formatting`: Dictionary containing `alignment`, `indent_first_line`, `spacing_line`, `spacing_before`, `spacing_after`.
 
 ### Assembly Metadata
 The assembler must expose chapter metadata for the UI:

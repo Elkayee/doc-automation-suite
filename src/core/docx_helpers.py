@@ -1,6 +1,7 @@
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Emu, Inches, Pt, RGBColor
+from docx.enum.section import WD_ORIENTATION
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK
 from pathlib import Path
 from src.core.media_downloader import MediaDownloader
@@ -12,6 +13,79 @@ COLOR_H3 = RGBColor(0x2E, 0x86, 0xAB)
 COLOR_H4 = RGBColor(0x44, 0x9D, 0xD1)
 
 class DocxHelpers:
+    @staticmethod
+    def get_page_settings(config):
+        settings = (config.settings if config and config.settings else {}).copy()
+        defaults = {
+            'page_width_cm': 21.0,
+            'page_height_cm': 29.7,
+            'margin_top_cm': 2.5,
+            'margin_bottom_cm': 2.5,
+            'margin_left_cm': 3.0,
+            'margin_right_cm': 2.0,
+            'gutter_cm': 0.0,
+            'orientation': 'portrait',
+        }
+        defaults.update(settings)
+        return defaults
+
+    @staticmethod
+    def get_paragraph_settings(config):
+        settings = (config.settings if config and config.settings else {}).copy()
+        defaults = {
+            'font_name': 'Times New Roman',
+            'font_size': 13,
+            'alignment': 'justify',
+            'left_indent_cm': 0.0,
+            'right_indent_cm': 0.0,
+            'special_indent': 'first_line',
+            'special_indent_by_cm': 1.27,
+            'space_before_pt': 0.0,
+            'space_after_pt': 6.0,
+            'line_spacing_mode': 'multiple',
+            'line_spacing_value': 1.5,
+        }
+        defaults.update(settings)
+        return defaults
+
+    @staticmethod
+    def parse_alignment(value):
+        mapping = {
+            'left': WD_ALIGN_PARAGRAPH.LEFT,
+            'center': WD_ALIGN_PARAGRAPH.CENTER,
+            'right': WD_ALIGN_PARAGRAPH.RIGHT,
+            'justify': WD_ALIGN_PARAGRAPH.JUSTIFY,
+        }
+        return mapping.get(str(value).lower(), WD_ALIGN_PARAGRAPH.JUSTIFY)
+
+    @staticmethod
+    def apply_paragraph_format(paragraph, settings, use_spacing_after=True):
+        paragraph.alignment = DocxHelpers.parse_alignment(settings.get('alignment', 'justify'))
+        paragraph.paragraph_format.left_indent = Cm(float(settings.get('left_indent_cm', 0.0)))
+        paragraph.paragraph_format.right_indent = Cm(float(settings.get('right_indent_cm', 0.0)))
+
+        special_indent = str(settings.get('special_indent', 'first_line')).lower()
+        special_indent_by_cm = float(settings.get('special_indent_by_cm', 1.27))
+        paragraph.paragraph_format.first_line_indent = None
+        if special_indent == 'first_line':
+            paragraph.paragraph_format.first_line_indent = Cm(special_indent_by_cm)
+        elif special_indent == 'hanging':
+            paragraph.paragraph_format.first_line_indent = Cm(-special_indent_by_cm)
+
+        paragraph.paragraph_format.space_before = Pt(float(settings.get('space_before_pt', 0.0)))
+        paragraph.paragraph_format.space_after = Pt(float(settings.get('space_after_pt', 6.0 if use_spacing_after else 0.0)))
+
+        line_spacing_mode = str(settings.get('line_spacing_mode', 'multiple')).lower()
+        line_spacing_value = float(settings.get('line_spacing_value', 1.5))
+        if line_spacing_mode == 'single':
+            paragraph.paragraph_format.line_spacing = 1.0
+        elif line_spacing_mode == 'double':
+            paragraph.paragraph_format.line_spacing = 2.0
+        elif line_spacing_mode == 'exactly':
+            paragraph.paragraph_format.line_spacing = Pt(line_spacing_value)
+        else:
+            paragraph.paragraph_format.line_spacing = line_spacing_value
+
     @staticmethod
     def set_cell_bg(cell, hex_color):
         tc = cell._tc
@@ -33,13 +107,28 @@ class DocxHelpers:
 
     @staticmethod
     def set_page_setup(doc):
+        DocxHelpers.apply_page_settings(doc, DocxHelpers.get_page_settings(None))
+
+    @staticmethod
+    def apply_page_settings(doc, settings):
         sec = doc.sections[0]
-        sec.page_width = Cm(21)
-        sec.page_height = Cm(29.7)
-        sec.left_margin = Cm(3)
-        sec.right_margin = Cm(2)
-        sec.top_margin = Cm(2.5)
-        sec.bottom_margin = Cm(2.5)
+        width_cm = float(settings.get('page_width_cm', 21.0))
+        height_cm = float(settings.get('page_height_cm', 29.7))
+        orientation = str(settings.get('orientation', 'portrait')).lower()
+        if orientation == 'landscape':
+            sec.orientation = WD_ORIENTATION.LANDSCAPE
+            sec.page_width = Cm(max(width_cm, height_cm))
+            sec.page_height = Cm(min(width_cm, height_cm))
+        else:
+            sec.orientation = WD_ORIENTATION.PORTRAIT
+            sec.page_width = Cm(min(width_cm, height_cm))
+            sec.page_height = Cm(max(width_cm, height_cm))
+
+        sec.left_margin = Cm(float(settings.get('margin_left_cm', 3.0)))
+        sec.right_margin = Cm(float(settings.get('margin_right_cm', 2.0)))
+        sec.top_margin = Cm(float(settings.get('margin_top_cm', 2.5)))
+        sec.bottom_margin = Cm(float(settings.get('margin_bottom_cm', 2.5)))
+        sec.gutter = Cm(float(settings.get('gutter_cm', 0.0)))
 
     @staticmethod
     def get_content_frame_size(doc, height_reserve=Cm(1.5)):
