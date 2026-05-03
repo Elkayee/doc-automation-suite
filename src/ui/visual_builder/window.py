@@ -34,11 +34,15 @@ class VisualBuilderWindow(tk.Toplevel):
         self._preview_after_id = None
         self._autosave_after_id = None
         self._highlight_after_id = None
+        self._preview_sync_after_id = None
         self._watch_after_id = None
         self._known_mtimes: dict[Path, float] = {}
         self._suspend_change_events = False
         self._html_preview_error = None
         self._has_html_preview = False
+        self._last_preview_fraction = 0.0
+        self._suppress_preview_sync = False
+        self._forced_preview_fraction: float | None = None
 
         self.title(f'Visual Builder - {self.project_path.name}')
         self.geometry('1560x900')
@@ -184,6 +188,10 @@ class VisualBuilderWindow(tk.Toplevel):
         self.editor_text.bind('<<Paste>>', self._handle_markdown_paste)
         self.editor_text.bind('<Control-v>', self._handle_markdown_paste)
         self.editor_text.bind('<Control-V>', self._handle_markdown_paste)
+        self.editor_text.bind('<KeyRelease>', self._schedule_preview_sync)
+        self.editor_text.bind('<ButtonRelease-1>', self._schedule_preview_sync)
+        self.editor_text.bind('<MouseWheel>', self._schedule_preview_sync)
+        self.editor_text.bind('<Configure>', self._schedule_preview_sync)
 
     def _build_preview(self):
         ttk.Label(self.preview_frame, text='Assembled Preview').pack(anchor='w', padx=8, pady=(8, 4))
@@ -213,6 +221,11 @@ class VisualBuilderWindow(tk.Toplevel):
                     ),
                     foreground='#777',
                 ).pack(anchor='w', padx=8, pady=(0, 8))
+
+        self.preview_widget.bind('<MouseWheel>', self._schedule_editor_sync)
+        self.preview_widget.bind('<ButtonRelease-1>', self._schedule_editor_sync)
+        self.preview_widget.bind('<KeyRelease>', self._schedule_editor_sync)
+        self.preview_widget.bind('<Configure>', self._schedule_editor_sync)
 
     def _configure_editor_tags(self):
         self.editor_text.tag_configure('heading1', foreground='#1A3A5C', font=('Consolas', 11, 'bold'))
@@ -348,6 +361,18 @@ class VisualBuilderWindow(tk.Toplevel):
             self.after_cancel(self._highlight_after_id)
         self._highlight_after_id = self.after(self.HIGHLIGHT_DEBOUNCE_MS, self._apply_editor_highlighting)
 
+    def _schedule_preview_sync(self, _event=None):
+        if self._preview_sync_after_id is not None:
+            self.after_cancel(self._preview_sync_after_id)
+        self._preview_sync_after_id = self.after(80, self.sync_preview_to_editor)
+
+    def _schedule_editor_sync(self, _event=None):
+        if self._suppress_preview_sync:
+            return
+        if self._preview_sync_after_id is not None:
+            self.after_cancel(self._preview_sync_after_id)
+        self._preview_sync_after_id = self.after(80, self.sync_editor_to_preview)
+
     def _apply_editor_highlighting(self):
         text = self.editor_text.get('1.0', 'end-1c')
         for tag in ('heading1', 'heading2', 'heading3', 'heading4', 'bold', 'italic', 'code'):
@@ -399,6 +424,138 @@ class VisualBuilderWindow(tk.Toplevel):
         self._schedule_highlight()
         self._set_status('Pasted and normalized to markdown')
         return 'break'
+
+    @staticmethod
+    def _compute_global_line_for_file(entries, filename: str | None, local_line_number: int) -> int:
+        if not entries:
+            return max(1, local_line_number)
+
+        safe_local_line = max(1, local_line_number)
+        if filename:
+            for entry in entries:
+                if entry.filename != filename:
+                    continue
+                chapter_line_count = max(1, entry.end_line - entry.start_line + 1)
+                return min(entry.end_line, entry.start_line + min(safe_local_line, chapter_line_count) - 1)
+
+        return safe_local_line
+
+    @staticmethod
+    def _compute_preview_scroll_fraction(entries, global_line_number: int) -> float:
+        if not entries:
+            return 0.0
+
+        total_lines = max(entry.end_line for entry in entries)
+        if total_lines <= 0:
+            return 0.0
+
+        safe_global_line = min(max(1, global_line_number), total_lines)
+        return max(0.0, min(1.0, (safe_global_line - 1) / total_lines))
+
+    def _get_editor_view_line_number(self) -> int:
+        try:
+            visible_index = self.editor_text.index('@0,0')
+        except tk.TclError:
+            visible_index = self.editor_text.index(tk.INSERT)
+        return max(1, int(str(visible_index).split('.')[0]))
+
+    def _get_preview_scroll_fraction_from_editor(self, entries) -> float:
+        filename = self.current_file.name if self.current_file else self._get_selected_filename()
+        editor_line = self._get_editor_view_line_number()
+        global_line = self._compute_global_line_for_file(entries, filename, editor_line)
+        return self._compute_preview_scroll_fraction(entries, global_line)
+
+    @staticmethod
+    def _compute_global_line_from_preview_fraction(entries, fraction: float) -> int:
+        if not entries:
+            return 1
+
+        total_lines = max(entry.end_line for entry in entries)
+        if total_lines <= 0:
+            return 1
+
+        safe_fraction = max(0.0, min(1.0, fraction))
+        return min(total_lines, max(1, int(safe_fraction * total_lines) + 1))
+
+    @staticmethod
+    def _resolve_file_line_from_global_line(entries, global_line_number: int) -> tuple[str | None, int]:
+        if not entries:
+            return None, 1
+
+        safe_global_line = max(1, global_line_number)
+        for entry in entries:
+            if entry.start_line <= safe_global_line <= entry.end_line:
+                return entry.filename, safe_global_line - entry.start_line + 1
+
+        last_entry = entries[-1]
+        return last_entry.filename, max(1, last_entry.end_line - last_entry.start_line + 1)
+
+    def _get_preview_yview_fraction(self) -> float:
+        try:
+            view = self.preview_widget.yview()
+        except Exception:
+            return self._last_preview_fraction
+        if not view:
+            return self._last_preview_fraction
+        return max(0.0, min(1.0, float(view[0])))
+
+    def _apply_preview_scroll_fraction(self, fraction: float):
+        safe_fraction = max(0.0, min(1.0, fraction))
+        self._last_preview_fraction = safe_fraction
+
+        def _move():
+            try:
+                self._suppress_preview_sync = True
+                self.preview_widget.yview_moveto(safe_fraction)
+            except Exception:
+                pass
+            finally:
+                self.after(150, self._clear_preview_sync_suppression)
+
+        if self._has_html_preview:
+            self.after_idle(_move)
+        else:
+            _move()
+
+    def _clear_preview_sync_suppression(self):
+        self._suppress_preview_sync = False
+
+    def sync_preview_to_editor(self):
+        self._preview_sync_after_id = None
+        try:
+            _final_md, entries = self.assembler.assemble_with_metadata()
+        except Exception:
+            return
+        if not entries:
+            return
+        self._apply_preview_scroll_fraction(self._get_preview_scroll_fraction_from_editor(entries))
+
+    def sync_editor_to_preview(self):
+        self._preview_sync_after_id = None
+        if self._suppress_preview_sync:
+            return
+
+        try:
+            _final_md, entries = self.assembler.assemble_with_metadata()
+        except Exception:
+            return
+        if not entries:
+            return
+
+        fraction = self._get_preview_yview_fraction()
+        global_line = self._compute_global_line_from_preview_fraction(entries, fraction)
+        filename, local_line = self._resolve_file_line_from_global_line(entries, global_line)
+        if not filename:
+            return
+
+        if not self.current_file or self.current_file.name != filename:
+            self.selected_filename = filename
+            self._forced_preview_fraction = fraction
+            self._load_chapter_list(select_filename=filename)
+
+        line_index = f'{local_line}.0'
+        self.editor_text.mark_set(tk.INSERT, line_index)
+        self.editor_text.see(line_index)
 
     def save_current_file(self):
         if self._autosave_after_id is not None:
@@ -1060,15 +1217,20 @@ class VisualBuilderWindow(tk.Toplevel):
             self._preview_after_id = None
 
         try:
+            _final_md, entries = self.assembler.assemble_with_metadata()
+            target_fraction = self._forced_preview_fraction
+            if target_fraction is None:
+                target_fraction = self._get_preview_scroll_fraction_from_editor(entries)
             if self._has_html_preview:
                 self.preview_widget.load_html(self._render_preview_html())
             else:
-                final_md, _entries = self.assembler.assemble_with_metadata()
-                PreviewUtils.render_markdown_to_preview_widget(self.preview_widget, final_md)
+                PreviewUtils.render_markdown_to_preview_widget(self.preview_widget, _final_md)
         except Exception as exc:
             self._set_status(f'Preview error: {exc}')
             return
 
+        self._apply_preview_scroll_fraction(target_fraction)
+        self._forced_preview_fraction = None
         self._set_status('Preview updated')
 
     def build_docx(self):
@@ -1135,6 +1297,7 @@ class VisualBuilderWindow(tk.Toplevel):
             self._preview_after_id,
             self._autosave_after_id,
             self._highlight_after_id,
+            self._preview_sync_after_id,
             self._watch_after_id,
         ):
             if after_id is not None:
