@@ -24,7 +24,7 @@ def run_build_pipeline(workspace_dir: Path, md_out: Path, docx_out: Path, img_ca
     print('=' * 55)
 
     assembler = DocumentAssembler(workspace_dir)
-    final_md, chapter_files = assembler.save_assembled(md_out)
+    final_md, chapter_files = assembler.save_assembled_for_export(md_out)
 
     kb = len(final_md.encode('utf-8')) // 1024
     print(f'\n  => {md_out}')

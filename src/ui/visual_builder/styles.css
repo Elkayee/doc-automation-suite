@@ -62,6 +62,32 @@ body {
   line-height: 1.7;
 }
 
+.page .custom-list-block {
+  margin: 14px 0;
+}
+
+.page .custom-list-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  line-height: 1.7;
+  margin: 4px 0;
+}
+
+.page .custom-list-item.level-1 { margin-left: 24px; }
+.page .custom-list-item.level-2 { margin-left: 48px; }
+.page .custom-list-item.level-3 { margin-left: 72px; }
+.page .custom-list-item.level-4 { margin-left: 96px; }
+
+.page .list-marker {
+  min-width: 16px;
+  font-weight: 700;
+}
+
+.page .list-text {
+  flex: 1;
+}
+
 .page pre {
   background: #f4f4f4;
   padding: 12px;

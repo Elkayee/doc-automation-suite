@@ -7,6 +7,7 @@ import tkinter as tk
 from tkinter import messagebox, simpledialog, ttk
 
 from src.core.assembler import DocumentAssembler
+from src.core.chapter_settings import ChapterSettings
 from src.core.docx_builder import DocxBuilder
 from src.core.markdown_utils import MarkdownUtils
 from src.ui.preview_utils import PreviewUtils
@@ -43,6 +44,7 @@ class VisualBuilderWindow(tk.Toplevel):
         self._last_preview_fraction = 0.0
         self._suppress_preview_sync = False
         self._forced_preview_fraction: float | None = None
+        self._preview_anchors_by_file: dict[str, list[dict]] = {}
 
         self.title(f'Visual Builder - {self.project_path.name}')
         self.geometry('1560x900')
@@ -83,8 +85,10 @@ class VisualBuilderWindow(tk.Toplevel):
         ttk.Button(toolbar, text='New Subchapter', command=self.create_subchapter).pack(side='left', padx=(8, 0))
         ttk.Button(toolbar, text='Rename', command=self.rename_chapter).pack(side='left', padx=(8, 0))
         ttk.Button(toolbar, text='Delete', command=self.delete_chapter).pack(side='left', padx=(8, 0))
+        ttk.Button(toolbar, text='Reformat', command=self.reformat_current_chapter).pack(side='left', padx=(8, 0))
         ttk.Button(toolbar, text='Paragraph', command=self.open_paragraph_settings).pack(side='left', padx=(16, 0))
         ttk.Button(toolbar, text='Margins', command=self.open_page_settings).pack(side='left', padx=(8, 0))
+        ttk.Button(toolbar, text='List Markers', command=self.open_list_marker_settings).pack(side='left', padx=(8, 0))
         ttk.Button(toolbar, text='Move Up', command=lambda: self.move_selected_chapter(-1)).pack(side='left', padx=(16, 0))
         ttk.Button(toolbar, text='Move Down', command=lambda: self.move_selected_chapter(1)).pack(side='left', padx=(8, 0))
         ttk.Button(toolbar, text='Build DOCX', command=self.build_docx).pack(side='right')
@@ -188,6 +192,10 @@ class VisualBuilderWindow(tk.Toplevel):
         self.editor_text.bind('<<Paste>>', self._handle_markdown_paste)
         self.editor_text.bind('<Control-v>', self._handle_markdown_paste)
         self.editor_text.bind('<Control-V>', self._handle_markdown_paste)
+        self.editor_text.bind('<Return>', self._handle_editor_return)
+        self.editor_text.bind('<Tab>', self._handle_editor_tab)
+        self.editor_text.bind('<ISO_Left_Tab>', self._handle_editor_shift_tab)
+        self.editor_text.bind('<Shift-Tab>', self._handle_editor_shift_tab)
         self.editor_text.bind('<KeyRelease>', self._schedule_preview_sync)
         self.editor_text.bind('<ButtonRelease-1>', self._schedule_preview_sync)
         self.editor_text.bind('<MouseWheel>', self._schedule_preview_sync)
@@ -425,6 +433,126 @@ class VisualBuilderWindow(tk.Toplevel):
         self._set_status('Pasted and normalized to markdown')
         return 'break'
 
+    def _handle_editor_return(self, _event=None):
+        editor_text = self.editor_text.get('1.0', 'end-1c')
+        current_line_number = int(self.editor_text.index(tk.INSERT).split('.')[0])
+        if MarkdownUtils.is_line_inside_fenced_block(editor_text, current_line_number):
+            return None
+
+        line_start = self.editor_text.index('insert linestart')
+        line_end = self.editor_text.index('insert lineend')
+        current_line = self.editor_text.get(line_start, line_end)
+
+        markers = ChapterSettings.get_list_markers_by_level(
+            self.assembler.get_config(),
+            self.current_file.name if self.current_file else '',
+        )
+        continuation = MarkdownUtils.get_list_continuation_for_line(current_line, markers)
+        if continuation is None:
+            return None
+
+        insert_index = self.editor_text.index(tk.INSERT)
+        if insert_index != line_end:
+            return None
+
+        self.editor_text.insert(tk.INSERT, continuation)
+        self.editor_text.see(tk.INSERT)
+        self._is_dirty = True
+        self._refresh_title()
+        self._schedule_autosave()
+        self._schedule_preview_refresh()
+        self._schedule_highlight()
+        self._set_status('Continued list item')
+        return 'break'
+
+    def _handle_editor_tab(self, _event=None):
+        if self._shift_selected_list_lines(1):
+            return 'break'
+        return None
+
+    def _handle_editor_shift_tab(self, _event=None):
+        if self._shift_selected_list_lines(-1):
+            return 'break'
+        return None
+
+    def _shift_selected_list_lines(self, delta: int) -> bool:
+        editor_text = self.editor_text.get('1.0', 'end-1c')
+        markers = ChapterSettings.get_list_markers_by_level(
+            self.assembler.get_config(),
+            self.current_file.name if self.current_file else '',
+        )
+
+        try:
+            sel_start = self.editor_text.index(tk.SEL_FIRST)
+            sel_end = self.editor_text.index(tk.SEL_LAST)
+            start_line = int(sel_start.split('.')[0])
+            end_line = int(sel_end.split('.')[0])
+            if sel_end.endswith('.0') and end_line > start_line:
+                end_line -= 1
+        except tk.TclError:
+            insert_index = self.editor_text.index(tk.INSERT)
+            start_line = end_line = int(insert_index.split('.')[0])
+
+        lines = []
+        changed = False
+        for line_number in range(start_line, end_line + 1):
+            if MarkdownUtils.is_line_inside_fenced_block(editor_text, line_number):
+                return False
+            line_start = f'{line_number}.0'
+            line_end = f'{line_number}.end'
+            original = self.editor_text.get(line_start, line_end)
+            shifted = MarkdownUtils.shift_list_line(original, delta, markers)
+            if shifted != original:
+                changed = True
+            lines.append(shifted)
+
+        if not changed:
+            return False
+
+        block_start = f'{start_line}.0'
+        block_end = f'{end_line}.end'
+        self.editor_text.delete(block_start, block_end)
+        self.editor_text.insert(block_start, '\n'.join(lines))
+        self.editor_text.mark_set(tk.INSERT, block_start)
+        self.editor_text.see(block_start)
+        self._is_dirty = True
+        self._refresh_title()
+        self._schedule_autosave()
+        self._schedule_preview_refresh()
+        self._schedule_highlight()
+        self._set_status('Updated list indentation')
+        return True
+
+    def reformat_current_chapter(self):
+        if not self.current_file:
+            return
+
+        markers = ChapterSettings.get_list_markers_by_level(
+            self.assembler.get_config(),
+            self.current_file.name,
+        )
+        original = self.editor_text.get('1.0', 'end-1c')
+        reformatted = MarkdownUtils.reformat_markdown_document(original, markers)
+        reformatted = reformatted.rstrip('\n')
+        if reformatted == original:
+            self._set_status('Chapter already formatted')
+            return
+
+        insert_index = self.editor_text.index(tk.INSERT)
+        self.editor_text.delete('1.0', tk.END)
+        self.editor_text.insert('1.0', reformatted)
+        try:
+            self.editor_text.mark_set(tk.INSERT, insert_index)
+        except tk.TclError:
+            self.editor_text.mark_set(tk.INSERT, 'end-1c')
+        self.editor_text.see(tk.INSERT)
+        self._is_dirty = True
+        self._refresh_title()
+        self._schedule_autosave()
+        self._schedule_preview_refresh()
+        self._schedule_highlight()
+        self._set_status(f'Reformatted {self.current_file.name}')
+
     @staticmethod
     def _compute_global_line_for_file(entries, filename: str | None, local_line_number: int) -> int:
         if not entries:
@@ -528,7 +656,10 @@ class VisualBuilderWindow(tk.Toplevel):
             return
         if not entries:
             return
-        self._apply_preview_scroll_fraction(self._get_preview_scroll_fraction_from_editor(entries))
+        if self._has_html_preview:
+            self._scroll_html_preview_to_anchor(self._get_preview_fragment_from_editor())
+        else:
+            self._apply_preview_scroll_fraction(self._get_preview_scroll_fraction_from_editor(entries))
 
     def sync_editor_to_preview(self):
         self._preview_sync_after_id = None
@@ -926,6 +1057,58 @@ class VisualBuilderWindow(tk.Toplevel):
         ttk.Button(button_row, text='Save', command=save_settings).pack(side='left')
         ttk.Button(button_row, text='Cancel', command=dialog.destroy).pack(side='left', padx=(8, 0))
 
+    def open_list_marker_settings(self):
+        selected_filename = self._get_selected_filename()
+        if not selected_filename:
+            messagebox.showwarning('List Markers', 'Select a chapter first.', parent=self)
+            return
+
+        config = self._get_workspace_config()
+        markers = ChapterSettings.get_list_markers_by_level(config, selected_filename)
+
+        dialog = tk.Toplevel(self)
+        dialog.title('List Markers')
+        dialog.transient(self)
+        dialog.grab_set()
+        dialog.resizable(False, False)
+
+        body = ttk.Frame(dialog, padding=14)
+        body.pack(fill='both', expand=True)
+
+        ttk.Label(
+            body,
+            text=f'Configure bullet markers for {selected_filename}',
+            wraplength=420,
+            justify='left',
+        ).grid(row=0, column=0, columnspan=2, sticky='w', pady=(0, 10))
+
+        marker_vars = []
+        for index in range(max(5, len(markers))):
+            value = markers[index] if index < len(markers) else markers[-1]
+            marker_var = tk.StringVar(value=value)
+            marker_vars.append(marker_var)
+            self._settings_row(body, f'Level {index + 1}', ttk.Entry(body, textvariable=marker_var), index + 1)
+
+        def save_settings():
+            normalized = ChapterSettings.normalize_list_markers([var.get() for var in marker_vars])
+            config = self._get_workspace_config()
+            settings = dict(config.settings or {})
+            chapter_settings = dict(settings.get('chapter_settings', {}) or {})
+            file_settings = dict(chapter_settings.get(selected_filename, {}) or {})
+            file_settings['list_markers_by_level'] = normalized
+            chapter_settings[selected_filename] = file_settings
+            settings['chapter_settings'] = chapter_settings
+            config.settings = settings
+            config.save(self.project_path / 'config.yaml')
+            self.refresh_preview()
+            self._set_status(f'List markers saved for {selected_filename}')
+            dialog.destroy()
+
+        button_row = ttk.Frame(body)
+        button_row.grid(row=len(marker_vars) + 1, column=0, columnspan=2, sticky='e', pady=(12, 0))
+        ttk.Button(button_row, text='Save', command=save_settings).pack(side='left')
+        ttk.Button(button_row, text='Cancel', command=dialog.destroy).pack(side='left', padx=(8, 0))
+
     def open_page_settings(self):
         from src.core.docx_helpers import DocxHelpers
 
@@ -1176,9 +1359,9 @@ class VisualBuilderWindow(tk.Toplevel):
         css_path = Path(__file__).with_name('styles.css')
         return css_path.read_text(encoding='utf-8')
 
-    def _render_preview_html(self) -> str:
-        _final_md, entries = self.assembler.assemble_with_metadata()
+    def _render_preview_html(self, entries) -> str:
         css = self._load_preview_css()
+        self._preview_anchors_by_file = {}
 
         if not entries:
             return (
@@ -1190,7 +1373,10 @@ class VisualBuilderWindow(tk.Toplevel):
 
         page_sections = []
         for index, entry in enumerate(entries, start=1):
-            body = PreviewUtils.markdown_to_html_body(entry.content)
+            anchored_md, anchors = PreviewUtils.inject_block_anchors(entry.content, entry.filename)
+            self._preview_anchors_by_file[entry.filename] = anchors
+            markers = ChapterSettings.get_list_markers_by_level(self.assembler.get_config(), entry.filename)
+            body = PreviewUtils.markdown_to_html_body_with_markers(anchored_md, list_markers_by_level=markers)
             page_sections.append(
                 (
                     f'<section class="page" id="{self._chapter_anchor(entry.filename)}" '
@@ -1211,6 +1397,27 @@ class VisualBuilderWindow(tk.Toplevel):
         slug = re.sub(r'[^a-zA-Z0-9]+', '-', filename).strip('-').lower()
         return f'chapter-{slug or "item"}'
 
+    def _get_preview_fragment_from_editor(self) -> str | None:
+        if not self.current_file:
+            return None
+        anchors = self._preview_anchors_by_file.get(self.current_file.name, [])
+        local_line = self._get_editor_view_line_number()
+        return PreviewUtils.find_anchor_for_line(anchors, local_line)
+
+    def _scroll_html_preview_to_anchor(self, anchor_id: str | None):
+        if not self._has_html_preview or not anchor_id:
+            return
+
+        try:
+            element = self.preview_widget.document.getElementById(anchor_id)
+            if element is None:
+                return
+            self._suppress_preview_sync = True
+            element.scrollIntoView()
+            self.after(150, self._clear_preview_sync_suppression)
+        except Exception:
+            pass
+
     def refresh_preview(self):
         if self._preview_after_id is not None:
             self.after_cancel(self._preview_after_id)
@@ -1222,14 +1429,31 @@ class VisualBuilderWindow(tk.Toplevel):
             if target_fraction is None:
                 target_fraction = self._get_preview_scroll_fraction_from_editor(entries)
             if self._has_html_preview:
-                self.preview_widget.load_html(self._render_preview_html())
+                html_source = self._render_preview_html(entries)
+                target_fragment = self._get_preview_fragment_from_editor()
+                self.preview_widget.load_html(html_source, fragment=target_fragment)
             else:
-                PreviewUtils.render_markdown_to_preview_widget(self.preview_widget, _final_md)
+                self.preview_widget.config(state='normal')
+                self.preview_widget.delete('1.0', 'end')
+                for entry in entries:
+                    markers = ChapterSettings.get_list_markers_by_level(self.assembler.get_config(), entry.filename)
+                    PreviewUtils.render_markdown_to_preview_widget(
+                        self.preview_widget,
+                        entry.content,
+                        list_markers_by_level=markers,
+                        append=True,
+                    )
+                    self.preview_widget.config(state='normal')
+                    self.preview_widget.insert('end', '\n')
+                self.preview_widget.config(state='disabled')
         except Exception as exc:
             self._set_status(f'Preview error: {exc}')
             return
 
-        self._apply_preview_scroll_fraction(target_fraction)
+        if self._has_html_preview:
+            self._last_preview_fraction = self._get_preview_yview_fraction()
+        else:
+            self._apply_preview_scroll_fraction(target_fraction)
         self._forced_preview_fraction = None
         self._set_status('Preview updated')
 
@@ -1238,7 +1462,7 @@ class VisualBuilderWindow(tk.Toplevel):
 
         try:
             md_out_path = self.project_path / 'assembled.md'
-            self.assembler.save_assembled(md_out_path)
+            self.assembler.save_assembled_for_export(md_out_path)
 
             builder = DocxBuilder(self.project_path)
             img_cache_dir = self.project_path / '.diagram_cache'

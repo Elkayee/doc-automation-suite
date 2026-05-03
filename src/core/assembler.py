@@ -103,8 +103,24 @@ class DocumentAssembler:
         final_md, entries = self.assemble_with_metadata()
         return final_md, [str(entry.path) for entry in entries]
 
+    def assemble_markdown_for_export(self) -> Tuple[str, List[str]]:
+        _final_md, entries = self.assemble_with_metadata()
+        parts: List[str] = []
+        for entry in entries:
+            parts.append(f'<!-- FILE: {entry.filename} -->')
+            parts.append(entry.content)
+        final_md = '\n\n'.join(parts)
+        return final_md, [str(entry.path) for entry in entries]
+
     def save_assembled(self, output_path: Path) -> Tuple[str, List[str]]:
         final_md, processed_files = self.assemble_markdown()
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write(final_md)
+        return final_md, processed_files
+
+    def save_assembled_for_export(self, output_path: Path) -> Tuple[str, List[str]]:
+        final_md, processed_files = self.assemble_markdown_for_export()
         output_path.parent.mkdir(parents=True, exist_ok=True)
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(final_md)

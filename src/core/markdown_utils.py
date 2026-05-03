@@ -8,6 +8,7 @@ class MarkdownUtils:
     BULLET_RE = re.compile(r'^\s*[-*+]\s+')
     ORDERED_RE = re.compile(r'^\s*\d+\.\s+')
     RULE_RE = re.compile(r'^\s*(---+|\*\*\*+|___+)\s*$')
+    LIST_LINE_RE = re.compile(r'^(?P<indent>\s*)(?P<marker>[-*+])(?P<spacing>\s+)(?P<text>.*)$')
 
     @staticmethod
     def strip_md_links(text):
@@ -175,11 +176,7 @@ class MarkdownUtils:
                 continue
 
             if stripped.startswith('*   '):
-                stripped = '- ' + stripped[4:].strip()
-            elif re.match(r'^\*\s+', stripped):
-                stripped = '- ' + stripped[2:].strip()
-            elif re.match(r'^\+\s+', stripped):
-                stripped = '- ' + stripped[2:].strip()
+                stripped = '* ' + stripped[4:].strip()
 
             if cls.is_markdown_block_line(stripped):
                 flush_paragraph()
@@ -221,6 +218,146 @@ class MarkdownUtils:
             return None
         depth = match.group(1).count('.')
         return Cm(0.5 * depth)
+
+    @classmethod
+    def get_list_continuation_for_line(cls, line, list_markers_by_level=None):
+        match = cls.LIST_LINE_RE.match(line.rstrip('\n'))
+        if not match:
+            return None
+
+        indent = match.group('indent')
+        text = match.group('text')
+        indent_level = len(indent.replace('\t', '    ')) // 2
+        markers = list_markers_by_level or ['-', '+', '*']
+        marker = markers[indent_level] if indent_level < len(markers) else markers[-1]
+
+        if not text.strip():
+            return '\n'
+
+        return f'\n{indent}{marker} '
+
+    @classmethod
+    def shift_list_line(cls, line, delta, list_markers_by_level=None):
+        match = cls.LIST_LINE_RE.match(line.rstrip('\n'))
+        if not match:
+            return line
+
+        indent = match.group('indent')
+        marker = match.group('marker')
+        text = match.group('text')
+        markers = list_markers_by_level or ['-', '+', '*']
+        indent_level = len(indent.replace('\t', '    ')) // 2
+        try:
+            current_level = markers.index(marker)
+        except ValueError:
+            current_level = indent_level
+        new_level = max(0, current_level + int(delta))
+        new_indent = '  ' * new_level
+        marker = markers[new_level] if new_level < len(markers) else markers[-1]
+        return f'{new_indent}{marker} {text}'
+
+    @classmethod
+    def canonicalize_list_line_by_indent(cls, line, list_markers_by_level=None):
+        match = cls.LIST_LINE_RE.match(line.rstrip('\n'))
+        if not match:
+            return line
+
+        indent = match.group('indent')
+        text = match.group('text')
+        markers = list_markers_by_level or ['-', '+', '*']
+        indent_level = len(indent.replace('\t', '    ')) // 2
+        canonical_indent = '  ' * indent_level
+        marker = markers[indent_level] if indent_level < len(markers) else markers[-1]
+        return f'{canonical_indent}{marker} {text}'
+
+    @classmethod
+    def reformat_markdown_document(cls, text, list_markers_by_level=None):
+        text = text.replace('\r\n', '\n').replace('\r', '\n')
+        lines = text.split('\n')
+        reformatted = []
+        paragraph_parts = []
+        in_code_fence = False
+
+        def flush_paragraph():
+            nonlocal paragraph_parts
+            if not paragraph_parts:
+                return
+            paragraph = ' '.join(part.strip() for part in paragraph_parts if part.strip())
+            paragraph = re.sub(r'\s+', ' ', paragraph).strip()
+            if paragraph:
+                reformatted.append(cls.normalize_punctuation(paragraph))
+            paragraph_parts = []
+
+        for raw_line in lines:
+            line = raw_line.rstrip()
+            stripped = line.strip()
+
+            if stripped.startswith('```'):
+                flush_paragraph()
+                reformatted.append(line)
+                in_code_fence = not in_code_fence
+                continue
+
+            if in_code_fence:
+                reformatted.append(line)
+                continue
+
+            if not stripped:
+                flush_paragraph()
+                if reformatted and reformatted[-1] != '':
+                    reformatted.append('')
+                continue
+
+            if cls.LIST_LINE_RE.match(line):
+                flush_paragraph()
+                reformatted.append(cls.canonicalize_list_line_by_indent(line, list_markers_by_level))
+                continue
+
+            if (
+                cls.HEADING_RE.match(stripped)
+                or cls.ORDERED_RE.match(stripped)
+                or cls.RULE_RE.match(stripped)
+                or stripped.startswith('>')
+                or stripped.startswith('|')
+            ):
+                flush_paragraph()
+                reformatted.append(stripped if cls.HEADING_RE.match(stripped) or cls.RULE_RE.match(stripped) else line)
+                continue
+
+            paragraph_parts.append(stripped)
+
+        flush_paragraph()
+
+        compact = []
+        blank_run = 0
+        for line in reformatted:
+            if line == '':
+                blank_run += 1
+                if blank_run == 1:
+                    compact.append(line)
+            else:
+                blank_run = 0
+                compact.append(line)
+
+        result = '\n'.join(compact).strip()
+        if result:
+            result += '\n'
+        return result
+
+    @staticmethod
+    def is_line_inside_fenced_block(text, line_number):
+        lines = text.replace('\r\n', '\n').replace('\r', '\n').split('\n')
+        safe_line_number = max(1, int(line_number))
+        in_code_fence = False
+
+        for index, line in enumerate(lines, start=1):
+            if line.strip().startswith('```'):
+                in_code_fence = not in_code_fence
+                continue
+            if index == safe_line_number:
+                return in_code_fence
+
+        return False
 
     @classmethod
     def add_formatted_run(cls, para, text):

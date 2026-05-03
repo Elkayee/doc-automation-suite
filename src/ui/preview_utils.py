@@ -1,8 +1,10 @@
 import html as html_lib
 import re
 from html.parser import HTMLParser
+
 from src.core.media_downloader import MediaDownloader
 from src.core.markdown_utils import MarkdownUtils
+
 
 class PreviewTextExtractor(HTMLParser):
     BLOCK_TAGS = {
@@ -53,8 +55,98 @@ class PreviewTextExtractor(HTMLParser):
 
 class PreviewUtils:
     @staticmethod
+    def _anchor_slug(filename):
+        return re.sub(r'[^a-zA-Z0-9]+', '-', filename).strip('-').lower() or 'item'
+
+    @classmethod
+    def inject_block_anchors(cls, md_content, filename):
+        lines = md_content.splitlines()
+        anchored_lines = []
+        anchors = []
+        in_code_fence = False
+        previous_blank = True
+        slug = cls._anchor_slug(filename)
+
+        for index, raw_line in enumerate(lines, start=1):
+            stripped = raw_line.strip()
+            if stripped.startswith('```'):
+                if not in_code_fence:
+                    anchor_id = f'chapter-{slug}-block-{index}'
+                    anchored_lines.append(f'<div id="{anchor_id}"></div>')
+                    anchors.append({'anchor_id': anchor_id, 'line_number': index})
+                in_code_fence = not in_code_fence
+                anchored_lines.append(raw_line)
+                previous_blank = False
+                continue
+
+            if in_code_fence:
+                anchored_lines.append(raw_line)
+                previous_blank = False
+                continue
+
+            is_block_start = False
+            if stripped:
+                if re.match(r'^(#{1,6})\s+', stripped):
+                    is_block_start = True
+                elif re.match(r'^[-*+]\s+', stripped):
+                    is_block_start = previous_blank
+                elif re.match(r'^\d+[.)]\s+', stripped):
+                    is_block_start = previous_blank
+                elif stripped.startswith(('>', '|')):
+                    is_block_start = previous_blank
+                elif re.match(r'^---+\s*$', stripped):
+                    is_block_start = True
+                elif previous_blank:
+                    is_block_start = True
+
+            if is_block_start:
+                anchor_id = f'chapter-{slug}-block-{index}'
+                anchored_lines.append(f'<div id="{anchor_id}"></div>')
+                anchors.append({'anchor_id': anchor_id, 'line_number': index})
+
+            anchored_lines.append(raw_line)
+            previous_blank = not stripped
+
+        anchored_md = '\n'.join(anchored_lines)
+        if md_content.endswith('\n'):
+            anchored_md += '\n'
+        return anchored_md, anchors
+
+    @staticmethod
+    def find_anchor_for_line(anchors, line_number):
+        if not anchors:
+            return None
+
+        target_line = max(1, int(line_number))
+        selected_anchor = anchors[0]['anchor_id']
+        for anchor in anchors:
+            if anchor['line_number'] > target_line:
+                break
+            selected_anchor = anchor['anchor_id']
+        return selected_anchor
+
+    @staticmethod
     def markdown_to_html_body(md_content):
-        """Chuyển Markdown sang HTML body, dùng placeholder để giữ PlantUML block."""
+        return PreviewUtils.markdown_to_html_body_with_markers(md_content)
+
+    @staticmethod
+    def inline_segments_to_html(text):
+        html_parts = []
+        segments, _, _ = MarkdownUtils.collect_inline_segments(text)
+        for token, style in segments:
+            escaped = html_lib.escape(token)
+            if style['code']:
+                html_parts.append(f'<code>{escaped}</code>')
+                continue
+            if style['bold']:
+                escaped = f'<strong>{escaped}</strong>'
+            if style['italic']:
+                escaped = f'<em>{escaped}</em>'
+            html_parts.append(escaped)
+        return ''.join(html_parts)
+
+    @staticmethod
+    def markdown_to_html_body_with_markers(md_content, list_markers_by_level=None):
         from urllib.parse import quote
 
         lines = md_content.splitlines()
@@ -63,22 +155,41 @@ class PreviewUtils:
         idx = 0
         i = 0
         while i < len(lines):
-            ln = lines[i]
-            if ln.strip().startswith('```plantuml'):
-                buf = []
+            line = lines[i]
+            if line.strip().startswith('```plantuml'):
+                buffer = []
                 i += 1
                 while i < len(lines) and not lines[i].strip().startswith('```'):
-                    buf.append(lines[i])
+                    buffer.append(lines[i])
                     i += 1
                 key = f'PLANTUMLBLOCK{idx}PLACEHOLDER'
-                img_url = MediaDownloader.plantuml_png_url('\n'.join(buf))
+                image_url = MediaDownloader.plantuml_png_url('\n'.join(buffer))
                 placeholders[key] = (
-                    f'<p class="diagram"><img src="{quote(img_url, safe=":/?=~")}" alt="PlantUML diagram"></p>'
+                    f'<p class="diagram"><img src="{quote(image_url, safe=":/?=~")}" alt="PlantUML diagram"></p>'
                 )
                 out.append(key)
                 idx += 1
+            elif re.match(r'^\s*[-*+]\s+', line):
+                list_items = []
+                while i < len(lines) and re.match(r'^\s*[-*+]\s+', lines[i]):
+                    list_match = re.match(r'^(?P<indent>\s*)[-*+]\s+(?P<text>.*)', lines[i])
+                    indent_level = len(list_match.group('indent').replace('\t', '    ')) // 2
+                    marker = PreviewUtils._list_marker_for_level(list_markers_by_level, indent_level)
+                    text_html = PreviewUtils.inline_segments_to_html(list_match.group('text').strip())
+                    list_items.append(
+                        f'<div class="custom-list-item level-{indent_level}">'
+                        f'<span class="list-marker">{html_lib.escape(marker)}</span>'
+                        f'<span class="list-text">{text_html}</span>'
+                        '</div>'
+                    )
+                    i += 1
+                key = f'LISTBLOCK{idx}PLACEHOLDER'
+                placeholders[key] = '<div class="custom-list-block">' + ''.join(list_items) + '</div>'
+                out.append(key)
+                idx += 1
+                continue
             else:
-                out.append(ln)
+                out.append(line)
             i += 1
 
         raw_md = '\n'.join(out)
@@ -94,8 +205,8 @@ class PreviewUtils:
         return body
 
     @staticmethod
-    def markdown_to_preview_text(md_content):
-        body = PreviewUtils.markdown_to_html_body(md_content)
+    def markdown_to_preview_text(md_content, list_markers_by_level=None):
+        body = PreviewUtils.markdown_to_html_body_with_markers(md_content, list_markers_by_level=list_markers_by_level)
         extractor = PreviewTextExtractor()
         extractor.feed(body)
         return extractor.get_text()
@@ -125,10 +236,18 @@ class PreviewUtils:
     @staticmethod
     def is_markdown_table_separator(line):
         cells = [cell.strip() for cell in line.strip().strip('|').split('|')]
-        return bool(cells) and all(c and set(c) <= {'-', ':'} for c in cells)
+        return bool(cells) and all(cell and set(cell) <= {'-', ':'} for cell in cells)
+
+    @staticmethod
+    def _list_marker_for_level(list_markers_by_level, indent_level):
+        markers = list_markers_by_level or ['-', '+', '*']
+        safe_index = max(0, indent_level)
+        if safe_index < len(markers):
+            return markers[safe_index]
+        return markers[-1]
 
     @classmethod
-    def markdown_to_preview_blocks(cls, md_content):
+    def markdown_to_preview_blocks(cls, md_content, list_markers_by_level=None):
         lines = md_content.splitlines()
         blocks = []
         i = 0
@@ -182,15 +301,32 @@ class PreviewUtils:
                 i += 1
                 continue
 
+            list_match = re.match(r'^(?P<indent>\s*)[-*+]\s+(?P<text>.*)', line)
+            if list_match:
+                indent_level = len(list_match.group('indent').replace('\t', '    ')) // 2
+                blocks.append(
+                    {
+                        'type': 'list_item',
+                        'indent_level': indent_level,
+                        'marker': cls._list_marker_for_level(list_markers_by_level, indent_level),
+                        'segments': cls.inline_segments_to_preview_spans(list_match.group('text').strip()),
+                    }
+                )
+                i += 1
+                continue
+
             paragraph_lines = [stripped]
             i += 1
             while i < len(lines):
-                candidate = lines[i].strip()
+                candidate_line = lines[i]
+                candidate = candidate_line.strip()
                 if not candidate:
                     break
                 if candidate.startswith(('>', '|', '```')) or re.match(r'^(#{1,6})\s+', candidate):
                     break
                 if re.match(r'^---+\s*$', candidate):
+                    break
+                if re.match(r'^\s*[-*+]\s+', candidate_line):
                     break
                 paragraph_lines.append(candidate)
                 i += 1
@@ -206,6 +342,7 @@ class PreviewUtils:
     @staticmethod
     def configure_preview_text_tags(preview_text):
         preview_text.tag_configure('paragraph', spacing1=2, spacing3=10, lmargin1=0, lmargin2=0)
+        preview_text.tag_configure('list_item', spacing1=1, spacing3=4)
         preview_text.tag_configure('quote_block', lmargin1=18, lmargin2=18, spacing1=4, spacing3=10, foreground='#555')
         preview_text.tag_configure('table_row', lmargin1=10, lmargin2=10, spacing1=1, spacing3=1)
         preview_text.tag_configure('rule', foreground='#999', spacing1=4, spacing3=8)
@@ -226,17 +363,23 @@ class PreviewUtils:
             preview_text.insert('end', token, tuple(tags))
 
     @classmethod
-    def render_markdown_to_preview_widget(cls, preview_text, md_content):
+    def render_markdown_to_preview_widget(cls, preview_text, md_content, list_markers_by_level=None, append=False):
         preview_text.config(state='normal')
-        preview_text.delete('1.0', 'end')
+        if not append:
+            preview_text.delete('1.0', 'end')
 
-        for block in cls.markdown_to_preview_blocks(md_content):
+        for block in cls.markdown_to_preview_blocks(md_content, list_markers_by_level=list_markers_by_level):
             if block['type'] == 'heading':
                 heading_tag = f'h{min(block["level"], 6)}'
                 cls.insert_preview_segments(preview_text, block['segments'], [heading_tag])
                 preview_text.insert('end', '\n\n')
+            elif block['type'] == 'list_item':
+                indent = '    ' * block['indent_level']
+                preview_text.insert('end', f'{indent}{block["marker"]} ', ('list_item',))
+                cls.insert_preview_segments(preview_text, block['segments'], ['list_item'])
+                preview_text.insert('end', '\n')
             elif block['type'] == 'quote':
-                preview_text.insert('end', '▌ ', ('quote_block',))
+                preview_text.insert('end', '| ', ('quote_block',))
                 cls.insert_preview_segments(preview_text, block['segments'], ['quote_block'])
                 preview_text.insert('end', '\n\n')
             elif block['type'] == 'table':
@@ -247,7 +390,7 @@ class PreviewUtils:
                     preview_text.insert('end', '\n')
                 preview_text.insert('end', '\n')
             elif block['type'] == 'rule':
-                preview_text.insert('end', '─' * 42, ('rule',))
+                preview_text.insert('end', '-' * 42, ('rule',))
                 preview_text.insert('end', '\n\n')
             else:
                 cls.insert_preview_segments(preview_text, block['segments'], ['paragraph'])

@@ -127,7 +127,7 @@ from src.core.assembler import DocumentAssembler
 
 def assemble_markdown(chapter_dir, output_path):
     assembler = DocumentAssembler(Path(chapter_dir).parent)
-    final, processed_files = assembler.save_assembled(Path(output_path))
+    final, processed_files = assembler.save_assembled_for_export(Path(output_path))
 
     for file_path in processed_files:
         with open(file_path, encoding='utf-8') as handle:

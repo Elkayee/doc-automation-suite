@@ -4,6 +4,7 @@ from pathlib import Path
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Cm, Pt, RGBColor
+from src.core.chapter_settings import ChapterSettings
 from src.core.media_downloader import MediaDownloader
 from src.core.docx_helpers import DocxHelpers, COLOR_H1, COLOR_H2, COLOR_H3, COLOR_H4
 from src.core.markdown_utils import MarkdownUtils
@@ -85,9 +86,16 @@ class DocxBuilder:
         lines = compressed
 
         i, in_code, mermaid_block, mermaid_buf = 0, False, False, []
+        current_source_filename = None
 
         while i < len(lines):
             line = lines[i].rstrip('\n')
+
+            source_match = re.match(r'^\s*<!--\s*FILE:\s+(.+?)\s*-->\s*$', line)
+            if source_match:
+                current_source_filename = source_match.group(1).strip()
+                i += 1
+                continue
 
             # Code/Mermaid block
             if line.strip().startswith('```'):
@@ -254,18 +262,28 @@ class DocxBuilder:
             # Checkbox
             if re.match(r'^-\s+\[[ xX]\]', line):
                 text = re.sub(r'^-\s+\[[ xX]\]\s*', '', line)
-                p = self.doc.add_paragraph(style='List Bullet')
+                p = self.doc.add_paragraph()
+                base_indent_cm = float(paragraph_settings.get('left_indent_cm', 0.0))
+                if str(paragraph_settings.get('special_indent', 'first_line')).lower() == 'first_line':
+                    base_indent_cm += float(paragraph_settings.get('special_indent_by_cm', 1.27))
+                p.paragraph_format.left_indent = Cm(base_indent_cm)
+                p.paragraph_format.first_line_indent = Cm(0.0)
                 MarkdownUtils.add_formatted_run(p, '[  ] ' + text)
                 i += 1
                 continue
 
             # Bullet list
-            m_bullet = re.match(r'^( *)[-\*]\s+(.*)', line)
+            m_bullet = re.match(r'^( *)[-\*\+]\s+(.*)', line)
             if m_bullet:
                 indent_lvl = len(m_bullet.group(1)) // 2
-                p = self.doc.add_paragraph(style='List Bullet')
-                p.paragraph_format.left_indent = Cm(indent_lvl * 1.0)
-                MarkdownUtils.add_formatted_run(p, m_bullet.group(2))
+                marker = ChapterSettings.get_list_marker(self.config, current_source_filename or '', indent_lvl + 1)
+                p = self.doc.add_paragraph()
+                base_indent_cm = float(paragraph_settings.get('left_indent_cm', 0.0))
+                if str(paragraph_settings.get('special_indent', 'first_line')).lower() == 'first_line':
+                    base_indent_cm += float(paragraph_settings.get('special_indent_by_cm', 1.27))
+                p.paragraph_format.left_indent = Cm(base_indent_cm + (indent_lvl * 1.0))
+                p.paragraph_format.first_line_indent = Cm(0.0)
+                MarkdownUtils.add_formatted_run(p, f'{marker} {m_bullet.group(2)}')
                 i += 1
                 continue
 
