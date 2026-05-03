@@ -9,6 +9,7 @@ class MarkdownUtils:
     ORDERED_RE = re.compile(r'^\s*\d+\.\s+')
     RULE_RE = re.compile(r'^\s*(---+|\*\*\*+|___+)\s*$')
     LIST_LINE_RE = re.compile(r'^(?P<indent>\s*)(?P<marker>[-*+])(?P<spacing>\s+)(?P<text>.*)$')
+    UNICODE_BULLET_RE = re.compile(r'^(?P<indent>\s*)(?P<marker>[▪•●◦✓✔])\s*(?P<text>.+)$')
 
     @staticmethod
     def strip_md_links(text):
@@ -20,6 +21,10 @@ class MarkdownUtils:
         text = re.sub(r'\*([^*]+)\*', r'\1', text)
         text = re.sub(r'`([^`]+)`', r'\1', text)
         return text
+
+    @staticmethod
+    def normalize_html_breaks(text, replacement=' '):
+        return re.sub(r'<br\s*/?>', replacement, text, flags=re.IGNORECASE)
 
     @staticmethod
     def is_inline_word_char(char):
@@ -155,6 +160,7 @@ class MarkdownUtils:
         raw_lines = [line.rstrip() for line in text.split('\n')]
         normalized = []
         paragraph_parts = []
+        in_code_fence = False
 
         def flush_paragraph():
             nonlocal paragraph_parts
@@ -166,17 +172,90 @@ class MarkdownUtils:
                 normalized.append(paragraph)
             paragraph_parts = []
 
-        for raw_line in raw_lines:
+        i = 0
+        while i < len(raw_lines):
+            raw_line = raw_lines[i]
             stripped = raw_line.strip()
+
+            split_match = re.match(r'^(?P<before>.+\.)\s*(?P<number>\d+)\s+(?P<after>.+)$', stripped)
+            if split_match and not cls.ORDERED_RE.match(stripped):
+                flush_paragraph()
+                normalized.append(split_match.group('before').strip())
+                normalized.append('')
+                normalized.append(f'{split_match.group("number")}. {split_match.group("after").strip()}')
+                i += 1
+                continue
+
+            if stripped.startswith('```'):
+                flush_paragraph()
+                normalized.append(raw_line)
+                in_code_fence = not in_code_fence
+                i += 1
+                continue
+
+            if in_code_fence:
+                normalized.append(raw_line)
+                i += 1
+                continue
 
             if not stripped:
                 flush_paragraph()
                 if normalized and normalized[-1] != '':
                     normalized.append('')
+                i += 1
                 continue
 
             if stripped.startswith('*   '):
                 stripped = '* ' + stripped[4:].strip()
+
+            unicode_bullet_match = cls.UNICODE_BULLET_RE.match(raw_line)
+            if unicode_bullet_match:
+                flush_paragraph()
+                text_value = unicode_bullet_match.group('text').strip()
+                indent_level = 1 if unicode_bullet_match.group('marker') in {'✓', '✔'} else 0
+                if (
+                    indent_level == 0
+                    and normalized
+                    and normalized[-1] != ''
+                    and not cls.BULLET_RE.match(normalized[-1])
+                    and not cls.ORDERED_RE.match(normalized[-1])
+                ):
+                    normalized.append('')
+                trailing_number_match = re.match(r'^(?P<body>.+\.)\s*(?P<number>\d+)$', text_value)
+                if trailing_number_match and i + 1 < len(raw_lines):
+                    next_stripped = raw_lines[i + 1].strip()
+                    if next_stripped and not cls.is_markdown_block_line(next_stripped):
+                        normalized.append(f'{"  " * indent_level}- {trailing_number_match.group("body").strip()}')
+                        normalized.append('')
+                        normalized.append(f'{trailing_number_match.group("number")}. {next_stripped}')
+                        i += 2
+                        continue
+                i += 1
+                while i < len(raw_lines):
+                    continuation = raw_lines[i].strip()
+                    if not continuation:
+                        break
+                    if (
+                        continuation.startswith('```')
+                        or cls.is_markdown_block_line(continuation)
+                        or cls.UNICODE_BULLET_RE.match(raw_lines[i])
+                    ):
+                        break
+                    text_value = f'{text_value} {continuation}'
+                    i += 1
+                normalized.append(f'{"  " * indent_level}- {re.sub(r"\s+", " ", text_value).strip()}')
+                continue
+
+            trailing_number_match = re.match(r'^(?P<body>.+\.)\s*(?P<number>\d+)$', stripped)
+            if trailing_number_match and i + 1 < len(raw_lines):
+                next_stripped = raw_lines[i + 1].strip()
+                if next_stripped and not cls.is_markdown_block_line(next_stripped):
+                    flush_paragraph()
+                    normalized.append(trailing_number_match.group('body').strip())
+                    normalized.append('')
+                    normalized.append(f'{trailing_number_match.group("number")}. {next_stripped}')
+                    i += 2
+                    continue
 
             if cls.is_markdown_block_line(stripped):
                 flush_paragraph()
@@ -189,9 +268,11 @@ class MarkdownUtils:
                     ) and previous != '':
                         normalized.append('')
                 normalized.append(stripped)
+                i += 1
                 continue
 
             paragraph_parts.append(stripped)
+            i += 1
 
         flush_paragraph()
 

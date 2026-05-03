@@ -4,9 +4,8 @@ from pathlib import Path
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Cm, Pt, RGBColor
-from src.core.chapter_settings import ChapterSettings
 from src.core.media_downloader import MediaDownloader
-from src.core.docx_helpers import DocxHelpers, COLOR_H1, COLOR_H2, COLOR_H3, COLOR_H4
+from src.core.docx_helpers import DocxHelpers
 from src.core.markdown_utils import MarkdownUtils
 
 class DocxBuilder:
@@ -168,15 +167,13 @@ class DocxBuilder:
                         p.alignment = WD_ALIGN_PARAGRAPH.CENTER if ri == 0 else WD_ALIGN_PARAGRAPH.LEFT
                         p.paragraph_format.space_before = Pt(2)
                         p.paragraph_format.space_after = Pt(2)
-                        run = p.add_run(MarkdownUtils.strip_md_markup(cell_text))
+                        run = p.add_run(
+                            MarkdownUtils.strip_md_markup(MarkdownUtils.normalize_html_breaks(cell_text, '\n'))
+                        )
                         run.font.size = Pt(11)
                         run.font.name = 'Times New Roman'
                         if ri == 0:
                             run.bold = True
-                            run.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
-                            DocxHelpers.set_cell_bg(cell, '1F619E')
-                        elif ri % 2 == 0:
-                            DocxHelpers.set_cell_bg(cell, 'EBF4FB')
                 _sp = self.doc.add_paragraph()
                 _sp.paragraph_format.space_before = Pt(0)
                 _sp.paragraph_format.space_after = Pt(6)
@@ -234,7 +231,6 @@ class DocxBuilder:
                 p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
                 run = p.add_run(text)
                 run.font.name = 'Times New Roman'
-                run.font.color.rgb = [COLOR_H1, COLOR_H2, COLOR_H3, COLOR_H4, COLOR_H4, COLOR_H4][level - 1]
                 run.font.size = Pt([16, 14, 13, 12, 12, 11][level - 1])
                 run.bold = level <= 3
                 i += 1
@@ -264,10 +260,12 @@ class DocxBuilder:
                 text = re.sub(r'^-\s+\[[ xX]\]\s*', '', line)
                 p = self.doc.add_paragraph()
                 base_indent_cm = float(paragraph_settings.get('left_indent_cm', 0.0))
-                if str(paragraph_settings.get('special_indent', 'first_line')).lower() == 'first_line':
-                    base_indent_cm += float(paragraph_settings.get('special_indent_by_cm', 1.27))
+                special_indent_mode = str(paragraph_settings.get('special_indent', 'first_line')).lower()
+                special_indent_cm = float(paragraph_settings.get('special_indent_by_cm', 1.27))
                 p.paragraph_format.left_indent = Cm(base_indent_cm)
-                p.paragraph_format.first_line_indent = Cm(0.0)
+                p.paragraph_format.first_line_indent = (
+                    Cm(special_indent_cm) if special_indent_mode == 'first_line' else Cm(0.0)
+                )
                 MarkdownUtils.add_formatted_run(p, '[  ] ' + text)
                 i += 1
                 continue
@@ -276,13 +274,15 @@ class DocxBuilder:
             m_bullet = re.match(r'^( *)[-\*\+]\s+(.*)', line)
             if m_bullet:
                 indent_lvl = len(m_bullet.group(1)) // 2
-                marker = ChapterSettings.get_list_marker(self.config, current_source_filename or '', indent_lvl + 1)
+                marker = m_bullet.group(0).strip().split(maxsplit=1)[0]
                 p = self.doc.add_paragraph()
                 base_indent_cm = float(paragraph_settings.get('left_indent_cm', 0.0))
-                if str(paragraph_settings.get('special_indent', 'first_line')).lower() == 'first_line':
-                    base_indent_cm += float(paragraph_settings.get('special_indent_by_cm', 1.27))
+                special_indent_mode = str(paragraph_settings.get('special_indent', 'first_line')).lower()
+                special_indent_cm = float(paragraph_settings.get('special_indent_by_cm', 1.27))
                 p.paragraph_format.left_indent = Cm(base_indent_cm + (indent_lvl * 1.0))
-                p.paragraph_format.first_line_indent = Cm(0.0)
+                p.paragraph_format.first_line_indent = (
+                    Cm(special_indent_cm) if special_indent_mode == 'first_line' else Cm(0.0)
+                )
                 MarkdownUtils.add_formatted_run(p, f'{marker} {m_bullet.group(2)}')
                 i += 1
                 continue

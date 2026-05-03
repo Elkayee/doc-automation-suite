@@ -43,16 +43,16 @@ body {
 }
 
 .page h1 {
-  color: #1a3a5c;
-  border-bottom: 2px solid #1f619e;
+  color: #000;
+  border-bottom: 1px solid #000;
   padding-bottom: 6px;
 }
 
-.page h2 { color: #1f619e; }
-.page h3 { color: #2e86ab; }
+.page h2 { color: #000; }
+.page h3 { color: #000; }
 .page h4,
 .page h5,
-.page h6 { color: #449dd1; }
+.page h6 { color: #000; }
 
 .page p,
 .page li,
@@ -64,28 +64,29 @@ body {
 
 .page .custom-list-block {
   margin: 14px 0;
+  padding-left: 24px;
 }
 
 .page .custom-list-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
+  display: block;
   line-height: 1.7;
   margin: 4px 0;
 }
 
+.page .custom-list-item.level-0 { margin-left: 0; }
 .page .custom-list-item.level-1 { margin-left: 24px; }
 .page .custom-list-item.level-2 { margin-left: 48px; }
 .page .custom-list-item.level-3 { margin-left: 72px; }
 .page .custom-list-item.level-4 { margin-left: 96px; }
 
 .page .list-marker {
-  min-width: 16px;
-  font-weight: 700;
+  display: inline;
+  min-width: 0;
+  font-weight: 400;
 }
 
 .page .list-text {
-  flex: 1;
+  display: inline;
 }
 
 .page pre {
@@ -111,10 +112,12 @@ body {
 }
 
 .page th {
-  background-color: #1f619e;
-  color: white;
+  background-color: #fff;
+  color: #000;
   padding: 8px 12px;
   text-align: left;
+  font-weight: 700;
+  border: 1px solid #d0d0d0;
 }
 
 .page td {
@@ -122,15 +125,11 @@ body {
   padding: 7px 12px;
 }
 
-.page tr:nth-child(even) td {
-  background: #ebf4fb;
-}
-
 .page blockquote {
-  border-left: 4px solid #449dd1;
+  border-left: 2px solid #000;
   margin-left: 0;
   padding-left: 16px;
-  color: #555;
+  color: #000;
 }
 
 .page img,

@@ -230,7 +230,10 @@ class PreviewUtils:
     def parse_markdown_table_row(line):
         if not line.strip().startswith('|'):
             return None
-        cells = [MarkdownUtils.strip_md_markup(cell.strip()) for cell in line.strip().strip('|').split('|')]
+        cells = [
+            MarkdownUtils.strip_md_markup(MarkdownUtils.normalize_html_breaks(cell.strip(), ' '))
+            for cell in line.strip().strip('|').split('|')
+        ]
         return cells
 
     @staticmethod
@@ -342,19 +345,19 @@ class PreviewUtils:
     @staticmethod
     def configure_preview_text_tags(preview_text):
         preview_text.tag_configure('paragraph', spacing1=2, spacing3=10, lmargin1=0, lmargin2=0)
-        preview_text.tag_configure('list_item', spacing1=1, spacing3=4)
-        preview_text.tag_configure('quote_block', lmargin1=18, lmargin2=18, spacing1=4, spacing3=10, foreground='#555')
+        preview_text.tag_configure('list_item', spacing1=1, spacing3=4, lmargin1=24, lmargin2=24)
+        preview_text.tag_configure('quote_block', lmargin1=18, lmargin2=18, spacing1=4, spacing3=10, foreground='#000')
         preview_text.tag_configure('table_row', lmargin1=10, lmargin2=10, spacing1=1, spacing3=1)
-        preview_text.tag_configure('rule', foreground='#999', spacing1=4, spacing3=8)
+        preview_text.tag_configure('rule', foreground='#000', spacing1=4, spacing3=8)
         preview_text.tag_configure('bold', font=('Georgia', 10, 'bold'))
         preview_text.tag_configure('italic', font=('Georgia', 10, 'italic'))
-        preview_text.tag_configure('code', font=('Consolas', 10), background='#f0f0f0', foreground='#9c2f52')
-        preview_text.tag_configure('h1', font=('Georgia', 16, 'bold'), foreground='#1A3A5C', spacing1=8, spacing3=8)
-        preview_text.tag_configure('h2', font=('Georgia', 14, 'bold'), foreground='#1F619E', spacing1=8, spacing3=7)
-        preview_text.tag_configure('h3', font=('Georgia', 13, 'bold'), foreground='#2E86AB', spacing1=7, spacing3=6)
-        preview_text.tag_configure('h4', font=('Georgia', 12, 'bold'), foreground='#449DD1', spacing1=6, spacing3=5)
-        preview_text.tag_configure('h5', font=('Georgia', 11, 'bold'), foreground='#449DD1', spacing1=5, spacing3=4)
-        preview_text.tag_configure('h6', font=('Georgia', 10, 'bold'), foreground='#449DD1', spacing1=4, spacing3=4)
+        preview_text.tag_configure('code', font=('Consolas', 10), background='#f0f0f0', foreground='#000')
+        preview_text.tag_configure('h1', font=('Georgia', 16, 'bold'), foreground='#000', spacing1=8, spacing3=8)
+        preview_text.tag_configure('h2', font=('Georgia', 14, 'bold'), foreground='#000', spacing1=8, spacing3=7)
+        preview_text.tag_configure('h3', font=('Georgia', 13, 'bold'), foreground='#000', spacing1=7, spacing3=6)
+        preview_text.tag_configure('h4', font=('Georgia', 12, 'bold'), foreground='#000', spacing1=6, spacing3=5)
+        preview_text.tag_configure('h5', font=('Georgia', 11, 'bold'), foreground='#000', spacing1=5, spacing3=4)
+        preview_text.tag_configure('h6', font=('Georgia', 10, 'bold'), foreground='#000', spacing1=4, spacing3=4)
 
     @staticmethod
     def insert_preview_segments(preview_text, segments, block_tags):

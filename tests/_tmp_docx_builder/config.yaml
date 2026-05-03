@@ -1,0 +1,13 @@
+name: Test
+description: ''
+type: report
+docx_template: template.docx
+required_files:
+- Ch01_Test.md
+settings:
+  chapter_settings:
+    Ch01_Test.md:
+      list_markers_by_level:
+      - '-'
+      - +
+      - '*'

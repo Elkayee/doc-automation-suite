@@ -32,7 +32,6 @@ Bao_Cao_Tieu_Luan_NMCNPM_from_docx.md
 ~$*.docx
 
 # Thư mục test
-tests/
 .omc/
 skills/**/*.md
 skills/**/*.txt
@@ -70,7 +69,9 @@ yarn-error.log*
 # ignore visual builder specific temp files
 *.temp.md
 *.temp.html
+.coverage
+.pytest_cache/
+htmlcov/
 
 # OSX
 .DS_Store
-
