@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+import shutil
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
@@ -58,9 +59,16 @@ class DashboardApp:
             command=self.open_legacy_workflow,
         ).grid(row=0, column=2, padx=10, pady=10)
 
-        ttk.Label(main_container, text='Du an gan day', font=('Georgia', 12, 'bold'), background='#f3efe5').pack(
-            anchor='w', pady=(40, 10)
+        recent_header_frame = ttk.Frame(main_container)
+        recent_header_frame.pack(fill='x', pady=(40, 10))
+
+        ttk.Label(recent_header_frame, text='Du an gan day', font=('Georgia', 12, 'bold'), background='#f3efe5').pack(
+            side='left'
         )
+
+        ttk.Button(
+            recent_header_frame, text='Xoa Du An', style='Action.TButton', command=self.delete_selected_project
+        ).pack(side='right')
 
         self.projects_list = tk.Listbox(main_container, font=('Consolas', 11), height=10)
         self.projects_list.pack(fill='both', expand=True)
@@ -127,6 +135,29 @@ class DashboardApp:
             self._launch_workspace(dest)
 
         ttk.Button(dialog, text='Tao Moi', command=do_create).pack(pady=30)
+
+    def delete_selected_project(self):
+        if not self.projects_list.curselection():
+            messagebox.showwarning('Canh bao', 'Vui long chon mot du an de xoa', parent=self.root)
+            return
+
+        idx = self.projects_list.curselection()[0]
+        name = self.projects_list.get(idx)
+
+        confirm = messagebox.askyesno(
+            'Xac nhan xoa',
+            f"Ban co chac chan muon xoa du an '{name}' khong?\nHanh dong nay khong the hoan tac.",
+            parent=self.root
+        )
+
+        if confirm:
+            target_dir = self.workspaces_dir / name
+            try:
+                shutil.rmtree(target_dir)
+                messagebox.showinfo('Thanh cong', f"Da xoa du an '{name}'", parent=self.root)
+                self.refresh_projects()
+            except Exception as e:
+                messagebox.showerror('Loi', f"Khong the xoa du an:\n{str(e)}", parent=self.root)
 
     def open_project(self):
         path = filedialog.askdirectory(initialdir=str(self.workspaces_dir))
