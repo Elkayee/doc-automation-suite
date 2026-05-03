@@ -1,11 +1,12 @@
-name: "Đề Thi Trắc Nghiệm"
-description: "Mẫu đề kiểm tra trắc nghiệm, hỗ trợ sinh tự động đề và đáp án, trộn đề."
+name: "Bai Kiem Tra Giua Ky"
+description: "Mau bai kiem tra tu luan giua ky mon Cong nghe phan mem, dinh dang de thi A4 de build DOCX."
 type: "exam"
 docx_template: "template.docx"
 required_files:
-  - "00_Thong_Tin.md"
-  - "01_Cau_Hoi.md"
+  - "F00_header.md"
+  - "Ch01_Phan_I_Ly_Thuyet_Van_Dung.md"
 settings:
   font_name: "Times New Roman"
-  font_size: 11
-  columns: 2
+  font_size: 13
+  line_spacing: 1.5
+  title_align: "center"

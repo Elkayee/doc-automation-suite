@@ -11,6 +11,7 @@ class TemplateConfig:
     required_files: List[str]
     docx_template: str
     settings: Dict[str, Any] = field(default_factory=dict)
+    chapter_order: List[str] = field(default_factory=list)
 
     @classmethod
     def load(cls, config_path: Path) -> 'TemplateConfig':
@@ -29,5 +30,21 @@ class TemplateConfig:
             type=data.get('type', 'report'),
             required_files=data.get('required_files', []),
             docx_template=data.get('docx_template', 'template.docx'),
-            settings=data.get('settings', {})
+            settings=data.get('settings', {}),
+            chapter_order=data.get('chapter_order', []) or [],
         )
+
+    def save(self, config_path: Path) -> None:
+        data = {
+            'name': self.name,
+            'description': self.description,
+            'type': self.type,
+            'docx_template': self.docx_template,
+            'required_files': self.required_files,
+            'settings': self.settings,
+        }
+        if self.chapter_order:
+            data['chapter_order'] = self.chapter_order
+
+        with open(config_path, 'w', encoding='utf-8') as f:
+            yaml.safe_dump(data, f, allow_unicode=True, sort_keys=False)
