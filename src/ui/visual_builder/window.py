@@ -91,6 +91,7 @@ class VisualBuilderWindow(tk.Toplevel):
         ttk.Button(toolbar, text='List Markers', command=self.open_list_marker_settings).pack(side='left', padx=(8, 0))
         ttk.Button(toolbar, text='Move Up', command=lambda: self.move_selected_chapter(-1)).pack(side='left', padx=(16, 0))
         ttk.Button(toolbar, text='Move Down', command=lambda: self.move_selected_chapter(1)).pack(side='left', padx=(8, 0))
+        ttk.Button(toolbar, text='Clear Cache', command=self.clear_diagram_cache).pack(side='left', padx=(16, 0))
         ttk.Button(toolbar, text='Build DOCX', command=self.build_docx).pack(side='right')
 
         header = ttk.Frame(self, padding=(12, 0, 12, 8))
@@ -1477,6 +1478,27 @@ class VisualBuilderWindow(tk.Toplevel):
 
         self._set_status(f'Built {output_docx.name}')
         messagebox.showinfo('Build DOCX', f'DOCX saved to:\n{output_docx}', parent=self)
+
+    def clear_diagram_cache(self):
+        import shutil
+
+        img_cache_dir = self.project_path / '.diagram_cache'
+
+        if not img_cache_dir.exists():
+            messagebox.showinfo('Clear Cache', 'Diagram cache is already empty.', parent=self)
+            self._set_status('Cache already empty')
+            return
+
+        try:
+            file_count = len(list(img_cache_dir.iterdir()))
+            shutil.rmtree(img_cache_dir)
+            img_cache_dir.mkdir(parents=True, exist_ok=True)
+
+            self._set_status(f'Cleared {file_count} cached diagram(s)')
+            messagebox.showinfo('Clear Cache', f'Successfully cleared {file_count} cached diagram file(s).', parent=self)
+        except Exception as exc:
+            messagebox.showerror('Clear Cache', f'Failed to clear cache:\n{exc}', parent=self)
+            self._set_status(f'Cache clear failed: {exc}')
 
     def _start_file_watch(self):
         self._poll_for_external_changes()

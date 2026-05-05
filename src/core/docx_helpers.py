@@ -277,7 +277,6 @@ class DocxHelpers:
         run = p.add_run()
         max_width, max_height = DocxHelpers.get_content_frame_size(doc, height_reserve=Cm(2))
         DocxHelpers.add_picture_fit(run, image_path, doc, max_width=max_width, max_height=max_height)
-        DocxHelpers.set_picture_wrap_top_bottom(run)
 
     @staticmethod
     def add_page_break(doc):

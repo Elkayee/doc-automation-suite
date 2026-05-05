@@ -116,7 +116,6 @@ class DocxBuilder:
                             run = p.add_run()
                             max_width, max_height = DocxHelpers.get_content_frame_size(self.doc, height_reserve=Cm(3))
                             DocxHelpers.add_picture_fit(run, img_path, self.doc, max_width=max_width, max_height=max_height)
-                            DocxHelpers.set_picture_wrap_top_bottom(run, pic_id=self.diagram_idx)
                         else:
                             p = self.doc.add_paragraph()
                             r = p.add_run(f'[Bieu do PlantUML {self.diagram_idx} - khong the render]')
