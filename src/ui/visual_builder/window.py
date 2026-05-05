@@ -1010,6 +1010,8 @@ class VisualBuilderWindow(tk.Toplevel):
         special_indent_var = tk.StringVar(value=self._special_indent_label(settings.get('special_indent', 'first_line')))
         line_spacing_var = tk.StringVar(value=self._line_spacing_label(settings.get('line_spacing_mode', 'multiple')))
 
+        font_name_var = tk.StringVar(value=str(settings.get('font_name', 'Times New Roman')))
+        font_size_var = tk.StringVar(value=str(settings.get('font_size', 14)))
         left_var = tk.StringVar(value=str(settings.get('left_indent_cm', 0.0)))
         right_var = tk.StringVar(value=str(settings.get('right_indent_cm', 0.0)))
         special_by_var = tk.StringVar(value=str(settings.get('special_indent_by_cm', 1.27)))
@@ -1017,26 +1019,34 @@ class VisualBuilderWindow(tk.Toplevel):
         after_var = tk.StringVar(value=str(settings.get('space_after_pt', 6.0)))
         line_value_var = tk.StringVar(value=str(settings.get('line_spacing_value', 1.5)))
 
+        self._settings_row(body, 'Font', ttk.Combobox(
+            body,
+            textvariable=font_name_var,
+            values=['Times New Roman', 'Arial', 'Calibri', 'Cambria', 'Georgia'],
+        ), 0)
+        self._settings_row(body, 'Size', ttk.Entry(body, textvariable=font_size_var), 1)
         self._settings_row(body, 'Alignment', ttk.Combobox(
             body, textvariable=alignment_var, state='readonly', values=['Left', 'Center', 'Right', 'Justify']
-        ), 0)
-        self._settings_row(body, 'Left (cm)', ttk.Entry(body, textvariable=left_var), 1)
-        self._settings_row(body, 'Right (cm)', ttk.Entry(body, textvariable=right_var), 2)
+        ), 2)
+        self._settings_row(body, 'Left (cm)', ttk.Entry(body, textvariable=left_var), 3)
+        self._settings_row(body, 'Right (cm)', ttk.Entry(body, textvariable=right_var), 4)
         self._settings_row(body, 'Special', ttk.Combobox(
             body, textvariable=special_indent_var, state='readonly', values=['None', 'First line', 'Hanging']
-        ), 3)
-        self._settings_row(body, 'By (cm)', ttk.Entry(body, textvariable=special_by_var), 4)
-        self._settings_row(body, 'Before (pt)', ttk.Entry(body, textvariable=before_var), 5)
-        self._settings_row(body, 'After (pt)', ttk.Entry(body, textvariable=after_var), 6)
+        ), 5)
+        self._settings_row(body, 'By (cm)', ttk.Entry(body, textvariable=special_by_var), 6)
+        self._settings_row(body, 'Before (pt)', ttk.Entry(body, textvariable=before_var), 7)
+        self._settings_row(body, 'After (pt)', ttk.Entry(body, textvariable=after_var), 8)
         self._settings_row(body, 'Line spacing', ttk.Combobox(
             body, textvariable=line_spacing_var, state='readonly', values=['Single', '1.5 lines', 'Double', 'Exactly']
-        ), 7)
-        self._settings_row(body, 'At', ttk.Entry(body, textvariable=line_value_var), 8)
+        ), 9)
+        self._settings_row(body, 'At', ttk.Entry(body, textvariable=line_value_var), 10)
 
         def save_settings():
             try:
                 self._save_workspace_settings(
                     {
+                        'font_name': font_name_var.get().strip() or 'Times New Roman',
+                        'font_size': float(font_size_var.get()),
                         'alignment': alignment_var.get().lower(),
                         'left_indent_cm': float(left_var.get()),
                         'right_indent_cm': float(right_var.get()),
@@ -1054,7 +1064,7 @@ class VisualBuilderWindow(tk.Toplevel):
             dialog.destroy()
 
         button_row = ttk.Frame(body)
-        button_row.grid(row=9, column=0, columnspan=2, sticky='e', pady=(12, 0))
+        button_row.grid(row=11, column=0, columnspan=2, sticky='e', pady=(12, 0))
         ttk.Button(button_row, text='Save', command=save_settings).pack(side='left')
         ttk.Button(button_row, text='Cancel', command=dialog.destroy).pack(side='left', padx=(8, 0))
 

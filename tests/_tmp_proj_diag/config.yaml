@@ -1,0 +1,6 @@
+name: Diag
+description: ''
+type: report
+docx_template: template.docx
+required_files:
+- Ch01_Test.md

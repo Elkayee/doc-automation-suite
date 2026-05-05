@@ -11,6 +11,6 @@ required_files:
   - "Ch04_TAI_LIEU_THAM_KHAO.md"
 settings:
   font_name: "Times New Roman"
-  font_size: 13
+  font_size: 14
   line_spacing: 1.5
   first_line_indent: 1.27

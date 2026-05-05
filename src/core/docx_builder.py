@@ -47,7 +47,7 @@ class DocxBuilder:
         paragraph_settings = DocxHelpers.get_paragraph_settings(self.config)
         style = self.doc.styles['Normal']
         style.font.name = paragraph_settings.get('font_name', 'Times New Roman')
-        style.font.size = Pt(float(paragraph_settings.get('font_size', 13)))
+        style.font.size = Pt(float(paragraph_settings.get('font_size', 14)))
         style.paragraph_format.alignment = DocxHelpers.parse_alignment(paragraph_settings.get('alignment', 'justify'))
         style.paragraph_format.left_indent = Cm(float(paragraph_settings.get('left_indent_cm', 0.0)))
         style.paragraph_format.right_indent = Cm(float(paragraph_settings.get('right_indent_cm', 0.0)))
@@ -109,10 +109,7 @@ class DocxBuilder:
                         img_path = MediaDownloader.render_plantuml('\n'.join(mermaid_buf), self.diagram_idx, str(img_cache_dir))
                         if img_path:
                             p = self.doc.add_paragraph()
-                            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                            p.paragraph_format.space_before = Pt(18)
-                            p.paragraph_format.space_after = Pt(18)
-                            p.paragraph_format.first_line_indent = None
+                            DocxHelpers.configure_media_paragraph(p, space_before=18, space_after=18)
                             run = p.add_run()
                             max_width, max_height = DocxHelpers.get_content_frame_size(self.doc, height_reserve=Cm(3))
                             DocxHelpers.add_picture_fit(run, img_path, self.doc, max_width=max_width, max_height=max_height)
@@ -305,9 +302,7 @@ class DocxBuilder:
                     img_path = MediaDownloader.render_latex(latex_code, self.math_idx, str(img_cache_dir))
                     if img_path:
                         p = self.doc.add_paragraph()
-                        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                        p.paragraph_format.space_before = Pt(6)
-                        p.paragraph_format.space_after = Pt(6)
+                        DocxHelpers.configure_media_paragraph(p, space_before=6, space_after=6)
                         max_width, max_height = DocxHelpers.get_content_frame_size(self.doc, height_reserve=Cm(4))
                         DocxHelpers.add_picture_fit(p.add_run(), img_path, self.doc, max_width=max_width, max_height=max_height)
                     else:
@@ -326,9 +321,7 @@ class DocxBuilder:
                     img_path = MediaDownloader.render_latex(latex_code, self.math_idx, str(img_cache_dir))
                     if img_path:
                         p = self.doc.add_paragraph()
-                        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                        p.paragraph_format.space_before = Pt(6)
-                        p.paragraph_format.space_after = Pt(6)
+                        DocxHelpers.configure_media_paragraph(p, space_before=6, space_after=6)
                         max_width, max_height = DocxHelpers.get_content_frame_size(self.doc, height_reserve=Cm(4))
                         DocxHelpers.add_picture_fit(p.add_run(), img_path, self.doc, max_width=max_width, max_height=max_height)
                     else:

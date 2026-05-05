@@ -132,12 +132,10 @@ class PreviewUtils:
     @staticmethod
     def inline_segments_to_html(text):
         html_parts = []
+        text = MarkdownUtils.normalize_report_inline_markup(text)
         segments, _, _ = MarkdownUtils.collect_inline_segments(text)
         for token, style in segments:
             escaped = html_lib.escape(token)
-            if style['code']:
-                html_parts.append(f'<code>{escaped}</code>')
-                continue
             if style['bold']:
                 escaped = f'<strong>{escaped}</strong>'
             if style['italic']:
@@ -214,6 +212,7 @@ class PreviewUtils:
     @staticmethod
     def inline_segments_to_preview_spans(text):
         spans = []
+        text = MarkdownUtils.normalize_report_inline_markup(text)
         segments, _, _ = MarkdownUtils.collect_inline_segments(text)
         for token, style in segments:
             style_names = set()
@@ -221,8 +220,6 @@ class PreviewUtils:
                 style_names.add('bold')
             if style['italic']:
                 style_names.add('italic')
-            if style['code']:
-                style_names.add('code')
             spans.append((token, style_names))
         return spans
 

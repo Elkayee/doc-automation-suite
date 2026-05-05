@@ -1,6 +1,6 @@
 import re
 
-from docx.shared import Cm, Pt, RGBColor
+from docx.shared import Cm
 
 
 class MarkdownUtils:
@@ -10,6 +10,11 @@ class MarkdownUtils:
     RULE_RE = re.compile(r'^\s*(---+|\*\*\*+|___+)\s*$')
     LIST_LINE_RE = re.compile(r'^(?P<indent>\s*)(?P<marker>[-*+])(?P<spacing>\s+)(?P<text>.*)$')
     UNICODE_BULLET_RE = re.compile(r'^(?P<indent>\s*)(?P<marker>[▪•●◦✓✔])\s*(?P<text>.+)$')
+    INLINE_CODE_RE = re.compile(r'`([^`\n]+)`')
+    SIMPLE_PROSE_CODE_RE = re.compile(r'[A-Za-z][A-Za-z0-9_]*(?:\s+[A-Za-z0-9_]+)*')
+    RELATION_SCHEMA_CODE_RE = re.compile(
+        r'[A-Za-z][A-Za-z0-9_]*\(\s*[A-Za-z][A-Za-z0-9_]*(?:\s*,\s*[A-Za-z][A-Za-z0-9_]*)*\s*\)'
+    )
 
     @staticmethod
     def strip_md_links(text):
@@ -132,11 +137,33 @@ class MarkdownUtils:
 
     @staticmethod
     def normalize_punctuation(text):
+        text = re.sub(r'([,;:])\s*\.(?=(?:\s|$|[*_`)\]}>"\']))', '.', text)
         text = re.sub(r'\s+([.,;:!?)])', r'\1', text)
         text = re.sub(r'([([{])\s+', r'\1', text)
         text = re.sub(r'\s+([)\]}])', r'\1', text)
         text = re.sub(r'([.,;:!?])([^\s\d.,;:!?)\]}\'"\\`*_])', r'\1 \2', text)
         return text
+
+    @classmethod
+    def normalize_inline_special_terms(cls, text):
+        def replace(match):
+            content = match.group(1).strip()
+            if not content:
+                return match.group(0)
+            if cls.SIMPLE_PROSE_CODE_RE.fullmatch(content):
+                prose = re.sub(r'\s+', ' ', content.replace('_', ' ')).strip()
+                return f'*{prose}*'
+            if cls.RELATION_SCHEMA_CODE_RE.fullmatch(content):
+                prose = re.sub(r'\s+', ' ', content).strip()
+                return f'*{prose}*'
+            return match.group(0)
+
+        return cls.INLINE_CODE_RE.sub(replace, text)
+
+    @classmethod
+    def normalize_report_inline_markup(cls, text):
+        normalized = cls.normalize_inline_special_terms(text)
+        return cls.INLINE_CODE_RE.sub(lambda match: match.group(1), normalized)
 
     @classmethod
     def is_markdown_block_line(cls, text):
@@ -357,6 +384,8 @@ class MarkdownUtils:
         lines = text.split('\n')
         reformatted = []
         paragraph_parts = []
+        list_prefix = None
+        list_parts = []
         in_code_fence = False
 
         def flush_paragraph():
@@ -366,8 +395,20 @@ class MarkdownUtils:
             paragraph = ' '.join(part.strip() for part in paragraph_parts if part.strip())
             paragraph = re.sub(r'\s+', ' ', paragraph).strip()
             if paragraph:
+                paragraph = cls.normalize_inline_special_terms(paragraph)
                 reformatted.append(cls.normalize_punctuation(paragraph))
             paragraph_parts = []
+
+        def flush_list_item():
+            nonlocal list_prefix, list_parts
+            if list_prefix is None:
+                return
+            item_text = ' '.join(part.strip() for part in list_parts if part.strip())
+            item_text = re.sub(r'\s+', ' ', item_text).strip()
+            item_text = cls.normalize_inline_special_terms(item_text)
+            reformatted.append(f'{list_prefix}{cls.normalize_punctuation(item_text)}' if item_text else list_prefix.rstrip())
+            list_prefix = None
+            list_parts = []
 
         for raw_line in lines:
             line = raw_line.rstrip()
@@ -375,6 +416,7 @@ class MarkdownUtils:
 
             if stripped.startswith('```'):
                 flush_paragraph()
+                flush_list_item()
                 reformatted.append(line)
                 in_code_fence = not in_code_fence
                 continue
@@ -385,29 +427,48 @@ class MarkdownUtils:
 
             if not stripped:
                 flush_paragraph()
+                flush_list_item()
                 if reformatted and reformatted[-1] != '':
                     reformatted.append('')
                 continue
 
-            if cls.LIST_LINE_RE.match(line):
+            list_match = cls.LIST_LINE_RE.match(line)
+            ordered_match = cls.ORDERED_RE.match(line)
+            if list_match or ordered_match:
                 flush_paragraph()
-                reformatted.append(cls.canonicalize_list_line_by_indent(line, list_markers_by_level))
+                flush_list_item()
+                if list_match:
+                    markers = list_markers_by_level or ['-', '+', '*']
+                    indent_level = len(list_match.group('indent').replace('\t', '    ')) // 2
+                    canonical_indent = '  ' * indent_level
+                    marker = markers[indent_level] if indent_level < len(markers) else markers[-1]
+                    list_prefix = f'{canonical_indent}{marker} '
+                    list_parts = [list_match.group('text').strip()]
+                else:
+                    ordered_prefix, ordered_text = line.split(None, 1)
+                    list_prefix = f'{ordered_prefix} '
+                    list_parts = [ordered_text.strip()]
                 continue
 
             if (
                 cls.HEADING_RE.match(stripped)
-                or cls.ORDERED_RE.match(stripped)
                 or cls.RULE_RE.match(stripped)
                 or stripped.startswith('>')
                 or stripped.startswith('|')
             ):
                 flush_paragraph()
+                flush_list_item()
                 reformatted.append(stripped if cls.HEADING_RE.match(stripped) or cls.RULE_RE.match(stripped) else line)
+                continue
+
+            if list_prefix is not None:
+                list_parts.append(stripped)
                 continue
 
             paragraph_parts.append(stripped)
 
         flush_paragraph()
+        flush_list_item()
 
         compact = []
         blank_run = 0
@@ -442,18 +503,13 @@ class MarkdownUtils:
 
     @classmethod
     def add_formatted_run(cls, para, text):
-        text = cls.strip_md_links(text)
+        text = cls.normalize_report_inline_markup(cls.strip_md_links(text))
         segments, _, _ = cls.collect_inline_segments(text)
         for token, style in segments:
             if not token:
                 continue
 
             run = para.add_run(token)
-            if style['code']:
-                run.font.name = 'Courier New'
-                run.font.size = Pt(9)
-                run.font.color.rgb = RGBColor(0xC7, 0x25, 0x4E)
-                continue
 
             if style['bold']:
                 run.bold = True

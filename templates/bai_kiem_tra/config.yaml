@@ -7,7 +7,7 @@ required_files:
   - "Ch01_Phan_I_Ly_Thuyet_Van_Dung.md"
 settings:
   font_name: "Times New Roman"
-  font_size: 13
+  font_size: 14
   line_spacing: 1.5
   title_align: "center"
   alignment: "justify"

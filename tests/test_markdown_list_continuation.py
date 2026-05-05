@@ -96,6 +96,84 @@ class MarkdownListContinuationTests(unittest.TestCase):
 
         self.assertEqual(result, expected)
 
+    def test_reformat_joins_wrapped_list_item_and_normalizes_terminal_punctuation(self):
+        source = (
+            '- **Phù hợp với quy mô và cơ cấu tổ chức hiện đại:** Các doanh nghiệp, tập đoàn hiện nay thường hoạt\n'
+            'động đa quốc gia và áp dụng mô hình làm việc từ xa (Remote/Hybrid),. Mô hình tập trung không còn phù hợp với một tổ chức có vị trí địa lý phân tán do chi phí đường truyền cao và độ trễ mạng lớn,. CSDL phân tán áp dụng nguyên lý cực đại hóa tiến trình địa phương, đưa dữ liệu về lưu trữ tại node gần với người sử dụng nhất, triệt tiêu độ trễ mạng và nâng cao trải nghiệm truy xuất thời gian thực,.\n'
+        )
+        expected = (
+            '- **Phù hợp với quy mô và cơ cấu tổ chức hiện đại:** Các doanh nghiệp, tập đoàn hiện nay thường hoạt động đa quốc gia và áp dụng mô hình làm việc từ xa (Remote/Hybrid). Mô hình tập trung không còn phù hợp với một tổ chức có vị trí địa lý phân tán do chi phí đường truyền cao và độ trễ mạng lớn. CSDL phân tán áp dụng nguyên lý cực đại hóa tiến trình địa phương, đưa dữ liệu về lưu trữ tại node gần với người sử dụng nhất, triệt tiêu độ trễ mạng và nâng cao trải nghiệm truy xuất thời gian thực.\n'
+        )
+
+        result = MarkdownUtils.reformat_markdown_document(source, ['-', '+', '*'])
+
+        self.assertEqual(result, expected)
+
+    def test_reformat_joins_wrapped_ordered_list_item_and_normalizes_terminal_punctuation(self):
+        source = (
+            '1. Mục đầu tiên bị xuống\n'
+            'dòng và có lỗi dấu câu,.\n'
+            '2. Mục thứ hai giữ nguyên.\n'
+        )
+        expected = (
+            '1. Mục đầu tiên bị xuống dòng và có lỗi dấu câu.\n'
+            '2. Mục thứ hai giữ nguyên.\n'
+        )
+
+        result = MarkdownUtils.reformat_markdown_document(source, ['-', '+', '*'])
+
+        self.assertEqual(result, expected)
+
+    def test_reformat_converts_simple_inline_code_terms_to_italic_prose(self):
+        source = (
+            '- **Ví dụ thực tiễn:** Trong một hệ thống quản lý nhân sự đa quốc gia, bảng người dùng (`Users`) '
+            'được áp dụng phân mảnh ngang nguyên thủy thành ba mảnh dựa trên điều kiện của thuộc tính khu vực '
+            '(`region`). Kết quả tạo ra ba mảnh: `Users_Asia` cho khu vực Châu Á, `Users_Europe` cho Châu Âu và '
+            '`Users_America` cho Châu Mỹ. Một ví dụ khác, bảng dự án `PROJ` có thể được phân mảnh ngang dựa trên '
+            'thuộc tính ngân sách, tạo ra mảnh chứa các dự án có `BUDGET <= 200000` và mảnh chứa các dự án có '
+            '`BUDGET > 200000`.\n'
+        )
+        expected = (
+            '- **Ví dụ thực tiễn:** Trong một hệ thống quản lý nhân sự đa quốc gia, bảng người dùng (*Users*) '
+            'được áp dụng phân mảnh ngang nguyên thủy thành ba mảnh dựa trên điều kiện của thuộc tính khu vực '
+            '(*region*). Kết quả tạo ra ba mảnh: *Users Asia* cho khu vực Châu Á, *Users Europe* cho Châu Âu và '
+            '*Users America* cho Châu Mỹ. Một ví dụ khác, bảng dự án *PROJ* có thể được phân mảnh ngang dựa trên '
+            'thuộc tính ngân sách, tạo ra mảnh chứa các dự án có `BUDGET <= 200000` và mảnh chứa các dự án có '
+            '`BUDGET > 200000`.\n'
+        )
+
+        result = MarkdownUtils.reformat_markdown_document(source, ['-', '+', '*'])
+
+        self.assertEqual(result, expected)
+
+    def test_normalize_report_inline_markup_converts_relation_schema_and_strips_code_ticks(self):
+        source = (
+            'Quan he `PROJ1(PNO, BUDGET)` va `PROJ2(PNO, PNAME, LOC)` duoc tach rieng, '
+            'nhung dieu kien `BUDGET <= 200000` van giu dang code.'
+        )
+        expected = (
+            'Quan he *PROJ1(PNO, BUDGET)* va *PROJ2(PNO, PNAME, LOC)* duoc tach rieng, '
+            'nhung dieu kien BUDGET <= 200000 van giu dang code.'
+        )
+
+        result = MarkdownUtils.normalize_report_inline_markup(source)
+
+        self.assertEqual(result, expected)
+
+    def test_reformat_normalizes_comma_period_before_markdown_closer(self):
+        source = (
+            '**1. Phân mảnh ngang (Horizontal Fragmentation)** Phân mảnh ngang là quá trình chia các bộ '
+            '(dòng) của một quan hệ thành các tập con logic khác biệt nhau,.**\n'
+        )
+        expected = (
+            '**1. Phân mảnh ngang (Horizontal Fragmentation)** Phân mảnh ngang là quá trình chia các bộ '
+            '(dòng) của một quan hệ thành các tập con logic khác biệt nhau.**\n'
+        )
+
+        result = MarkdownUtils.reformat_markdown_document(source, ['-', '+', '*'])
+
+        self.assertEqual(result, expected)
+
     def test_detects_line_inside_fenced_block(self):
         text = (
             '### So do\n\n'

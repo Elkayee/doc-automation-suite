@@ -1,10 +1,12 @@
 import unittest
 from pathlib import Path
 import shutil
+import zipfile
 
 import yaml
 
 from src.core.docx_builder import DocxBuilder
+from src.core.docx_helpers import DocxHelpers
 
 
 class DocxBuilderListMarkerTests(unittest.TestCase):
@@ -55,6 +57,124 @@ class DocxBuilderListMarkerTests(unittest.TestCase):
         finally:
             if workspace.exists():
                 shutil.rmtree(workspace, ignore_errors=True)
+
+    def test_build_overrides_exact_line_spacing_for_image_paragraphs(self):
+        workspace = Path('D:/doc-automation-suite/tests/_tmp_docx_builder')
+        if workspace.exists():
+            shutil.rmtree(workspace, ignore_errors=True)
+        workspace.mkdir(parents=True, exist_ok=True)
+        try:
+            config_path = workspace / 'config.yaml'
+            markdown_path = workspace / 'assembled.md'
+            image_cache = workspace / '.diagram_cache'
+            output_path = workspace / 'out.docx'
+
+            config_path.write_text(
+                yaml.safe_dump(
+                    {
+                        'name': 'Test',
+                        'description': '',
+                        'type': 'report',
+                        'docx_template': 'template.docx',
+                        'required_files': ['Ch01_Test.md'],
+                        'settings': {
+                            'line_spacing_mode': 'exactly',
+                            'line_spacing_value': 16.0,
+                        },
+                    },
+                    allow_unicode=True,
+                    sort_keys=False,
+                ),
+                encoding='utf-8',
+            )
+            markdown_path.write_text(
+                '<!-- FILE: Ch01_Test.md -->\n\n'
+                'Doan truoc.\n\n'
+                '![Image](../../test_extracted.png)\n\n'
+                'Doan sau.\n',
+                encoding='utf-8',
+            )
+
+            builder = DocxBuilder(workspace)
+            builder.build_from_markdown(str(markdown_path), image_cache)
+            builder.save(output_path)
+
+            with zipfile.ZipFile(output_path, 'r') as archive:
+                document_xml = archive.read('word/document.xml').decode('utf-8', errors='ignore')
+
+            image_paragraph = next(
+                paragraph_xml for paragraph_xml in document_xml.split('<w:p') if 'wp:inline' in paragraph_xml
+            )
+
+            self.assertIn('w:lineRule="auto"', image_paragraph)
+            self.assertNotIn('w:lineRule="exact"', image_paragraph)
+            self.assertIn('w:firstLine="0"', image_paragraph)
+            self.assertNotIn('w:hanging=', image_paragraph)
+        finally:
+            if workspace.exists():
+                shutil.rmtree(workspace, ignore_errors=True)
+
+    def test_build_renders_relation_schema_code_terms_as_italic_prose(self):
+        workspace = Path('D:/doc-automation-suite/tests/_tmp_docx_builder')
+        if workspace.exists():
+            shutil.rmtree(workspace, ignore_errors=True)
+        workspace.mkdir(parents=True, exist_ok=True)
+        try:
+            config_path = workspace / 'config.yaml'
+            markdown_path = workspace / 'assembled.md'
+            image_cache = workspace / '.diagram_cache'
+
+            config_path.write_text(
+                yaml.safe_dump(
+                    {
+                        'name': 'Test',
+                        'description': '',
+                        'type': 'report',
+                        'docx_template': 'template.docx',
+                        'required_files': ['Ch01_Test.md'],
+                    },
+                    allow_unicode=True,
+                    sort_keys=False,
+                ),
+                encoding='utf-8',
+            )
+            markdown_path.write_text(
+                '<!-- FILE: Ch01_Test.md -->\n\n'
+                'Quan he *PROJ* duoc tach thanh `PROJ1(PNO, BUDGET)` va `PROJ2(PNO, PNAME, LOC)` voi nguong `BUDGET <= 200000`.\n',
+                encoding='utf-8',
+            )
+
+            builder = DocxBuilder(workspace)
+            builder.build_from_markdown(str(markdown_path), image_cache)
+
+            target_runs = {
+                run.text: run
+                for paragraph in builder.doc.paragraphs
+                for run in paragraph.runs
+                if run.text in {
+                    'PROJ',
+                    'PROJ1(PNO, BUDGET)',
+                    'PROJ2(PNO, PNAME, LOC)',
+                    ' voi nguong BUDGET <= 200000.',
+                }
+            }
+
+            self.assertTrue(target_runs['PROJ'].italic)
+            self.assertTrue(target_runs['PROJ1(PNO, BUDGET)'].italic)
+            self.assertTrue(target_runs['PROJ2(PNO, PNAME, LOC)'].italic)
+            self.assertFalse(bool(target_runs[' voi nguong BUDGET <= 200000.'].italic))
+            self.assertNotEqual(target_runs['PROJ1(PNO, BUDGET)'].font.name, 'Courier New')
+            self.assertNotEqual(target_runs['PROJ2(PNO, PNAME, LOC)'].font.name, 'Courier New')
+            self.assertNotEqual(target_runs[' voi nguong BUDGET <= 200000.'].font.name, 'Courier New')
+        finally:
+            if workspace.exists():
+                shutil.rmtree(workspace, ignore_errors=True)
+
+    def test_default_paragraph_settings_use_times_new_roman_14(self):
+        settings = DocxHelpers.get_paragraph_settings(None)
+
+        self.assertEqual(settings['font_name'], 'Times New Roman')
+        self.assertEqual(settings['font_size'], 14)
 
 
 if __name__ == '__main__':

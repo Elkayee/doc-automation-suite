@@ -34,7 +34,7 @@ class DocxHelpers:
         settings = (config.settings if config and config.settings else {}).copy()
         defaults = {
             'font_name': 'Times New Roman',
-            'font_size': 13,
+            'font_size': 14,
             'alignment': 'justify',
             'left_indent_cm': 0.0,
             'right_indent_cm': 0.0,
@@ -161,6 +161,19 @@ class DocxHelpers:
         run.add_picture(str(image_path), width=target_width, height=target_height)
 
     @staticmethod
+    def configure_media_paragraph(paragraph, *, alignment=WD_ALIGN_PARAGRAPH.CENTER, space_before=18, space_after=18):
+        paragraph.alignment = alignment
+        paragraph.paragraph_format.left_indent = Cm(0)
+        paragraph.paragraph_format.right_indent = Cm(0)
+        paragraph.paragraph_format.space_before = Pt(space_before)
+        paragraph.paragraph_format.space_after = Pt(space_after)
+        paragraph.paragraph_format.first_line_indent = Cm(0)
+        # Inline images behave like oversized glyphs in Word. If the base style uses
+        # exact line spacing, the image can visually overlap nearby paragraphs unless
+        # the media paragraph explicitly resets line spacing to auto/single.
+        paragraph.paragraph_format.line_spacing = 1.0
+
+    @staticmethod
     def set_picture_wrap_top_bottom(run, pic_id=1):
         """Chuyen hinh anh inline (wp:inline) thanh floating Top and Bottom (wp:anchor).
         Hinh duoc can giua theo chieu ngang, nam dung vi tri dat vao van ban.
@@ -270,10 +283,7 @@ class DocxHelpers:
             return
 
         p = doc.add_paragraph()
-        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        p.paragraph_format.space_before = Pt(18)
-        p.paragraph_format.space_after = Pt(18)
-        p.paragraph_format.first_line_indent = None
+        DocxHelpers.configure_media_paragraph(p)
         run = p.add_run()
         max_width, max_height = DocxHelpers.get_content_frame_size(doc, height_reserve=Cm(2))
         DocxHelpers.add_picture_fit(run, image_path, doc, max_width=max_width, max_height=max_height)
