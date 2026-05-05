@@ -111,20 +111,12 @@ class DocxBuilder:
                             p = self.doc.add_paragraph()
                             p.alignment = WD_ALIGN_PARAGRAPH.CENTER
                             p.paragraph_format.space_before = Pt(18)
-                            p.paragraph_format.space_after = Pt(6)
+                            p.paragraph_format.space_after = Pt(18)
                             p.paragraph_format.first_line_indent = None
                             run = p.add_run()
                             max_width, max_height = DocxHelpers.get_content_frame_size(self.doc, height_reserve=Cm(3))
                             DocxHelpers.add_picture_fit(run, img_path, self.doc, max_width=max_width, max_height=max_height)
                             DocxHelpers.set_picture_wrap_top_bottom(run, pic_id=self.diagram_idx)
-                            cap = self.doc.add_paragraph(f'Bieu do {self.diagram_idx}')
-                            cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                            cap.paragraph_format.space_before = Pt(4)
-                            cap.paragraph_format.space_after = Pt(18)
-                            cap.paragraph_format.first_line_indent = None
-                            cap.runs[0].font.size = Pt(10)
-                            cap.runs[0].italic = True
-                            cap.runs[0].font.color.rgb = RGBColor(0x66, 0x66, 0x66)
                         else:
                             p = self.doc.add_paragraph()
                             r = p.add_run(f'[Bieu do PlantUML {self.diagram_idx} - khong the render]')
