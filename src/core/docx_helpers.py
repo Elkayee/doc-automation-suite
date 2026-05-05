@@ -1,8 +1,11 @@
+import re
+import unicodedata
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Emu, Inches, Pt, RGBColor
 from docx.enum.section import WD_ORIENTATION
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK
+from docx.enum.table import WD_TABLE_ALIGNMENT
 from pathlib import Path
 from src.core.media_downloader import MediaDownloader
 
@@ -13,6 +16,60 @@ COLOR_H3 = RGBColor(0x2E, 0x86, 0xAB)
 COLOR_H4 = RGBColor(0x44, 0x9D, 0xD1)
 
 class DocxHelpers:
+    @staticmethod
+    def get_exam_cover_settings(config):
+        settings = (config.settings if config and config.settings else {}).copy()
+        cover = (settings.get('cover_page', {}) or {}).copy()
+        defaults = {
+            'institution_line_1': 'HOC VIEN CONG NGHE BUU CHINH VIEN THONG',
+            'institution_line_2': 'KHOA CONG NGHE THONG TIN 1',
+            'divider': '______________________________',
+            'logo_path': 'assets/ptit-logo.png',
+            'title': 'BAI KIEM TRA GIUA KY',
+            'subject': 'MON: CO SO DU LIEU PHAN TAN',
+            'lecturer_label': 'Giang vien',
+            'lecturer_value': '',
+            'class_label': 'Lop',
+            'class_value': '',
+            'student_label': 'Ho ten',
+            'student_value': '',
+            'student_id_label': 'MSSV',
+            'student_id_value': '',
+            'date_text': '',
+        }
+        defaults.update(cover)
+        return defaults
+
+    @staticmethod
+    def parse_exam_cover_content(content, defaults):
+        cover = dict(defaults)
+        mapping = {
+            'TIEUDE': 'title',
+            'MON': 'subject',
+            'GIANGVIEN': 'lecturer_value',
+            'LOP': 'class_value',
+            'HOTEN': 'student_value',
+            'MSSV': 'student_id_value',
+            'THOIGIAN': 'date_text',
+        }
+
+        def normalize_key(value):
+            normalized = unicodedata.normalize('NFD', value)
+            stripped = ''.join(char for char in normalized if unicodedata.category(char) != 'Mn')
+            return re.sub(r'[^A-Z]', '', stripped.upper())
+
+        for raw_line in content.splitlines():
+            line = raw_line.strip()
+            if not line or ':' not in line:
+                continue
+            left, value = line.split(':', 1)
+            key = normalize_key(left)
+            value = value.strip().strip('*').strip()
+            target = mapping.get(key)
+            if target and value:
+                cover[target] = value
+        return cover
+
     @staticmethod
     def get_page_settings(config):
         settings = (config.settings if config and config.settings else {}).copy()
@@ -172,6 +229,104 @@ class DocxHelpers:
         # exact line spacing, the image can visually overlap nearby paragraphs unless
         # the media paragraph explicitly resets line spacing to auto/single.
         paragraph.paragraph_format.line_spacing = 1.0
+
+    @staticmethod
+    def set_table_borders(table, *, visible):
+        tbl_pr = table._tbl.tblPr
+        borders = tbl_pr.first_child_found_in('w:tblBorders')
+        if borders is None:
+            borders = OxmlElement('w:tblBorders')
+            tbl_pr.append(borders)
+
+        for edge in ('top', 'left', 'bottom', 'right', 'insideH', 'insideV'):
+            element = borders.find(qn(f'w:{edge}'))
+            if element is None:
+                element = OxmlElement(f'w:{edge}')
+                borders.append(element)
+            if visible:
+                element.set(qn('w:val'), 'single')
+                element.set(qn('w:sz'), '4')
+                element.set(qn('w:space'), '0')
+                element.set(qn('w:color'), 'auto')
+            else:
+                element.set(qn('w:val'), 'nil')
+
+    @staticmethod
+    def resolve_cover_asset_path(workspace_dir, relative_path):
+        if not relative_path:
+            return None
+        candidate = Path(relative_path)
+        if candidate.is_absolute():
+            return candidate if candidate.exists() else None
+        resolved = (Path(workspace_dir) / candidate).resolve()
+        return resolved if resolved.exists() else None
+
+    @staticmethod
+    def add_exam_cover(doc, workspace_dir, config):
+        cover = DocxHelpers.get_exam_cover_settings(config)
+
+        def add_centered(text, *, font_size=14, bold=False, italic=False, spacing_before=0, spacing_after=0):
+            paragraph = doc.add_paragraph()
+            paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            paragraph.paragraph_format.space_before = Pt(spacing_before)
+            paragraph.paragraph_format.space_after = Pt(spacing_after)
+            paragraph.paragraph_format.line_spacing = 1.0
+            paragraph.paragraph_format.first_line_indent = Cm(0)
+            run = paragraph.add_run(text)
+            run.font.name = cover.get('font_name', 'Times New Roman')
+            run.font.size = Pt(font_size)
+            run.bold = bold
+            run.italic = italic
+            return paragraph
+
+        add_centered(cover['institution_line_1'], font_size=14, bold=True, spacing_after=6)
+        add_centered(cover['institution_line_2'], font_size=14, bold=True, spacing_after=24)
+        add_centered(cover['divider'], font_size=12, spacing_after=18)
+
+        logo_path = DocxHelpers.resolve_cover_asset_path(workspace_dir, cover.get('logo_path'))
+        if logo_path:
+            logo_paragraph = doc.add_paragraph()
+            DocxHelpers.configure_media_paragraph(logo_paragraph, space_before=0, space_after=26)
+            logo_paragraph.add_run().add_picture(str(logo_path), width=Inches(1.8))
+
+        add_centered(cover['title'], font_size=18, bold=True, spacing_after=28)
+        add_centered(cover['subject'], font_size=16, bold=True, spacing_after=36)
+
+        table = doc.add_table(rows=4, cols=3)
+        table.alignment = WD_TABLE_ALIGNMENT.CENTER
+        table.autofit = False
+        DocxHelpers.set_table_borders(table, visible=False)
+
+        widths = (Cm(4.2), Cm(0.8), Cm(7.8))
+        rows = [
+            (cover['lecturer_label'], ':', cover['lecturer_value']),
+            (cover['class_label'], ':', cover['class_value']),
+            (cover['student_label'], ':', cover['student_value']),
+            (cover['student_id_label'], ':', cover['student_id_value']),
+        ]
+        for row_index, values in enumerate(rows):
+            for col_index, value in enumerate(values):
+                cell = table.rows[row_index].cells[col_index]
+                cell.width = widths[col_index]
+                paragraph = cell.paragraphs[0]
+                paragraph.paragraph_format.space_before = Pt(0)
+                paragraph.paragraph_format.space_after = Pt(4)
+                paragraph.paragraph_format.line_spacing = 1.0
+                paragraph.paragraph_format.first_line_indent = Cm(0)
+                paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER if col_index == 1 else WD_ALIGN_PARAGRAPH.LEFT
+                run = paragraph.add_run(value)
+                run.font.name = cover.get('font_name', 'Times New Roman')
+                run.font.size = Pt(14)
+                if col_index != 1:
+                    run.bold = True
+
+        spacer = doc.add_paragraph()
+        spacer.paragraph_format.space_before = Pt(0)
+        spacer.paragraph_format.space_after = Pt(160)
+        spacer.paragraph_format.line_spacing = 1.0
+
+        add_centered(cover['date_text'], font_size=13, italic=True, spacing_after=0)
+        DocxHelpers.add_page_break(doc)
 
     @staticmethod
     def set_picture_wrap_top_bottom(run, pic_id=1):

@@ -86,6 +86,8 @@ class DocxBuilder:
 
         i, in_code, mermaid_block, mermaid_buf = 0, False, False, []
         current_source_filename = None
+        skip_current_source = None
+        exam_cover_rendered = False
 
         while i < len(lines):
             line = lines[i].rstrip('\n')
@@ -93,6 +95,41 @@ class DocxBuilder:
             source_match = re.match(r'^\s*<!--\s*FILE:\s+(.+?)\s*-->\s*$', line)
             if source_match:
                 current_source_filename = source_match.group(1).strip()
+                if (
+                    self.config
+                    and self.config.type == 'exam'
+                    and current_source_filename == 'F00_header.md'
+                    and not exam_cover_rendered
+                ):
+                    skip_current_source = current_source_filename
+                else:
+                    skip_current_source = None
+                i += 1
+                continue
+
+            if (
+                skip_current_source
+                and current_source_filename == skip_current_source
+                and self.config
+                and self.config.type == 'exam'
+                and current_source_filename == 'F00_header.md'
+            ):
+                cover_lines = []
+                while i < len(lines):
+                    candidate = lines[i].rstrip('\n')
+                    if re.match(r'^\s*<!--\s*FILE:\s+(.+?)\s*-->\s*$', candidate):
+                        break
+                    cover_lines.append(candidate)
+                    i += 1
+                cover_defaults = DocxHelpers.get_exam_cover_settings(self.config)
+                cover_settings = DocxHelpers.parse_exam_cover_content('\n'.join(cover_lines), cover_defaults)
+                self.config.settings = dict(self.config.settings or {})
+                self.config.settings['cover_page'] = cover_settings
+                DocxHelpers.add_exam_cover(self.doc, self.workspace_dir, self.config)
+                exam_cover_rendered = True
+                continue
+
+            if skip_current_source and current_source_filename == skip_current_source:
                 i += 1
                 continue
 

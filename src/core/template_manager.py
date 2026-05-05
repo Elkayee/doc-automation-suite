@@ -40,6 +40,10 @@ class TemplateManager:
         if docx_src.exists():
             shutil.copy(docx_src, dest_dir / config.docx_template)
 
+        assets_src = template_path / 'assets'
+        if assets_src.exists():
+            shutil.copytree(assets_src, dest_dir / 'assets', dirs_exist_ok=True)
+
         # 3. Create chapters directory and copy boilerplate
         chapters_dir = dest_dir / 'chapters'
         chapters_dir.mkdir(exist_ok=True)

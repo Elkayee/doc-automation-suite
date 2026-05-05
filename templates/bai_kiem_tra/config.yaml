@@ -25,3 +25,19 @@ settings:
   margin_right_cm: 2.0
   gutter_cm: 0.0
   orientation: "portrait"
+  cover_page:
+    institution_line_1: "HỌC VIỆN CÔNG NGHỆ BƯU CHÍNH VIỄN THÔNG"
+    institution_line_2: "KHOA CÔNG NGHỆ THÔNG TIN 1"
+    divider: "______________________________"
+    logo_path: "assets/ptit-logo.png"
+    title: "BÀI KIỂM TRA GIỮA KỲ"
+    subject: "MÔN: ..."
+    lecturer_label: "Giảng viên"
+    lecturer_value: "..."
+    class_label: "Lớp"
+    class_value: "..."
+    student_label: "Họ tên"
+    student_value: "..."
+    student_id_label: "MSSV"
+    student_id_value: "..."
+    date_text: "Hà Nội, Tháng .../...."

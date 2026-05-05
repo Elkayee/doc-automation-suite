@@ -11,7 +11,7 @@ from src.core.docx_helpers import DocxHelpers
 
 class DocxBuilderListMarkerTests(unittest.TestCase):
     def test_build_preserves_literal_bullet_marker_from_markdown(self):
-        workspace = Path('D:/doc-automation-suite/tests/_tmp_docx_builder')
+        workspace = Path('D:/doc-automation-suite/tests/_tmp_docx_builder_list_markers')
         if workspace.exists():
             shutil.rmtree(workspace, ignore_errors=True)
         workspace.mkdir(parents=True, exist_ok=True)
@@ -59,7 +59,7 @@ class DocxBuilderListMarkerTests(unittest.TestCase):
                 shutil.rmtree(workspace, ignore_errors=True)
 
     def test_build_overrides_exact_line_spacing_for_image_paragraphs(self):
-        workspace = Path('D:/doc-automation-suite/tests/_tmp_docx_builder')
+        workspace = Path('D:/doc-automation-suite/tests/_tmp_docx_builder_image_spacing')
         if workspace.exists():
             shutil.rmtree(workspace, ignore_errors=True)
         workspace.mkdir(parents=True, exist_ok=True)
@@ -115,7 +115,7 @@ class DocxBuilderListMarkerTests(unittest.TestCase):
                 shutil.rmtree(workspace, ignore_errors=True)
 
     def test_build_renders_relation_schema_code_terms_as_italic_prose(self):
-        workspace = Path('D:/doc-automation-suite/tests/_tmp_docx_builder')
+        workspace = Path('D:/doc-automation-suite/tests/_tmp_docx_builder_relation_schema')
         if workspace.exists():
             shutil.rmtree(workspace, ignore_errors=True)
         workspace.mkdir(parents=True, exist_ok=True)
@@ -175,6 +175,85 @@ class DocxBuilderListMarkerTests(unittest.TestCase):
 
         self.assertEqual(settings['font_name'], 'Times New Roman')
         self.assertEqual(settings['font_size'], 14)
+
+    def test_exam_cover_renders_table_layout_and_page_break(self):
+        workspace = Path('D:/doc-automation-suite/tests/_tmp_docx_builder_exam_cover')
+        if workspace.exists():
+            shutil.rmtree(workspace, ignore_errors=True)
+        workspace.mkdir(parents=True, exist_ok=True)
+        try:
+            config_path = workspace / 'config.yaml'
+            markdown_path = workspace / 'assembled.md'
+            image_cache = workspace / '.diagram_cache'
+            output_path = workspace / 'out.docx'
+
+            config_path.write_text(
+                yaml.safe_dump(
+                    {
+                        'name': 'Exam',
+                        'description': '',
+                        'type': 'exam',
+                        'docx_template': 'template.docx',
+                        'required_files': ['F00_header.md', 'Ch01_Test.md'],
+                        'settings': {
+                            'cover_page': {
+                                'logo_path': '',
+                                'title': 'BÀI KIỂM TRA GIỮA KỲ',
+                                'subject': 'MÔN: ...',
+                                'lecturer_label': 'Giảng viên',
+                                'lecturer_value': '...',
+                                'class_label': 'Lớp',
+                                'class_value': '...',
+                                'student_label': 'Họ tên',
+                                'student_value': '...',
+                                'student_id_label': 'MSSV',
+                                'student_id_value': '...',
+                                'date_text': 'Hà Nội, Tháng .../....',
+                            }
+                        },
+                    },
+                    allow_unicode=True,
+                    sort_keys=False,
+                ),
+                encoding='utf-8',
+            )
+            markdown_path.write_text(
+                '<!-- FILE: F00_header.md -->\n\n'
+                '**Tiêu đề:** BÀI KIỂM TRA GIỮA KỲ\n'
+                '**Môn:** MÔN: CƠ SỞ DỮ LIỆU PHÂN TÁN\n'
+                '**Giảng viên:** ThS. Mai Ngọc Lương\n'
+                '**Lớp:** D24TXCN15-K\n'
+                '**Họ tên:** Nguyễn Viết Tùng\n'
+                '**MSSV:** K24DTCN633\n'
+                '**Thời gian:** Hà Nội, Tháng 05/2026\n\n'
+                '<!-- FILE: Ch01_Test.md -->\n\n'
+                'Noi dung trang sau.\n',
+                encoding='utf-8',
+            )
+
+            builder = DocxBuilder(workspace)
+            builder.build_from_markdown(str(markdown_path), image_cache)
+            builder.save(output_path)
+
+            self.assertEqual(len(builder.doc.tables), 1)
+            cover_table = builder.doc.tables[0]
+            self.assertEqual(cover_table.cell(0, 0).text, 'Giảng viên')
+            self.assertEqual(cover_table.cell(0, 2).text, 'ThS. Mai Ngọc Lương')
+            self.assertEqual(cover_table.cell(3, 0).text, 'MSSV')
+            self.assertEqual(cover_table.cell(3, 2).text, 'K24DTCN633')
+
+            with zipfile.ZipFile(output_path, 'r') as archive:
+                document_xml = archive.read('word/document.xml').decode('utf-8', errors='ignore')
+
+            self.assertIn('BÀI KIỂM TRA GIỮA KỲ', document_xml)
+            self.assertIn('CƠ SỞ DỮ LIỆU PHÂN TÁN', document_xml)
+            self.assertIn('Hà Nội, Tháng 05/2026', document_xml)
+            self.assertIn('w:type="page"', document_xml)
+            self.assertIn('Noi dung trang sau.', document_xml)
+            self.assertNotIn('**Giảng viên:**', document_xml)
+        finally:
+            if workspace.exists():
+                shutil.rmtree(workspace, ignore_errors=True)
 
 
 if __name__ == '__main__':

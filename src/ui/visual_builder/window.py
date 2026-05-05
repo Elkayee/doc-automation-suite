@@ -83,6 +83,8 @@ class VisualBuilderWindow(tk.Toplevel):
         ttk.Button(toolbar, text='Refresh', command=self.refresh_preview).pack(side='left', padx=(8, 0))
         ttk.Button(toolbar, text='New Chapter', command=self.create_chapter).pack(side='left', padx=(16, 0))
         ttk.Button(toolbar, text='New Subchapter', command=self.create_subchapter).pack(side='left', padx=(8, 0))
+        ttk.Button(toolbar, text='Add Cover', command=self.create_cover_page).pack(side='left', padx=(8, 0))
+        ttk.Button(toolbar, text='Add TOC', command=self.create_table_of_contents).pack(side='left', padx=(8, 0))
         ttk.Button(toolbar, text='Rename', command=self.rename_chapter).pack(side='left', padx=(8, 0))
         ttk.Button(toolbar, text='Delete', command=self.delete_chapter).pack(side='left', padx=(8, 0))
         ttk.Button(toolbar, text='Reformat', command=self.reformat_current_chapter).pack(side='left', padx=(8, 0))
@@ -121,6 +123,8 @@ class VisualBuilderWindow(tk.Toplevel):
         button_row.pack(fill='x', padx=8, pady=(0, 6))
         ttk.Button(button_row, text='Add', command=self.create_chapter).pack(side='left')
         ttk.Button(button_row, text='Add Child', command=self.create_subchapter).pack(side='left', padx=(6, 0))
+        ttk.Button(button_row, text='Add Cover', command=self.create_cover_page).pack(side='left', padx=(6, 0))
+        ttk.Button(button_row, text='Add TOC', command=self.create_table_of_contents).pack(side='left', padx=(6, 0))
         ttk.Button(button_row, text='Rename', command=self.rename_chapter).pack(side='left', padx=(6, 0))
         ttk.Button(button_row, text='Delete', command=self.delete_chapter).pack(side='left', padx=(6, 0))
 
@@ -731,6 +735,28 @@ class VisualBuilderWindow(tk.Toplevel):
         self.refresh_preview()
         self._set_status(f'Created {filename}')
 
+    def create_cover_page(self):
+        filename = self._ensure_frontmatter_file(
+            index=0,
+            slug='header',
+            default_title='Header',
+            content=self._build_cover_frontmatter_content(),
+        )
+        self._load_chapter_list(select_filename=filename)
+        self.refresh_preview()
+        self._set_status(f'Ready {filename}')
+
+    def create_table_of_contents(self):
+        filename = self._ensure_frontmatter_file(
+            index=1,
+            slug='toc',
+            default_title='TOC',
+            content='[[TOC]]\n',
+        )
+        self._load_chapter_list(select_filename=filename)
+        self.refresh_preview()
+        self._set_status(f'Ready {filename}')
+
     def rename_chapter(self):
         selected_filename = self._get_selected_filename()
         if not selected_filename:
@@ -788,6 +814,22 @@ class VisualBuilderWindow(tk.Toplevel):
 
         order = self.assembler.get_chapter_filenames()
         insert_index = self._chapter_insert_index(order, anchor_filename)
+        order.insert(insert_index, filename)
+        self.assembler.save_chapter_order(order)
+        self._known_mtimes[target_path] = target_path.stat().st_mtime
+        return filename
+
+    def _ensure_frontmatter_file(self, index: int, slug: str, default_title: str, content: str) -> str:
+        existing = self._find_frontmatter_filename(index)
+        if existing:
+            return existing
+
+        filename = f'F{index:02d}_{slug}.md'
+        target_path = self.project_path / 'chapters' / filename
+        target_path.write_text(content, encoding='utf-8')
+
+        order = self.assembler.get_chapter_filenames()
+        insert_index = self._frontmatter_insert_index(order, index)
         order.insert(insert_index, filename)
         self.assembler.save_chapter_order(order)
         self._known_mtimes[target_path] = target_path.stat().st_mtime
@@ -934,6 +976,22 @@ class VisualBuilderWindow(tk.Toplevel):
                 numbers.append(int(match.group('chapter')))
         return (max(numbers) + 1) if numbers else 1
 
+    def _find_frontmatter_filename(self, index: int) -> str | None:
+        for filename in self.assembler.get_chapter_filenames():
+            match = self.FRONTMATTER_RE.match(filename)
+            if match and int(match.group('index')) == index:
+                return filename
+        return None
+
+    def _frontmatter_insert_index(self, order: list[str], index: int) -> int:
+        for position, filename in enumerate(order):
+            match = self.FRONTMATTER_RE.match(filename)
+            if not match:
+                return position
+            if int(match.group('index')) > index:
+                return position
+        return len(order)
+
     def _next_subchapter_number(self, chapter_number: int) -> int:
         numbers = []
         for filename in self.assembler.get_chapter_filenames():
@@ -976,6 +1034,20 @@ class VisualBuilderWindow(tk.Toplevel):
             '#### Interim Finding\n\n'
             'Close the subsection with the result that should carry forward.\n'
         )
+
+    def _build_cover_frontmatter_content(self) -> str:
+        config = self._get_workspace_config()
+        if config and config.type == 'exam':
+            return (
+                '**Tiêu đề:** BÀI KIỂM TRA GIỮA KỲ\n'
+                '**Môn:** ...\n'
+                '**Giảng viên:** ...\n'
+                '**Lớp:** ...\n'
+                '**Họ tên:** ...\n'
+                '**MSSV:** ...\n'
+                '**Thời gian:** Hà Nội, Tháng .../....\n'
+            )
+        return '# Trang bìa\n\nĐiền thông tin trang bìa tại đây.\n'
 
     def _get_workspace_config(self):
         config = self.assembler.get_config()
