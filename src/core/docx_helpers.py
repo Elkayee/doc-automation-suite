@@ -16,28 +16,44 @@ COLOR_H3 = RGBColor(0x2E, 0x86, 0xAB)
 COLOR_H4 = RGBColor(0x44, 0x9D, 0xD1)
 
 class DocxHelpers:
+    EXAM_COVER_LEGACY_TEXT_MAP = {
+        'HOC VIEN CONG NGHE BUU CHINH VIEN THONG': 'HỌC VIỆN CÔNG NGHỆ BƯU CHÍNH VIỄN THÔNG',
+        'KHOA CONG NGHE THONG TIN 1': 'KHOA CÔNG NGHỆ THÔNG TIN 1',
+        'BAI KIEM TRA GIUA KY': 'BÀI KIỂM TRA GIỮA KỲ',
+        'MON: CO SO DU LIEU PHAN TAN': 'MÔN: CƠ SỞ DỮ LIỆU PHÂN TÁN',
+        'MON: ...': 'MÔN: ...',
+        'Giang vien': 'Giảng viên',
+        'Lop': 'Lớp',
+        'Ho ten': 'Họ tên',
+        'Ha Noi, Thang .../....': 'Hà Nội, Tháng .../....',
+        'Ha Noi, Thang 05/2026': 'Hà Nội, Tháng 05/2026',
+    }
+
     @staticmethod
     def get_exam_cover_settings(config):
         settings = (config.settings if config and config.settings else {}).copy()
         cover = (settings.get('cover_page', {}) or {}).copy()
         defaults = {
-            'institution_line_1': 'HOC VIEN CONG NGHE BUU CHINH VIEN THONG',
-            'institution_line_2': 'KHOA CONG NGHE THONG TIN 1',
+            'institution_line_1': 'HỌC VIỆN CÔNG NGHỆ BƯU CHÍNH VIỄN THÔNG',
+            'institution_line_2': 'KHOA CÔNG NGHỆ THÔNG TIN 1',
             'divider': '______________________________',
             'logo_path': 'assets/ptit-logo.png',
-            'title': 'BAI KIEM TRA GIUA KY',
-            'subject': 'MON: CO SO DU LIEU PHAN TAN',
-            'lecturer_label': 'Giang vien',
+            'title': 'BÀI KIỂM TRA GIỮA KỲ',
+            'subject': 'MÔN: ...',
+            'lecturer_label': 'Giảng viên',
             'lecturer_value': '',
-            'class_label': 'Lop',
+            'class_label': 'Lớp',
             'class_value': '',
-            'student_label': 'Ho ten',
+            'student_label': 'Họ tên',
             'student_value': '',
             'student_id_label': 'MSSV',
             'student_id_value': '',
             'date_text': '',
         }
         defaults.update(cover)
+        for key, value in list(defaults.items()):
+            if isinstance(value, str):
+                defaults[key] = DocxHelpers.EXAM_COVER_LEGACY_TEXT_MAP.get(value, value)
         return defaults
 
     @staticmethod

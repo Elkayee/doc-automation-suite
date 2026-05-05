@@ -15,6 +15,10 @@ class MarkdownUtils:
     RELATION_SCHEMA_CODE_RE = re.compile(
         r'[A-Za-z][A-Za-z0-9_]*\(\s*[A-Za-z][A-Za-z0-9_]*(?:\s*,\s*[A-Za-z][A-Za-z0-9_]*)*\s*\)'
     )
+    UNICODE_WORD_RE = re.compile(r'\b[^\W\d_]+\b', re.UNICODE)
+    PROTECTED_TITLECASE_WORDS = {
+        'Châu', 'Á', 'Âu', 'Mỹ', 'Hà', 'Nội', 'Việt', 'Nam',
+    }
 
     @staticmethod
     def strip_md_links(text):
@@ -166,6 +170,74 @@ class MarkdownUtils:
         return cls.INLINE_CODE_RE.sub(lambda match: match.group(1), normalized)
 
     @classmethod
+    def split_report_parenthetical_clauses(cls, text):
+        text = re.sub(
+            r'(\([A-Za-z][A-Za-z0-9\s_-]*\))\s+([A-ZÀ-Ỹ][^\n]*)',
+            lambda match: f'{match.group(1)}\n\n{match.group(2)[0].upper()}{match.group(2)[1:]}',
+            text,
+        )
+        return re.sub(
+            r'(\*\*[^*\n]*\([A-Za-z][A-Za-z0-9\s_-]*\)\*\*)\s+([A-ZÀ-Ỹ][^\n]*)',
+            lambda match: f'{match.group(1)}\n\n{match.group(2)}',
+            text,
+        )
+
+    @classmethod
+    def normalize_report_capitalization(cls, text):
+        result = []
+        last_index = 0
+
+        for match in cls.UNICODE_WORD_RE.finditer(text):
+            start, end = match.span()
+            word = match.group(0)
+            result.append(text[last_index:start])
+            result.append(cls._normalize_report_word(word, text, start, end))
+            last_index = end
+
+        result.append(text[last_index:])
+        return ''.join(result)
+
+    @classmethod
+    def _normalize_report_word(cls, word, text, start, end):
+        sentence_start_kind = cls._sentence_start_kind(text, start)
+        if sentence_start_kind:
+            if sentence_start_kind in {'punct', 'colon'} and word[:1].islower():
+                return word[:1].upper() + word[1:]
+            return word
+        if word in cls.PROTECTED_TITLECASE_WORDS:
+            return word
+        if word.isupper():
+            return word
+        if not word[:1].isupper():
+            return word
+        if all(ord(char) < 128 for char in word):
+            return word
+        return word.lower()
+
+    @staticmethod
+    def _sentence_start_kind(text, start):
+        prefix = text[:start]
+        if re.search(r'\n\s*\n\s*$', prefix):
+            return 'punct'
+        stripped = prefix.rstrip()
+        if not stripped:
+            return 'structural'
+        if re.fullmatch(r'(?:[-*+]\s+|\d+\.\s+)?[*_`~>#\[\]()\s]*', stripped):
+            return 'structural'
+        if re.fullmatch(r'(?:[-*+]\s+|\d+\.\s+)?\*\*[^*]+\*\*\s*', stripped):
+            return 'structural'
+        if stripped.endswith(':'):
+            prefix_before_colon = stripped[:-1].rstrip()
+            if re.search(r'\b\d+\s+\w+$', prefix_before_colon, re.UNICODE):
+                return None
+            return 'colon'
+        if re.search(r'[.!?]["”’)\]]*$', stripped):
+            return 'punct'
+        if re.search(r':\s*[“"\'‘]$', stripped):
+            return 'colon'
+        return None
+
+    @classmethod
     def is_markdown_block_line(cls, text):
         stripped = text.strip()
         if not stripped:
@@ -196,6 +268,8 @@ class MarkdownUtils:
             paragraph = ' '.join(part.strip() for part in paragraph_parts if part.strip())
             paragraph = re.sub(r'\s+', ' ', paragraph).strip()
             if paragraph:
+                paragraph = cls.split_report_parenthetical_clauses(paragraph)
+                paragraph = cls.normalize_report_capitalization(paragraph)
                 normalized.append(paragraph)
             paragraph_parts = []
 
@@ -270,7 +344,9 @@ class MarkdownUtils:
                         break
                     text_value = f'{text_value} {continuation}'
                     i += 1
-                normalized.append(f'{"  " * indent_level}- {re.sub(r"\s+", " ", text_value).strip()}')
+                text_value = re.sub(r'\s+', ' ', text_value).strip()
+                text_value = cls.normalize_report_capitalization(text_value)
+                normalized.append(f'{"  " * indent_level}- {text_value}')
                 continue
 
             trailing_number_match = re.match(r'^(?P<body>.+\.)\s*(?P<number>\d+)$', stripped)
@@ -396,6 +472,8 @@ class MarkdownUtils:
             paragraph = re.sub(r'\s+', ' ', paragraph).strip()
             if paragraph:
                 paragraph = cls.normalize_inline_special_terms(paragraph)
+                paragraph = cls.split_report_parenthetical_clauses(paragraph)
+                paragraph = cls.normalize_report_capitalization(paragraph)
                 reformatted.append(cls.normalize_punctuation(paragraph))
             paragraph_parts = []
 
@@ -406,6 +484,7 @@ class MarkdownUtils:
             item_text = ' '.join(part.strip() for part in list_parts if part.strip())
             item_text = re.sub(r'\s+', ' ', item_text).strip()
             item_text = cls.normalize_inline_special_terms(item_text)
+            item_text = cls.normalize_report_capitalization(item_text)
             reformatted.append(f'{list_prefix}{cls.normalize_punctuation(item_text)}' if item_text else list_prefix.rstrip())
             list_prefix = None
             list_parts = []

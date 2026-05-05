@@ -160,14 +160,65 @@ class MarkdownListContinuationTests(unittest.TestCase):
 
         self.assertEqual(result, expected)
 
+    def test_reformat_normalizes_arbitrary_vietnamese_mid_sentence_capitalization(self):
+        source = (
+            'Em hãy lấy một ví dụ về CSDL Tập trung và một ví dụ về CSDL Phân tán để phân tích sự giống nhau.\n\n'
+            'Triển khai thực tế: Công tác khảo sát được thực hiện. Trên cơ sở đó, Đội ngũ phát triển xây dựng '
+            'tài liệu Tầm nhìn (Vision). Đồng thời, tài liệu Từ điển dự án (Glossary) cũng được thiết lập.\n'
+        )
+        expected = (
+            'Em hãy lấy một ví dụ về CSDL tập trung và một ví dụ về CSDL phân tán để phân tích sự giống nhau.\n\n'
+            'Triển khai thực tế: Công tác khảo sát được thực hiện. Trên cơ sở đó, đội ngũ phát triển xây dựng '
+            'tài liệu tầm nhìn (Vision). Đồng thời, tài liệu từ điển dự án (Glossary) cũng được thiết lập.\n'
+        )
+
+        result = MarkdownUtils.reformat_markdown_document(source, ['-', '+', '*'])
+
+        self.assertEqual(result, expected)
+
+    def test_reformat_keeps_uppercase_after_colon_sentence_boundary(self):
+        source = 'Bước 1: phân rã truy vấn (Query Decomposition) Giai đoạn này đảm nhiệm việc đầu tiên.\n'
+        expected = 'Bước 1: Phân rã truy vấn (Query Decomposition)\n\nGiai đoạn này đảm nhiệm việc đầu tiên.\n'
+
+        result = MarkdownUtils.reformat_markdown_document(source, ['-', '+', '*'])
+
+        self.assertEqual(result, expected)
+
+    def test_reformat_splits_paragraph_after_english_parenthetical_before_new_capitalized_clause(self):
+        source = (
+            'Bước 1: Phân rã truy vấn (Query Decomposition) Phân tách truy vấn thành các phần nhỏ hơn để xử lý.\n'
+        )
+        expected = (
+            'Bước 1: Phân rã truy vấn (Query Decomposition)\n\n'
+            'Phân tách truy vấn thành các phần nhỏ hơn để xử lý.\n'
+        )
+
+        result = MarkdownUtils.reformat_markdown_document(source, ['-', '+', '*'])
+
+        self.assertEqual(result, expected)
+
+    def test_reformat_splits_after_bold_heading_with_english_parenthetical_before_schedule_clause(self):
+        source = (
+            '**Bước 4: Tối ưu hóa truy vấn cục bộ (Local Query Optimization)** Lịch trình thực thi phân tán '
+            'được chuyển giao về các trạm địa phương.\n'
+        )
+        expected = (
+            '**Bước 4: Tối ưu hóa truy vấn cục bộ (Local Query Optimization)**\n\n'
+            'Lịch trình thực thi phân tán được chuyển giao về các trạm địa phương.\n'
+        )
+
+        result = MarkdownUtils.reformat_markdown_document(source, ['-', '+', '*'])
+
+        self.assertEqual(result, expected)
+
     def test_reformat_normalizes_comma_period_before_markdown_closer(self):
         source = (
             '**1. Phân mảnh ngang (Horizontal Fragmentation)** Phân mảnh ngang là quá trình chia các bộ '
             '(dòng) của một quan hệ thành các tập con logic khác biệt nhau,.**\n'
         )
         expected = (
-            '**1. Phân mảnh ngang (Horizontal Fragmentation)** Phân mảnh ngang là quá trình chia các bộ '
-            '(dòng) của một quan hệ thành các tập con logic khác biệt nhau.**\n'
+            '**1. Phân mảnh ngang (Horizontal Fragmentation)**\n\n'
+            'Phân mảnh ngang là quá trình chia các bộ (dòng) của một quan hệ thành các tập con logic khác biệt nhau.**\n'
         )
 
         result = MarkdownUtils.reformat_markdown_document(source, ['-', '+', '*'])
@@ -221,6 +272,20 @@ class MarkdownListContinuationTests(unittest.TestCase):
             '  - Tren 2 gio: tinh theo gio\n'
             '- Neu mat ve, khach phai tra phi phat co dinh.\n\n'
             '6. Thuc hien module.\n'
+        )
+
+        result = MarkdownUtils.normalize_pasted_markdown(source)
+
+        self.assertEqual(result, expected)
+
+    def test_normalize_pasted_markdown_normalizes_mid_sentence_vietnamese_capitalization(self):
+        source = (
+            'Triển khai thực tế: Công tác khảo sát được thực hiện để làm rõ nhu cầu của chủ đầu tư.\n'
+            'Trên cơ sở đó, Đội ngũ phát triển xây dựng tài liệu Tầm nhìn (Vision) nhằm xác lập mục tiêu cốt lõi.\n'
+        )
+        expected = (
+            'Triển khai thực tế: Công tác khảo sát được thực hiện để làm rõ nhu cầu của chủ đầu tư. '
+            'Trên cơ sở đó, đội ngũ phát triển xây dựng tài liệu tầm nhìn (Vision) nhằm xác lập mục tiêu cốt lõi.\n'
         )
 
         result = MarkdownUtils.normalize_pasted_markdown(source)
