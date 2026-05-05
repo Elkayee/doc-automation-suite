@@ -133,6 +133,8 @@ class DocxHelpers:
     @staticmethod
     def get_content_frame_size(doc, height_reserve=Cm(1.5)):
         sec = doc.sections[0]
+        # python-docx trả về int thô (EMU) khi trừ 2 Length objects.
+        # Cần bọc lại bằng Emu() để có .inches attribute cho tính toán scale.
         max_width = Emu(sec.page_width - sec.left_margin - sec.right_margin)
         max_height = Emu(sec.page_height - sec.top_margin - sec.bottom_margin - height_reserve)
         return max_width, max_height
@@ -159,6 +161,93 @@ class DocxHelpers:
         run.add_picture(str(image_path), width=target_width, height=target_height)
 
     @staticmethod
+    def set_picture_wrap_top_bottom(run, pic_id=1):
+        """Chuyen hinh anh inline (wp:inline) thanh floating Top and Bottom (wp:anchor).
+        Hinh duoc can giua theo chieu ngang, nam dung vi tri dat vao van ban.
+        """
+        r_elem = run._r
+        drawing = r_elem.find(qn('w:drawing'))
+        if drawing is None:
+            return
+        inline = drawing.find(qn('wp:inline'))
+        if inline is None:
+            return  # da la anchor hoac khong co
+
+        # Lay kich thuoc tu wp:extent
+        extent = inline.find(qn('wp:extent'))
+        cx = extent.get('cx', '5000000') if extent is not None else '5000000'
+        cy = extent.get('cy', '3000000') if extent is not None else '3000000'
+
+        # Lay doc properties
+        doc_pr = inline.find(qn('wp:docPr'))
+        pid = doc_pr.get('id', str(pic_id)) if doc_pr is not None else str(pic_id)
+        pname = doc_pr.get('name', f'Image {pic_id}') if doc_pr is not None else f'Image {pic_id}'
+        pdescr = doc_pr.get('descr', '') if doc_pr is not None else ''
+
+        # Lay cNvGraphicFramePr va graphic — dung namespace day du
+        cnv = inline.find(qn('wp:cNvGraphicFramePr'))
+        graphic = inline.find(qn('a:graphic'))
+
+        # --- Xay dung wp:anchor ---
+        anchor = OxmlElement('wp:anchor')
+        anchor.set('distT', '114300')   # 0.9 cm tren
+        anchor.set('distB', '114300')   # 0.9 cm duoi
+        anchor.set('distL', '0')
+        anchor.set('distR', '0')
+        anchor.set('simplePos', '0')
+        anchor.set('relativeHeight', '251659264')
+        anchor.set('behindDoc', '0')
+        anchor.set('locked', '0')
+        anchor.set('layoutInCell', '1')
+        anchor.set('allowOverlap', '0')
+
+        sp = OxmlElement('wp:simplePos')
+        sp.set('x', '0'); sp.set('y', '0')
+        anchor.append(sp)
+
+        ph = OxmlElement('wp:positionH')
+        ph.set('relativeFrom', 'column')
+        ah = OxmlElement('wp:align'); ah.text = 'center'
+        ph.append(ah); anchor.append(ph)
+
+        pv = OxmlElement('wp:positionV')
+        pv.set('relativeFrom', 'paragraph')
+        po = OxmlElement('wp:posOffset'); po.text = '0'
+        pv.append(po); anchor.append(pv)
+
+        ext2 = OxmlElement('wp:extent')
+        ext2.set('cx', cx); ext2.set('cy', cy)
+        anchor.append(ext2)
+
+        ee = OxmlElement('wp:effectExtent')
+        for attr in ('l', 't', 'r', 'b'):
+            ee.set(attr, '0')
+        anchor.append(ee)
+
+        anchor.append(OxmlElement('wp:wrapTopAndBottom'))
+
+        dp = OxmlElement('wp:docPr')
+        dp.set('id', pid); dp.set('name', pname)
+        if pdescr:
+            dp.set('descr', pdescr)
+        anchor.append(dp)
+
+        if cnv is not None:
+            anchor.append(cnv)
+        else:
+            anchor.append(OxmlElement('wp:cNvGraphicFramePr'))
+
+        # QUAN TRONG: graphic phai co mat, neu khong Word tu choi mo file
+        if graphic is not None:
+            anchor.append(graphic)
+        else:
+            # Fallback: abort conversion, giu nguyen inline
+            return
+
+        drawing.replace(inline, anchor)
+
+
+    @staticmethod
     def resolve_media_path(base_dir, md_path, asset_path):
         asset = Path(asset_path)
         if asset.is_absolute():
@@ -182,11 +271,13 @@ class DocxHelpers:
 
         p = doc.add_paragraph()
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        p.paragraph_format.space_before = Pt(6)
-        p.paragraph_format.space_after = Pt(6)
+        p.paragraph_format.space_before = Pt(18)
+        p.paragraph_format.space_after = Pt(18)
+        p.paragraph_format.first_line_indent = None
         run = p.add_run()
         max_width, max_height = DocxHelpers.get_content_frame_size(doc, height_reserve=Cm(2))
         DocxHelpers.add_picture_fit(run, image_path, doc, max_width=max_width, max_height=max_height)
+        DocxHelpers.set_picture_wrap_top_bottom(run)
 
     @staticmethod
     def add_page_break(doc):
