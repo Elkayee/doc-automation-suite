@@ -1,1 +1,0 @@
-🛡️ Sentinel: Fix CI failure by upgrading codecov/codecov-action to v5 and Node.js to v24
