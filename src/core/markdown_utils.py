@@ -217,23 +217,31 @@ class MarkdownUtils:
     @staticmethod
     def _sentence_start_kind(text, start):
         prefix = text[:start]
-        if re.search(r'\n\s*\n\s*$', prefix):
+        # Optimization: only need the tail for punctuation check
+        tail = prefix[-150:] if len(prefix) > 150 else prefix
+        if re.search(r'\n\s*\n\s*$', tail):
             return 'punct'
         stripped = prefix.rstrip()
         if not stripped:
             return 'structural'
-        if re.fullmatch(r'(?:[-*+]\s+|\d+\.\s+)?[*_`~>#\[\]()\s]*', stripped):
-            return 'structural'
-        if re.fullmatch(r'(?:[-*+]\s+|\d+\.\s+)?\*\*[^*]+\*\*\s*', stripped):
-            return 'structural'
-        if stripped.endswith(':'):
-            prefix_before_colon = stripped[:-1].rstrip()
+
+        # Optimization: only run fullmatch on small strings, since the regex
+        # patterns only match structural prefixes (like "  - " or "1. ")
+        if len(stripped) < 200:
+            if re.fullmatch(r'(?:[-*+]\s+|\d+\.\s+)?[*_`~>#\[\]()\s]*', stripped):
+                return 'structural'
+            if re.fullmatch(r'(?:[-*+]\s+|\d+\.\s+)?\*\*[^*]+\*\*\s*', stripped):
+                return 'structural'
+
+        stripped_tail = stripped[-150:] if len(stripped) > 150 else stripped
+        if stripped_tail.endswith(':'):
+            prefix_before_colon = stripped_tail[:-1].rstrip()
             if re.search(r'\b\d+\s+\w+$', prefix_before_colon, re.UNICODE):
                 return None
             return 'colon'
-        if re.search(r'[.!?]["”’)\]]*$', stripped):
+        if re.search(r'[.!?]["”’)\]]*$', stripped_tail):
             return 'punct'
-        if re.search(r':\s*[“"\'‘]$', stripped):
+        if re.search(r':\s*[“"\'‘]$', stripped_tail):
             return 'colon'
         return None
 
