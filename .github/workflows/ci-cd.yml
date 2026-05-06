@@ -1,0 +1,67 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  ci-cd:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          uv sync
+          npm ci
+
+      - name: Lint Python
+        run: uv run ruff check .
+
+      - name: Lint Markdown/JSON
+        run: npm run lint
+
+      - name: Run tests
+        run: uv run pytest --cov --cov-report=xml --cov-report=term
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: false
+
+      - name: Build artifacts
+        run: uv run python make.py
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: build-outputs
+          path: |
+            Bao_Cao_Tieu_Luan_NMCNPM.docx
+            Bao_Cao_Tieu_Luan_NMCNPM.md
+          retention-days: 30
