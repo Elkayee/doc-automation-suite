@@ -54,7 +54,7 @@ jobs:
           fail_ci_if_error: false
 
       - name: Build artifacts
-        run: uv run python make.py
+        run: uv run python make.py build --workspace "workspaces/CSDLPT_1_ K24DTCN633_Nguyễn Viết Tùng" --md-out Bao_Cao_Tieu_Luan_NMCNPM.md --docx-out Bao_Cao_Tieu_Luan_NMCNPM.docx
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
