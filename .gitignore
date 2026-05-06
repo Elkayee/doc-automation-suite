@@ -70,8 +70,21 @@ yarn-error.log*
 *.temp.md
 *.temp.html
 .coverage
+coverage.xml
 .pytest_cache/
 htmlcov/
+
+# Build outputs
+dist/
+build/
+*.egg-info/
+
+# Editor backup/temp files
+*.bak
+*.tmp
+*.swp
+*~
+*.orig
 
 # OSX
 .DS_Store
