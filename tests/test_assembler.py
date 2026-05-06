@@ -1,9 +1,11 @@
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
+
 import yaml
 
 from src.core.assembler import DocumentAssembler
+
 
 class DocumentAssemblerTests(unittest.TestCase):
     def test_prevents_path_traversal_in_config(self):
