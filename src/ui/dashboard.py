@@ -73,6 +73,7 @@ class DashboardApp:
         self.projects_list = tk.Listbox(main_container, font=('Consolas', 11), height=10)
         self.projects_list.pack(fill='both', expand=True)
         self.projects_list.bind('<Double-1>', lambda _event: self.open_selected_project())
+        self.projects_list.bind('<Return>', lambda _event: self.open_selected_project())
 
         self.refresh_projects()
 
@@ -90,7 +91,9 @@ class DashboardApp:
 
         ttk.Label(dialog, text='Ten du an:').pack(pady=(20, 5))
         name_var = tk.StringVar()
-        ttk.Entry(dialog, textvariable=name_var, width=40).pack()
+        name_entry = ttk.Entry(dialog, textvariable=name_var, width=40)
+        name_entry.pack()
+        name_entry.focus_set()
 
         ttk.Label(dialog, text='Chon Template:').pack(pady=(20, 5))
         templates = self.template_manager.list_templates()
@@ -135,6 +138,9 @@ class DashboardApp:
             self._launch_workspace(dest)
 
         ttk.Button(dialog, text='Tao Moi', command=do_create).pack(pady=30)
+
+        dialog.bind('<Return>', lambda e: do_create())
+        dialog.bind('<Escape>', lambda e: dialog.destroy())
 
     def delete_selected_project(self):
         if not self.projects_list.curselection():
