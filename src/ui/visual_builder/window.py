@@ -1,9 +1,8 @@
 import html
 import re
 import sys
-from pathlib import Path
-
 import tkinter as tk
+from pathlib import Path
 from tkinter import messagebox, simpledialog, ttk
 
 from src.core.assembler import DocumentAssembler
@@ -1461,11 +1460,11 @@ class VisualBuilderWindow(tk.Toplevel):
             markers = ChapterSettings.get_list_markers_by_level(self.assembler.get_config(), entry.filename)
             body = PreviewUtils.markdown_to_html_body_with_markers(anchored_md, list_markers_by_level=markers)
             page_sections.append(
-                (
+
                     f'<section class="page" id="{self._chapter_anchor(entry.filename)}" '
                     f'data-page-label="Page {index}">'
                     f'{body}</section>'
-                )
+
             )
 
         return (

@@ -1,15 +1,15 @@
-import os
 import shutil
 from pathlib import Path
-from typing import List, Dict
+
 from src.core.config import TemplateConfig
+
 
 class TemplateManager:
     def __init__(self, templates_dir: Path):
         self.templates_dir = templates_dir
         self.templates_dir.mkdir(parents=True, exist_ok=True)
 
-    def list_templates(self) -> Dict[str, TemplateConfig]:
+    def list_templates(self) -> dict[str, TemplateConfig]:
         """Returns a dict mapping template ID (folder name) to its config."""
         templates = {}
         for entry in self.templates_dir.iterdir():

@@ -1,7 +1,7 @@
-import unittest
-from pathlib import Path
 import shutil
+import unittest
 import zipfile
+from pathlib import Path
 
 import yaml
 

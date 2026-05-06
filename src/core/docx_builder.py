@@ -1,12 +1,14 @@
-import os
 import re
 from pathlib import Path
+
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Cm, Pt, RGBColor
-from src.core.media_downloader import MediaDownloader
+
 from src.core.docx_helpers import DocxHelpers
 from src.core.markdown_utils import MarkdownUtils
+from src.core.media_downloader import MediaDownloader
+
 
 class DocxBuilder:
     def __init__(self, workspace_dir: Path):

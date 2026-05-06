@@ -5,17 +5,18 @@ Usage: uv run python make.py
 
 import argparse
 import os
+import re
+import shutil
 import sys
 from pathlib import Path
 
-from src.core.assembler import DocumentAssembler
-from src.core.docx_builder import DocxBuilder
-from src.core.markdown_utils import MarkdownUtils
-from src.ui.preview_utils import PreviewUtils
-import src.core.docx_helpers
-from src.core.media_downloader import MediaDownloader
+from docx.shared import RGBColor
+
 import split_chapters
 from convert_docx_to_md import convert_docx_to_markdown
+from src.core.assembler import DocumentAssembler
+from src.core.docx_builder import DocxBuilder
+from src.ui.preview_utils import PreviewUtils
 
 sys.stdout.reconfigure(encoding='utf-8')
 
@@ -49,7 +50,7 @@ BUILD_CHAPTER_FILES = [
 ]
 
 # ── MÀUSẮC ───────────────────────────────────────────────────────────────────
-from docx.shared import RGBColor
+
 COLOR_H1 = RGBColor(0x1A, 0x3A, 0x5C)
 COLOR_H2 = RGBColor(0x1F, 0x61, 0x9E)
 COLOR_H3 = RGBColor(0x2E, 0x86, 0xAB)
@@ -123,7 +124,6 @@ def ensure_output_docx_closed(docx_out):
         ) from exc
 
 
-from src.core.assembler import DocumentAssembler
 
 def assemble_markdown(chapter_dir, output_path):
     assembler = DocumentAssembler(Path(chapter_dir).parent)

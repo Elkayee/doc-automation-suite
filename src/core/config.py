@@ -1,24 +1,26 @@
-import yaml
-from pathlib import Path
 from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional
+from pathlib import Path
+from typing import Any
+
+import yaml
+
 
 @dataclass
 class TemplateConfig:
     name: str
     description: str
     type: str  # e.g., "report", "exam"
-    required_files: List[str]
+    required_files: list[str]
     docx_template: str
-    settings: Dict[str, Any] = field(default_factory=dict)
-    chapter_order: List[str] = field(default_factory=list)
+    settings: dict[str, Any] = field(default_factory=dict)
+    chapter_order: list[str] = field(default_factory=list)
 
     @classmethod
     def load(cls, config_path: Path) -> 'TemplateConfig':
         if not config_path.exists():
             raise FileNotFoundError(f"Config file not found: {config_path}")
 
-        with open(config_path, 'r', encoding='utf-8') as f:
+        with open(config_path, encoding='utf-8') as f:
             data = yaml.safe_load(f) or {}
 
         if not isinstance(data, dict):

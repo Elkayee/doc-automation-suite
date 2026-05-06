@@ -14,7 +14,6 @@ sys.stdout.reconfigure(encoding='utf-8')
 from src.core.assembler import DocumentAssembler
 from src.core.docx_builder import DocxBuilder
 
-
 BASE = Path(__file__).resolve().parent
 
 

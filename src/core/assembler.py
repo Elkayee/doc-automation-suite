@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Tuple
 
 
 @dataclass
@@ -33,7 +32,7 @@ class DocumentAssembler:
             raise FileNotFoundError(f'Chapters directory missing in {self.workspace_dir}')
         return config
 
-    def get_chapter_filenames(self) -> List[str]:
+    def get_chapter_filenames(self) -> list[str]:
         config = self._ensure_workspace()
         ordered = []
         seen = set()
@@ -60,19 +59,19 @@ class DocumentAssembler:
         ordered.extend(extras)
         return ordered
 
-    def get_chapter_paths(self) -> List[Path]:
+    def get_chapter_paths(self) -> list[Path]:
         return [self.chapters_dir / filename for filename in self.get_chapter_filenames()]
 
-    def save_chapter_order(self, chapter_filenames: List[str]) -> None:
+    def save_chapter_order(self, chapter_filenames: list[str]) -> None:
         config = self._ensure_workspace()
         config.chapter_order = chapter_filenames
         config.save(self.config_path)
 
-    def assemble_with_metadata(self) -> Tuple[str, List[ChapterAssemblyEntry]]:
+    def assemble_with_metadata(self) -> tuple[str, list[ChapterAssemblyEntry]]:
         self._ensure_workspace()
 
-        parts: List[str] = []
-        entries: List[ChapterAssemblyEntry] = []
+        parts: list[str] = []
+        entries: list[ChapterAssemblyEntry] = []
         current_line = 1
 
         for filename in self.get_chapter_filenames():
@@ -99,27 +98,27 @@ class DocumentAssembler:
         final_md = '\n\n'.join(parts)
         return final_md, entries
 
-    def assemble_markdown(self) -> Tuple[str, List[str]]:
+    def assemble_markdown(self) -> tuple[str, list[str]]:
         final_md, entries = self.assemble_with_metadata()
         return final_md, [str(entry.path) for entry in entries]
 
-    def assemble_markdown_for_export(self) -> Tuple[str, List[str]]:
+    def assemble_markdown_for_export(self) -> tuple[str, list[str]]:
         _final_md, entries = self.assemble_with_metadata()
-        parts: List[str] = []
+        parts: list[str] = []
         for entry in entries:
             parts.append(f'<!-- FILE: {entry.filename} -->')
             parts.append(entry.content)
         final_md = '\n\n'.join(parts)
         return final_md, [str(entry.path) for entry in entries]
 
-    def save_assembled(self, output_path: Path) -> Tuple[str, List[str]]:
+    def save_assembled(self, output_path: Path) -> tuple[str, list[str]]:
         final_md, processed_files = self.assemble_markdown()
         output_path.parent.mkdir(parents=True, exist_ok=True)
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(final_md)
         return final_md, processed_files
 
-    def save_assembled_for_export(self, output_path: Path) -> Tuple[str, List[str]]:
+    def save_assembled_for_export(self, output_path: Path) -> tuple[str, list[str]]:
         final_md, processed_files = self.assemble_markdown_for_export()
         output_path.parent.mkdir(parents=True, exist_ok=True)
         with open(output_path, 'w', encoding='utf-8') as f:

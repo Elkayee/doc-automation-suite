@@ -1,6 +1,6 @@
+import shutil
 import unittest
 from pathlib import Path
-import shutil
 from types import SimpleNamespace
 
 from src.core.assembler import ChapterAssemblyEntry

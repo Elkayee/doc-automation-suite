@@ -2,8 +2,8 @@ import html as html_lib
 import re
 from html.parser import HTMLParser
 
-from src.core.media_downloader import MediaDownloader
 from src.core.markdown_utils import MarkdownUtils
+from src.core.media_downloader import MediaDownloader
 
 
 class PreviewTextExtractor(HTMLParser):

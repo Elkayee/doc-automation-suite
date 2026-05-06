@@ -1,12 +1,14 @@
 import re
 import unicodedata
+from pathlib import Path
+
+from docx.enum.section import WD_ORIENTATION
+from docx.enum.table import WD_TABLE_ALIGNMENT
+from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Emu, Inches, Pt, RGBColor
-from docx.enum.section import WD_ORIENTATION
-from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK
-from docx.enum.table import WD_TABLE_ALIGNMENT
-from pathlib import Path
+
 from src.core.media_downloader import MediaDownloader
 
 # ── MÀUSẮC ───────────────────────────────────────────────────────────────────

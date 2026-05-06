@@ -28,7 +28,7 @@ target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W", "UP"]
-ignore = ["E501"] # Ignore line length in linting, handled by formatter
+ignore = ["E501", "E402", "E702"]  # E501: line length, E402: module import order, E702: multiple statements
 
 [tool.ruff.format]
 quote-style = "single"
