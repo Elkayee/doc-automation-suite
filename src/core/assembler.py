@@ -32,20 +32,23 @@ class DocumentAssembler:
             raise FileNotFoundError(f'Chapters directory missing in {self.workspace_dir}')
         return config
 
+    def _is_safe_filename(self, filename: str) -> bool:
+        return '..' not in filename and '/' not in filename and '\\' not in filename
+
     def get_chapter_filenames(self) -> list[str]:
         config = self._ensure_workspace()
         ordered = []
         seen = set()
 
         for filename in config.chapter_order or []:
-            if filename in seen:
+            if not self._is_safe_filename(filename) or filename in seen:
                 continue
             if (self.chapters_dir / filename).exists():
                 ordered.append(filename)
                 seen.add(filename)
 
         for filename in config.required_files:
-            if filename in seen:
+            if not self._is_safe_filename(filename) or filename in seen:
                 continue
             if (self.chapters_dir / filename).exists():
                 ordered.append(filename)
