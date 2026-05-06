@@ -567,16 +567,37 @@ class MarkdownUtils:
 
     @staticmethod
     def is_line_inside_fenced_block(text, line_number):
-        lines = text.replace('\r\n', '\n').replace('\r', '\n').split('\n')
+        text_normalized = text.replace('\r\n', '\n').replace('\r', '\n')
         safe_line_number = max(1, int(line_number))
+        current_line = 1
+        start_idx = 0
         in_code_fence = False
 
-        for index, line in enumerate(lines, start=1):
+        # We need to process empty final lines as well (which .split('\n') does)
+        while start_idx <= len(text_normalized):
+            end_idx = text_normalized.find('\n', start_idx)
+            if end_idx == -1:
+                end_idx = len(text_normalized)
+
+            line = text_normalized[start_idx:end_idx]
+
             if line.strip().startswith('```'):
                 in_code_fence = not in_code_fence
-                continue
-            if index == safe_line_number:
+                if current_line == safe_line_number:
+                    # The original code toggled the state and continued, meaning if the target line
+                    # is a fence line, it will never return inside the loop and will eventually
+                    # return False at the very end. Let's return False to match that behavior.
+                    return False
+            elif current_line == safe_line_number:
                 return in_code_fence
+
+            # If we've processed the last chunk (no more \n), break to avoid infinite loop
+            # since start_idx would become len + 1
+            if end_idx == len(text_normalized):
+                break
+
+            start_idx = end_idx + 1
+            current_line += 1
 
         return False
 
