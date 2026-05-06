@@ -8,10 +8,12 @@ import yaml
 from src.core.docx_builder import DocxBuilder
 from src.core.docx_helpers import DocxHelpers
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
 
 class DocxBuilderListMarkerTests(unittest.TestCase):
     def test_build_preserves_literal_bullet_marker_from_markdown(self):
-        workspace = Path('D:/doc-automation-suite/tests/_tmp_docx_builder_list_markers')
+        workspace = PROJECT_ROOT / 'tests' / '_tmp_docx_builder_list_markers'
         if workspace.exists():
             shutil.rmtree(workspace, ignore_errors=True)
         workspace.mkdir(parents=True, exist_ok=True)
@@ -59,7 +61,7 @@ class DocxBuilderListMarkerTests(unittest.TestCase):
                 shutil.rmtree(workspace, ignore_errors=True)
 
     def test_build_overrides_exact_line_spacing_for_image_paragraphs(self):
-        workspace = Path('D:/doc-automation-suite/tests/_tmp_docx_builder_image_spacing')
+        workspace = PROJECT_ROOT / 'tests' / '_tmp_docx_builder_image_spacing'
         if workspace.exists():
             shutil.rmtree(workspace, ignore_errors=True)
         workspace.mkdir(parents=True, exist_ok=True)
@@ -90,7 +92,7 @@ class DocxBuilderListMarkerTests(unittest.TestCase):
             markdown_path.write_text(
                 '<!-- FILE: Ch01_Test.md -->\n\n'
                 'Doan truoc.\n\n'
-                '![Image](../../test_extracted.png)\n\n'
+                f'![Image]({PROJECT_ROOT.as_posix()}/test_extracted.png)\n\n'
                 'Doan sau.\n',
                 encoding='utf-8',
             )
@@ -117,7 +119,7 @@ class DocxBuilderListMarkerTests(unittest.TestCase):
                 shutil.rmtree(workspace, ignore_errors=True)
 
     def test_build_renders_relation_schema_code_terms_as_italic_prose(self):
-        workspace = Path('D:/doc-automation-suite/tests/_tmp_docx_builder_relation_schema')
+        workspace = PROJECT_ROOT / 'tests' / '_tmp_docx_builder_relation_schema'
         if workspace.exists():
             shutil.rmtree(workspace, ignore_errors=True)
         workspace.mkdir(parents=True, exist_ok=True)
@@ -179,7 +181,7 @@ class DocxBuilderListMarkerTests(unittest.TestCase):
         self.assertEqual(settings['font_size'], 14)
 
     def test_exam_cover_renders_table_layout_and_page_break(self):
-        workspace = Path('D:/doc-automation-suite/tests/_tmp_docx_builder_exam_cover')
+        workspace = PROJECT_ROOT / 'tests' / '_tmp_docx_builder_exam_cover'
         if workspace.exists():
             shutil.rmtree(workspace, ignore_errors=True)
         workspace.mkdir(parents=True, exist_ok=True)
