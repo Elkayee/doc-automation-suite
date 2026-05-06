@@ -103,8 +103,10 @@ class DocxBuilderListMarkerTests(unittest.TestCase):
                 document_xml = archive.read('word/document.xml').decode('utf-8', errors='ignore')
 
             image_paragraph = next(
-                paragraph_xml for paragraph_xml in document_xml.split('<w:p') if 'wp:inline' in paragraph_xml
+                (paragraph_xml for paragraph_xml in document_xml.split('<w:p') if 'wp:inline' in paragraph_xml),
+                None,
             )
+            self.assertIsNotNone(image_paragraph, 'No image paragraph found in document XML')
 
             self.assertIn('w:lineRule="auto"', image_paragraph)
             self.assertNotIn('w:lineRule="exact"', image_paragraph)
