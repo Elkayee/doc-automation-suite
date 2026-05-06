@@ -1,12 +1,15 @@
 # Visual Doc Builder Implementation Plan
 
-**Goal:** ship a usable three-pane workspace for editing chapter markdown, previewing the assembled document, and exporting `.docx` from the current workspace.
+**Goal:** ship a usable three-pane workspace for editing chapter markdown, previewing the assembled
+document, and exporting `.docx` from the current workspace.
 
-**Execution rule:** reuse the current assembler, preview helpers, and DOCX build path. Do not create a second export pipeline.
+**Execution rule:** reuse the current assembler, preview helpers, and DOCX build path. Do not create
+a second export pipeline.
 
 ## Task 1: Stabilize Core Ordering and Assembly
 
 **Files**
+
 - Modify: `src/core/config.py`
 - Modify: `src/core/assembler.py`
 
@@ -18,6 +21,7 @@
 ## Task 2: Build the Visual Builder Window
 
 **Files**
+
 - Create: `src/ui/visual_builder/__init__.py`
 - Create: `src/ui/visual_builder/window.py`
 
@@ -29,6 +33,7 @@
 ## Task 3: Add Editing Behavior and Word-style Formatting
 
 **Files**
+
 - Modify: `src/ui/visual_builder/window.py`
 - Modify: `src/core/config.py`
 
@@ -41,6 +46,7 @@
 ## Task 4: Add Assembled Preview with Custom Styling
 
 **Files**
+
 - Create: `src/ui/visual_builder/styles.css`
 - Modify: `src/ui/visual_builder/window.py`
 
@@ -52,6 +58,7 @@
 ## Task 5: Hierarchical Navigation (Outline)
 
 **Files**
+
 - Modify: `src/ui/visual_builder/window.py`
 
 - [ ] Add a "Headings" tab to the Navigator
@@ -61,6 +68,7 @@
 ## Task 5: Integrate with Dashboard
 
 **Files**
+
 - Modify: `src/ui/dashboard.py`
 
 - [ ] Replace the minimal workspace popup with `VisualBuilderWindow`
@@ -69,6 +77,7 @@
 ## Task 6: Verify the Workflow
 
 **Files**
+
 - No code changes required
 
 - [ ] Open a workspace from the dashboard
