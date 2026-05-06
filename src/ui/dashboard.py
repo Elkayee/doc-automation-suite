@@ -12,6 +12,8 @@ from src.ui.visual_builder import VisualBuilderWindow
 
 
 class DashboardApp:
+    EMPTY_STATE_TEXT = "--- Chua co du an nao. Nhan '+ Tao Du An Moi' de bat dau ---"
+
     def __init__(self, root, base_dir: Path):
         self.root = root
         self.base_dir = base_dir
@@ -82,6 +84,10 @@ class DashboardApp:
             if entry.is_dir() and (entry / 'config.yaml').exists():
                 self.projects_list.insert(tk.END, entry.name)
 
+        if self.projects_list.size() == 0:
+            self.projects_list.insert(tk.END, self.EMPTY_STATE_TEXT)
+            self.projects_list.itemconfig(0, foreground='gray')
+
     def show_create_dialog(self):
         dialog = tk.Toplevel(self.root)
         dialog.title('Tao Du An Moi')
@@ -144,6 +150,9 @@ class DashboardApp:
         idx = self.projects_list.curselection()[0]
         name = self.projects_list.get(idx)
 
+        if name == self.EMPTY_STATE_TEXT:
+            return
+
         confirm = messagebox.askyesno(
             'Xac nhan xoa',
             f"Ban co chac chan muon xoa du an '{name}' khong?\nHanh dong nay khong the hoan tac.",
@@ -169,6 +178,10 @@ class DashboardApp:
             return
         idx = self.projects_list.curselection()[0]
         name = self.projects_list.get(idx)
+
+        if name == self.EMPTY_STATE_TEXT:
+            return
+
         self._launch_workspace(self.workspaces_dir / name)
 
     def open_legacy_workflow(self):
