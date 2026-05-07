@@ -567,16 +567,48 @@ class MarkdownUtils:
 
     @staticmethod
     def is_line_inside_fenced_block(text, line_number):
-        lines = text.replace('\r\n', '\n').replace('\r', '\n').split('\n')
+        """
+        Check if a given line number is inside a markdown code fence block.
+        Performance optimized: Avoids full string replace/split which causes O(N) allocations.
+        Iterates and finds line breaks explicitly. Breaks early if line_number is reached.
+        """
         safe_line_number = max(1, int(line_number))
         in_code_fence = False
+        start_idx = 0
+        current_line_number = 1
 
-        for index, line in enumerate(lines, start=1):
+        while start_idx <= len(text):
+            if current_line_number > safe_line_number:
+                break
+
+            nl_idx = text.find('\n', start_idx)
+            cr_idx = text.find('\r', start_idx)
+
+            if nl_idx == -1 and cr_idx == -1:
+                end_idx = len(text)
+                next_start = end_idx + 1
+            elif nl_idx != -1 and (cr_idx == -1 or nl_idx < cr_idx):
+                end_idx = nl_idx
+                next_start = nl_idx + 1
+            elif cr_idx != -1 and (nl_idx == -1 or cr_idx < nl_idx):
+                end_idx = cr_idx
+                if cr_idx + 1 < len(text) and text[cr_idx + 1] == '\n':
+                    next_start = cr_idx + 2
+                else:
+                    next_start = cr_idx + 1
+
+            line = text[start_idx:end_idx]
+
             if line.strip().startswith('```'):
                 in_code_fence = not in_code_fence
-                continue
-            if index == safe_line_number:
-                return in_code_fence
+                if current_line_number == safe_line_number:
+                    return False
+            else:
+                if current_line_number == safe_line_number:
+                    return in_code_fence
+
+            current_line_number += 1
+            start_idx = next_start
 
         return False
 
