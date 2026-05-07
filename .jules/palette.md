@@ -1,0 +1,3 @@
+## 2025-05-07 - Empty State Placeholders for Listbox
+**Learning:** Empty list components (like `tk.Listbox`) without visible placeholder text can lead to poor UX by hiding their intended purpose from the user.
+**Action:** Always implement explicit empty states in list-based UI components (e.g., using `size() == 0` to inject a placeholder, colored distinctly such as `foreground='gray'`). Furthermore, ensure all interaction handlers explicitly ignore these placeholders to prevent application crashes or invalid operations. Also, add interactive visual cues (`cursor='hand2'`) to all interactive elements to make the application feel more responsive.
