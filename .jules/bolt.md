@@ -1,3 +1,9 @@
 ## 2024-05-24 - Unbounded string splitting anti-pattern memory and CPU overhead
-**Learning:** Using `text.replace('\r\n', '\n').replace('\r', '\n').split('\n')` on large buffers triggers massive memory allocation and completely iterates the string (O(N)), leading to CPU and memory bottlenecks, especially when used within frequent parsing checks (like repeatedly determining if a line is inside a code block).
-**Action:** When querying line properties in large strings, implement iterative boundary parsing using `str.find('\n', start_idx)`. Additionally, incorporate early return paths (like `if '```' not in text: return False`) to avoid computation entirely on the typical hot paths.
+
+**Learning:** Using `text.replace('\r\n', '\n').replace('\r', '\n').split('\n')` on large buffers
+triggers massive memory allocation and completely iterates the string (O(N)), leading to CPU and
+memory bottlenecks, especially when used within frequent parsing checks (like repeatedly determining
+if a line is inside a code block). **Action:** When querying line properties in large strings,
+implement iterative boundary parsing using `str.find('\n', start_idx)`. Additionally, incorporate
+early return paths (like `if '```' not in text: return False`) to avoid computation entirely on the
+typical hot paths.
