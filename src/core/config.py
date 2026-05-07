@@ -26,14 +26,33 @@ class TemplateConfig:
         if not isinstance(data, dict):
             raise ValueError(f"Invalid configuration format in {config_path}. Expected a dictionary.")
 
+        def _sanitize_filename(name: str) -> str:
+            """Sanitize a single filename against path traversal."""
+            if not isinstance(name, str) or '..' in name or '/' in name or '\\' in name:
+                return 'template.docx'  # Fallback
+            return name
+
+        def _sanitize_filenames(filenames: list[str]) -> list[str]:
+            """Ensure file paths are rigorously sanitized against path traversal."""
+            if not isinstance(filenames, list):
+                return []
+            sanitized = []
+            for name in filenames:
+                if not isinstance(name, str):
+                    continue
+                if '..' in name or '/' in name or '\\' in name:
+                    continue
+                sanitized.append(name)
+            return sanitized
+
         return cls(
             name=data.get('name', 'Unknown Template'),
             description=data.get('description', ''),
             type=data.get('type', 'report'),
-            required_files=data.get('required_files', []),
-            docx_template=data.get('docx_template', 'template.docx'),
+            required_files=_sanitize_filenames(data.get('required_files', [])),
+            docx_template=_sanitize_filename(data.get('docx_template', 'template.docx')),
             settings=data.get('settings', {}),
-            chapter_order=data.get('chapter_order', []) or [],
+            chapter_order=_sanitize_filenames(data.get('chapter_order', []) or []),
         )
 
     def save(self, config_path: Path) -> None:
