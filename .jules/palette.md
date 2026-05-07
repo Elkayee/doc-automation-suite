@@ -1,3 +1,9 @@
 ## 2025-05-07 - Tkinter Listbox Empty State with Disabled Interaction
-**Learning:** Tkinter doesn't have a native "empty state" feature for Listboxes. We can mimic it by inserting a placeholder text string, but to prevent the user from interacting with this placeholder (which might trigger functions expecting real data), we must style it differently (e.g. gray foreground) and modify the interaction handlers (`curselection` events, etc.) to check `itemcget(0, "foreground") == "gray"` and exit early if the placeholder is selected.
-**Action:** When creating empty states in Tkinter Listboxes, combine styling `itemconfig` with event handler guards to create an unclickable placeholder item.
+
+**Learning:** Tkinter doesn't have a native "empty state" feature for Listboxes. We can mimic it by
+inserting a placeholder text string, but to prevent the user from interacting with this placeholder
+(which might trigger functions expecting real data), we must style it differently (e.g. gray
+foreground) and modify the interaction handlers (`curselection` events, etc.) to check
+`itemcget(0, "foreground") == "gray"` and exit early if the placeholder is selected. **Action:**
+When creating empty states in Tkinter Listboxes, combine styling `itemconfig` with event handler
+guards to create an unclickable placeholder item.
