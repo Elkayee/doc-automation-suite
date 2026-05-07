@@ -567,16 +567,43 @@ class MarkdownUtils:
 
     @staticmethod
     def is_line_inside_fenced_block(text, line_number):
-        lines = text.replace('\r\n', '\n').replace('\r', '\n').split('\n')
+        # ⚡ Bolt: Fast-path to avoid any string processing when there are no code fences
+        if '```' not in text:
+            return False
+
         safe_line_number = max(1, int(line_number))
         in_code_fence = False
 
-        for index, line in enumerate(lines, start=1):
+        # ⚡ Bolt: Use iterative string searching to avoid allocating memory for all lines
+        # and short-circuit once we reach the target line. This replaces an O(N) allocation
+        # with an O(1) memory approach that stops early.
+        start_idx = 0
+        current_line_num = 1
+        text_len = len(text)
+
+        while start_idx <= text_len:
+            if current_line_num > safe_line_number:
+                break
+
+            end_idx = text.find('\n', start_idx)
+            if end_idx == -1:
+                end_idx = text_len
+
+            line = text[start_idx:end_idx]
+            if line.endswith('\r'):
+                line = line[:-1]
+
             if line.strip().startswith('```'):
                 in_code_fence = not in_code_fence
+                start_idx = end_idx + 1
+                current_line_num += 1
                 continue
-            if index == safe_line_number:
+
+            if current_line_num == safe_line_number:
                 return in_code_fence
+
+            start_idx = end_idx + 1
+            current_line_num += 1
 
         return False
 
