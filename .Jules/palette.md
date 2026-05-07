@@ -1,0 +1,3 @@
+## 2024-05-24 - Tkinter Listbox Empty State Pattern
+**Learning:** In Tkinter UI development, native listboxes lack built-in "empty state" views, which can leave users confused when lists are devoid of items. Creating a functional and visually distinct placeholder improves usability.
+**Action:** When `listbox.size() == 0`, insert a placeholder string (e.g., "Chua co du an nao. Hay tao moi!") and style it uniquely using `listbox.itemconfig(0, foreground='gray')`. Critically, update ALL event handlers (like selection or double-click) to check `if listbox.itemcget(idx, 'foreground') == 'gray': return` to prevent the UI from treating the placeholder as actionable data.
