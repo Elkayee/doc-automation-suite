@@ -1,7 +1,10 @@
-from src.core.config import TemplateConfig
-from pathlib import Path
-import yaml
 import tempfile
+from pathlib import Path
+
+import yaml
+
+from src.core.config import TemplateConfig
+
 
 def test_path_traversal_sanitization():
     with tempfile.TemporaryDirectory() as d:
