@@ -82,6 +82,10 @@ class DashboardApp:
             if entry.is_dir() and (entry / 'config.yaml').exists():
                 self.projects_list.insert(tk.END, entry.name)
 
+        if self.projects_list.size() == 0:
+            self.projects_list.insert(tk.END, "Chua co du an nao. Click '+ Tao Du An Moi' de bat dau.")
+            self.projects_list.itemconfig(0, foreground='gray')
+
     def show_create_dialog(self):
         dialog = tk.Toplevel(self.root)
         dialog.title('Tao Du An Moi')
@@ -142,6 +146,10 @@ class DashboardApp:
             return
 
         idx = self.projects_list.curselection()[0]
+        if self.projects_list.itemcget(idx, 'foreground') == 'gray':
+            messagebox.showwarning('Canh bao', 'Vui long chon mot du an de xoa', parent=self.root)
+            return
+
         name = self.projects_list.get(idx)
 
         confirm = messagebox.askyesno(
@@ -168,6 +176,8 @@ class DashboardApp:
         if not self.projects_list.curselection():
             return
         idx = self.projects_list.curselection()[0]
+        if self.projects_list.itemcget(idx, 'foreground') == 'gray':
+            return
         name = self.projects_list.get(idx)
         self._launch_workspace(self.workspaces_dir / name)
 
