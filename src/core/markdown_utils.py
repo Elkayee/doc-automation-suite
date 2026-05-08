@@ -17,7 +17,14 @@ class MarkdownUtils:
     )
     UNICODE_WORD_RE = re.compile(r'\b[^\W\d_]+\b', re.UNICODE)
     PROTECTED_TITLECASE_WORDS = {
-        'Châu', 'Á', 'Âu', 'Mỹ', 'Hà', 'Nội', 'Việt', 'Nam',
+        'Châu',
+        'Á',
+        'Âu',
+        'Mỹ',
+        'Hà',
+        'Nội',
+        'Việt',
+        'Nam',
     }
 
     @staticmethod
@@ -485,7 +492,9 @@ class MarkdownUtils:
             item_text = re.sub(r'\s+', ' ', item_text).strip()
             item_text = cls.normalize_inline_special_terms(item_text)
             item_text = cls.normalize_report_capitalization(item_text)
-            reformatted.append(f'{list_prefix}{cls.normalize_punctuation(item_text)}' if item_text else list_prefix.rstrip())
+            reformatted.append(
+                f'{list_prefix}{cls.normalize_punctuation(item_text)}' if item_text else list_prefix.rstrip()
+            )
             list_prefix = None
             list_parts = []
 
@@ -567,11 +576,16 @@ class MarkdownUtils:
 
     @staticmethod
     def is_line_inside_fenced_block(text, line_number):
-        lines = text.replace('\r\n', '\n').replace('\r', '\n').split('\n')
+        if '```' not in text:
+            return False
+
         safe_line_number = max(1, int(line_number))
+        # Keep original behavior of handling Windows/Mac line endings correctly
+        # while using maxsplit to limit string copies
+        lines = text.replace('\r\n', '\n').replace('\r', '\n').split('\n', safe_line_number)
         in_code_fence = False
 
-        for index, line in enumerate(lines, start=1):
+        for index, line in enumerate(lines[:safe_line_number], start=1):
             if line.strip().startswith('```'):
                 in_code_fence = not in_code_fence
                 continue
