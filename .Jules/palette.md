@@ -1,0 +1,12 @@
+## 2024-03-24 - Tkinter Listbox Empty State Pattern
+
+**Learning:** In Tkinter, standard empty state patterns require manually inserting a placeholder
+string into the empty Listbox and styling it distinctively (e.g., `foreground='gray'`). However,
+because Listbox doesn't disable selection on specific items natively, users can still click the
+placeholder. This creates a UX issue where actions (like open or delete) attempt to execute on the
+placeholder string. **Action:** Always implement empty state placeholders by inserting a visually
+distinct item (e.g., `listbox.itemconfig(0, foreground='gray')`) when the data list is empty.
+Crucially, update **all** related interaction handlers (click, double-click, selection-dependent
+buttons) to explicitly check the item's state
+(`if listbox.itemcget(idx, 'foreground') == 'gray': return`) and abort the action safely to prevent
+confusing errors or invalid operations.
