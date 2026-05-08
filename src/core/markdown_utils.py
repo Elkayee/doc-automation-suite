@@ -567,6 +567,13 @@ class MarkdownUtils:
 
     @staticmethod
     def is_line_inside_fenced_block(text, line_number):
+        # FAST-PATH OPTIMIZATION:
+        # Bypasses expensive string operations (O(N) allocations and iteration)
+        # when the text demonstrably lacks any code fences.
+        if '```' not in text:
+            return False
+
+        # Retaining original logic to perfectly preserve trailing empty line and special character behavior
         lines = text.replace('\r\n', '\n').replace('\r', '\n').split('\n')
         safe_line_number = max(1, int(line_number))
         in_code_fence = False
