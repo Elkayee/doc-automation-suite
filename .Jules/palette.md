@@ -1,0 +1,4 @@
+
+## 2024-05-24 - Tkinter Listbox Empty States
+**Learning:** Tkinter's `tk.Listbox` does not natively support an "empty state" placeholder (like a placeholder attribute in HTML). The most reliable way to implement one without creating custom compound widgets is to insert a literal string when `size() == 0` and style it distinctly (e.g., `itemconfig(0, foreground='gray')`). However, this requires manually guarding all event handlers (`<<ListboxSelect>>`, `<Double-1>`, buttons) to check for this specific styling or text and abort actions to prevent errors.
+**Action:** When implementing empty states in Tkinter listboxes, always verify that the empty state placeholder string cannot be treated as real data by downstream processing (e.g., deletion, selection, opening). Always apply distinct styling (`foreground='gray'`) and use it as a conditional guard in event handlers.
