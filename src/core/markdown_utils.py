@@ -567,16 +567,41 @@ class MarkdownUtils:
 
     @staticmethod
     def is_line_inside_fenced_block(text, line_number):
-        lines = text.replace('\r\n', '\n').replace('\r', '\n').split('\n')
         safe_line_number = max(1, int(line_number))
         in_code_fence = False
 
-        for index, line in enumerate(lines, start=1):
+        start_idx = 0
+        current_line = 1
+        text_len = len(text)
+
+        while start_idx <= text_len:
+            # ⚡ Bolt Optimization: Avoid O(N) full text copy/split by iteratively finding newlines.
+            # Use bounded find for '\r' to avoid O(N^2) worst-case scanning when '\r' is absent.
+            n_idx = text.find('\n', start_idx)
+            r_idx = text.find('\r', start_idx, n_idx if n_idx != -1 else text_len)
+
+            if n_idx == -1 and r_idx == -1:
+                line = text[start_idx:]
+                start_idx = text_len + 1
+            elif n_idx != -1 and (r_idx == -1 or n_idx < r_idx):
+                line = text[start_idx:n_idx]
+                start_idx = n_idx + 1
+            elif r_idx != -1 and (n_idx == -1 or r_idx < n_idx):
+                line = text[start_idx:r_idx]
+                if r_idx + 1 < text_len and text[r_idx + 1] == '\n':
+                    start_idx = r_idx + 2
+                else:
+                    start_idx = r_idx + 1
+
             if line.strip().startswith('```'):
                 in_code_fence = not in_code_fence
+                current_line += 1
                 continue
-            if index == safe_line_number:
+
+            if current_line == safe_line_number:
                 return in_code_fence
+
+            current_line += 1
 
         return False
 
