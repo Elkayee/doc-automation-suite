@@ -46,10 +46,10 @@ class DashboardApp:
         actions_frame = ttk.Frame(main_container)
         actions_frame.pack(anchor='center')
 
-        ttk.Button(actions_frame, text='+ Tao Du An Moi', style='Action.TButton', command=self.show_create_dialog).grid(
+        ttk.Button(actions_frame, text='+ Tao Du An Moi', style='Action.TButton', command=self.show_create_dialog, cursor='hand2').grid(
             row=0, column=0, padx=10, pady=10
         )
-        ttk.Button(actions_frame, text='Mo Du An', style='Action.TButton', command=self.open_project).grid(
+        ttk.Button(actions_frame, text='Mo Du An', style='Action.TButton', command=self.open_project, cursor='hand2').grid(
             row=0, column=1, padx=10, pady=10
         )
         ttk.Button(
@@ -57,6 +57,7 @@ class DashboardApp:
             text='Cong Cu Cu (Legacy)',
             style='Action.TButton',
             command=self.open_legacy_workflow,
+            cursor='hand2'
         ).grid(row=0, column=2, padx=10, pady=10)
 
         recent_header_frame = ttk.Frame(main_container)
@@ -67,10 +68,10 @@ class DashboardApp:
         )
 
         ttk.Button(
-            recent_header_frame, text='Xoa Du An', style='Action.TButton', command=self.delete_selected_project
+            recent_header_frame, text='Xoa Du An', style='Action.TButton', command=self.delete_selected_project, cursor='hand2'
         ).pack(side='right')
 
-        self.projects_list = tk.Listbox(main_container, font=('Consolas', 11), height=10)
+        self.projects_list = tk.Listbox(main_container, font=('Consolas', 11), height=10, cursor='hand2')
         self.projects_list.pack(fill='both', expand=True)
         self.projects_list.bind('<Double-1>', lambda _event: self.open_selected_project())
 
@@ -81,6 +82,9 @@ class DashboardApp:
         for entry in self.workspaces_dir.iterdir():
             if entry.is_dir() and (entry / 'config.yaml').exists():
                 self.projects_list.insert(tk.END, entry.name)
+        if self.projects_list.size() == 0:
+            self.projects_list.insert(tk.END, 'Chua co du an nao. Hay tao moi!')
+            self.projects_list.itemconfig(0, foreground='gray')
 
     def show_create_dialog(self):
         dialog = tk.Toplevel(self.root)
@@ -134,7 +138,7 @@ class DashboardApp:
             self.refresh_projects()
             self._launch_workspace(dest)
 
-        ttk.Button(dialog, text='Tao Moi', command=do_create).pack(pady=30)
+        ttk.Button(dialog, text='Tao Moi', command=do_create, cursor='hand2').pack(pady=30)
 
     def delete_selected_project(self):
         if not self.projects_list.curselection():
@@ -142,6 +146,8 @@ class DashboardApp:
             return
 
         idx = self.projects_list.curselection()[0]
+        if self.projects_list.itemcget(idx, 'foreground') == 'gray':
+            return
         name = self.projects_list.get(idx)
 
         confirm = messagebox.askyesno(
@@ -168,6 +174,8 @@ class DashboardApp:
         if not self.projects_list.curselection():
             return
         idx = self.projects_list.curselection()[0]
+        if self.projects_list.itemcget(idx, 'foreground') == 'gray':
+            return
         name = self.projects_list.get(idx)
         self._launch_workspace(self.workspaces_dir / name)
 
