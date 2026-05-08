@@ -1,3 +1,11 @@
 ## 2025-05-08 - Implementing Safe Listbox Empty States and Interactive Cursors in Tkinter
-**Learning:** When adding empty states to Tkinter `Listbox` components (e.g. inserting placeholder text like `<Chua co du an nao>`), it's crucial to distinguish the placeholder visually (e.g., using `foreground='gray'`) and explicitly prevent event handlers (like double-clicks or deletions) from operating on this placeholder index. Without explicit checks (e.g., `if listbox.itemcget(idx, 'foreground') == 'gray': return`), the placeholder is treated as valid data. Additionally, assigning `cursor='hand2'` to `tk.Listbox` and `ttk.Button` elements significantly improves discoverability and interaction clarity.
-**Action:** Always pair a visual empty state in Tkinter listboxes with matching event handler guards (`itemcget` foreground check), and standardize the use of `cursor='hand2'` on clickable UI components for better affordance.
+
+**Learning:** When adding empty states to Tkinter `Listbox` components (e.g. inserting placeholder
+text like `<Chua co du an nao>`), it's crucial to distinguish the placeholder visually (e.g., using
+`foreground='gray'`) and explicitly prevent event handlers (like double-clicks or deletions) from
+operating on this placeholder index. Without explicit checks (e.g.,
+`if listbox.itemcget(idx, 'foreground') == 'gray': return`), the placeholder is treated as valid
+data. Additionally, assigning `cursor='hand2'` to `tk.Listbox` and `ttk.Button` elements
+significantly improves discoverability and interaction clarity. **Action:** Always pair a visual
+empty state in Tkinter listboxes with matching event handler guards (`itemcget` foreground check),
+and standardize the use of `cursor='hand2'` on clickable UI components for better affordance.
