@@ -68,8 +68,8 @@ class MarkdownListContinuationTests(unittest.TestCase):
         )
         expected = (
             '- **Thực tiễn áp dụng:**\n'
-            '  + Dự án sử dụng cơ chế App Router hiện đại.\n'
-            '  + Tính tái sử dụng được đảm bảo thông qua thư mục src/components/ui/.\n'
+            '  - Dự án sử dụng cơ chế App Router hiện đại.\n'
+            '  - Tính tái sử dụng được đảm bảo thông qua thư mục src/components/ui/.\n'
         )
 
         result = MarkdownUtils.reformat_markdown_document(source, ['-', '+', '*'])
@@ -78,7 +78,15 @@ class MarkdownListContinuationTests(unittest.TestCase):
 
     def test_reformat_starts_new_parent_group_when_next_label_only_item_appears(self):
         source = '- **Thực tiễn áp dụng:**\n- Ví dụ con 1.\n- **Thành phần chính:**\n- Ví dụ con 2.\n'
-        expected = '- **Thực tiễn áp dụng:**\n  + Ví dụ con 1.\n- **Thành phần chính:**\n  + Ví dụ con 2.\n'
+        expected = '- **Thực tiễn áp dụng:**\n  - Ví dụ con 1.\n- **Thành phần chính:**\n  - Ví dụ con 2.\n'
+
+        result = MarkdownUtils.reformat_markdown_document(source, ['-', '+', '*'])
+
+        self.assertEqual(result, expected)
+
+    def test_reformat_auto_nest_preserves_star_marker_while_only_adjusting_indent(self):
+        source = '- **Thực tiễn áp dụng:**\n* Mục con giữ dấu sao.\n'
+        expected = '- **Thực tiễn áp dụng:**\n    * Mục con giữ dấu sao.\n'
 
         result = MarkdownUtils.reformat_markdown_document(source, ['-', '+', '*'])
 
@@ -251,6 +259,13 @@ class MarkdownListContinuationTests(unittest.TestCase):
         self.assertNotIn('`firebase. Ts`', result)
         self.assertNotIn('`apiClient. Ts`', result)
         self.assertNotIn('`thanhvtapp. Ddns. Net`', result)
+
+    def test_reformat_preserves_capitalization_for_bold_member_heading_list_item(self):
+        source = '- **Nguyễn Viết Tùng (Lập trình Frontend - UI/UX)**\n'
+
+        result = MarkdownUtils.reformat_markdown_document(source, ['-', '+', '*'])
+
+        self.assertEqual(result, source)
 
     def test_detects_line_inside_fenced_block(self):
         text = '### So do\n\n```plantuml\n@startuml\nAlice -> Bob: hello\n```\n'

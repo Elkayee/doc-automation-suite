@@ -212,6 +212,10 @@ class MarkdownUtils:
 
     @classmethod
     def _normalize_report_capitalization_segment(cls, text):
+        stripped = text.strip()
+        if stripped and re.fullmatch(r'\*\*[^*\n]+\*\*', stripped):
+            return text
+
         result = []
         last_index = 0
 
@@ -483,6 +487,28 @@ class MarkdownUtils:
         return f'{canonical_indent}{marker} {text}'
 
     @classmethod
+    def indent_list_line_preserving_marker(cls, line, delta, list_markers_by_level=None, minimum_level=None):
+        match = cls.LIST_LINE_RE.match(line.rstrip('\n'))
+        if not match:
+            return line
+
+        indent = match.group('indent')
+        marker = match.group('marker')
+        text = match.group('text')
+        markers = list_markers_by_level or ['-', '+', '*']
+        indent_level = len(indent.replace('\t', '    ')) // 2
+        new_level = max(0, indent_level + int(delta))
+        if minimum_level is not None:
+            new_level = max(new_level, int(minimum_level))
+        try:
+            marker_level = markers.index(marker)
+        except ValueError:
+            marker_level = new_level
+        if minimum_level is not None:
+            new_level = max(new_level, marker_level)
+        return f'{"  " * new_level}{marker} {text}'
+
+    @classmethod
     def list_item_opens_nested_block(cls, line):
         match = cls.LIST_LINE_RE.match(line.rstrip('\n'))
         if not match:
@@ -526,7 +552,12 @@ class MarkdownUtils:
                 if cls.list_item_opens_nested_block(candidate):
                     break
 
-                nested_lines[child_index] = cls.shift_list_line(candidate, 1, markers)
+                nested_lines[child_index] = cls.indent_list_line_preserving_marker(
+                    candidate,
+                    1,
+                    list_markers_by_level=markers,
+                    minimum_level=parent_level + 1,
+                )
                 nested_any = True
                 child_index += 1
 
@@ -603,7 +634,9 @@ class MarkdownUtils:
                     markers = list_markers_by_level or ['-', '+', '*']
                     indent_level = len(list_match.group('indent').replace('\t', '    ')) // 2
                     canonical_indent = '  ' * indent_level
-                    marker = markers[indent_level] if indent_level < len(markers) else markers[-1]
+                    marker = list_match.group('marker')
+                    if indent_level > 0:
+                        marker = markers[indent_level] if indent_level < len(markers) else markers[-1]
                     list_prefix = f'{canonical_indent}{marker} '
                     list_parts = [list_match.group('text').strip()]
                 else:
