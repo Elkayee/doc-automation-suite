@@ -1,0 +1,11 @@
+## 2024-05-18 - Clear Non-Interactive Empty States for Listboxes
+
+**Learning:** Empty listboxes present a poor user experience. Users may think the application has
+failed to load items or is stuck. Adding an explicitly styled placeholder item (like setting
+foreground='gray') with text like "Chưa có dự án nào" greatly clarifies system state. However, it's
+critical to ensure all click handlers accessing the selected item gracefully exit when this "dummy"
+item is selected, otherwise application crashes occur. **Action:** Always add explicit,
+distinctively-styled placeholder items for empty `tk.Listbox` and similar components. Additionally,
+update all interaction callbacks (double click, buttons, context menus) to check for the
+placeholder's distinguishing characteristic (e.g. `itemcget(idx, 'foreground') == 'gray'`) and exit
+early.
