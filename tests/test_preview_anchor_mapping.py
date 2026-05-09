@@ -41,6 +41,11 @@ class PreviewAnchorMappingTests(unittest.TestCase):
 
         self.assertEqual(row, ['A B', 'C D', 'E F'])
 
+    def test_markdown_to_html_body_with_markers_keeps_space_after_list_marker(self):
+        html = PreviewUtils.markdown_to_html_body_with_markers('- **Muc**\n', list_markers_by_level=['-', '+', '*'])
+
+        self.assertIn('<span class="list-marker">-</span> <span class="list-text">', html)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -44,9 +44,7 @@ class DocxBuilderListMarkerTests(unittest.TestCase):
                 encoding='utf-8',
             )
             markdown_path.write_text(
-                '<!-- FILE: Ch01_Test.md -->\n\n'
-                '+ Muc cap 1\n'
-                '  * Muc cap 2\n',
+                '<!-- FILE: Ch01_Test.md -->\n\n+ Muc cap 1\n  * Muc cap 2\n',
                 encoding='utf-8',
             )
 
@@ -155,7 +153,8 @@ class DocxBuilderListMarkerTests(unittest.TestCase):
                 run.text: run
                 for paragraph in builder.doc.paragraphs
                 for run in paragraph.runs
-                if run.text in {
+                if run.text
+                in {
                     'PROJ',
                     'PROJ1(PNO, BUDGET)',
                     'PROJ2(PNO, PNAME, LOC)',
@@ -170,6 +169,47 @@ class DocxBuilderListMarkerTests(unittest.TestCase):
             self.assertNotEqual(target_runs['PROJ1(PNO, BUDGET)'].font.name, 'Courier New')
             self.assertNotEqual(target_runs['PROJ2(PNO, PNAME, LOC)'].font.name, 'Courier New')
             self.assertNotEqual(target_runs[' voi nguong BUDGET <= 200000.'].font.name, 'Courier New')
+        finally:
+            if workspace.exists():
+                shutil.rmtree(workspace, ignore_errors=True)
+
+    def test_build_markdown_table_cells_do_not_use_first_line_indent(self):
+        workspace = PROJECT_ROOT / 'tests' / '_tmp_docx_builder_table_indent'
+        if workspace.exists():
+            shutil.rmtree(workspace, ignore_errors=True)
+        workspace.mkdir(parents=True, exist_ok=True)
+        try:
+            config_path = workspace / 'config.yaml'
+            markdown_path = workspace / 'assembled.md'
+            image_cache = workspace / '.diagram_cache'
+
+            config_path.write_text(
+                yaml.safe_dump(
+                    {
+                        'name': 'Test',
+                        'description': '',
+                        'type': 'report',
+                        'docx_template': 'template.docx',
+                        'required_files': ['Ch01_Test.md'],
+                    },
+                    allow_unicode=True,
+                    sort_keys=False,
+                ),
+                encoding='utf-8',
+            )
+            markdown_path.write_text(
+                '<!-- FILE: Ch01_Test.md -->\n\n| Cột 1 | Cột 2 |\n| --- | --- |\n| Nội dung 1 | Nội dung 2 |\n',
+                encoding='utf-8',
+            )
+
+            builder = DocxBuilder(workspace)
+            builder.build_from_markdown(str(markdown_path), image_cache)
+
+            table = builder.doc.tables[0]
+            for row in table.rows:
+                for cell in row.cells:
+                    paragraph = cell.paragraphs[0]
+                    self.assertEqual(paragraph.paragraph_format.first_line_indent.pt, 0)
         finally:
             if workspace.exists():
                 shutil.rmtree(workspace, ignore_errors=True)

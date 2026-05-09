@@ -45,19 +45,40 @@ class MarkdownListContinuationTests(unittest.TestCase):
         self.assertEqual(result, '  + item')
 
     def test_reformat_document_normalizes_lists_and_paragraphs(self):
+        source = '### Tieu de\n\nDong van thu nhat\ndong van thu hai\n\n     + muc sai indent\n  - muc sai marker\n'
+        expected = '### Tieu de\n\nDong van thu nhat dong van thu hai\n\n    * muc sai indent\n  + muc sai marker\n'
+
+        result = MarkdownUtils.reformat_markdown_document(source, ['-', '+', '*'])
+
+        self.assertEqual(result, expected)
+
+    def test_reformat_uses_default_marker_order_when_markers_not_provided(self):
+        source = '- parent\n  - child\n    - grandchild\n'
+        expected = '- parent\n  + child\n    * grandchild\n'
+
+        result = MarkdownUtils.reformat_markdown_document(source)
+
+        self.assertEqual(result, expected)
+
+    def test_reformat_nests_following_flat_bullets_under_label_only_parent(self):
         source = (
-            '### Tieu de\n\n'
-            'Dong van thu nhat\n'
-            'dong van thu hai\n\n'
-            '     + muc sai indent\n'
-            '  - muc sai marker\n'
+            '- **Thực tiễn áp dụng:**\n'
+            '- Dự án sử dụng cơ chế App Router hiện đại.\n'
+            '- Tính tái sử dụng được đảm bảo thông qua thư mục src/components/ui/.\n'
         )
         expected = (
-            '### Tieu de\n\n'
-            'Dong van thu nhat dong van thu hai\n\n'
-            '    * muc sai indent\n'
-            '  + muc sai marker\n'
+            '- **Thực tiễn áp dụng:**\n'
+            '  + Dự án sử dụng cơ chế App Router hiện đại.\n'
+            '  + Tính tái sử dụng được đảm bảo thông qua thư mục src/components/ui/.\n'
         )
+
+        result = MarkdownUtils.reformat_markdown_document(source, ['-', '+', '*'])
+
+        self.assertEqual(result, expected)
+
+    def test_reformat_starts_new_parent_group_when_next_label_only_item_appears(self):
+        source = '- **Thực tiễn áp dụng:**\n- Ví dụ con 1.\n- **Thành phần chính:**\n- Ví dụ con 2.\n'
+        expected = '- **Thực tiễn áp dụng:**\n  + Ví dụ con 1.\n- **Thành phần chính:**\n  + Ví dụ con 2.\n'
 
         result = MarkdownUtils.reformat_markdown_document(source, ['-', '+', '*'])
 
@@ -101,24 +122,15 @@ class MarkdownListContinuationTests(unittest.TestCase):
             '- **Phù hợp với quy mô và cơ cấu tổ chức hiện đại:** Các doanh nghiệp, tập đoàn hiện nay thường hoạt\n'
             'động đa quốc gia và áp dụng mô hình làm việc từ xa (Remote/Hybrid),. Mô hình tập trung không còn phù hợp với một tổ chức có vị trí địa lý phân tán do chi phí đường truyền cao và độ trễ mạng lớn,. CSDL phân tán áp dụng nguyên lý cực đại hóa tiến trình địa phương, đưa dữ liệu về lưu trữ tại node gần với người sử dụng nhất, triệt tiêu độ trễ mạng và nâng cao trải nghiệm truy xuất thời gian thực,.\n'
         )
-        expected = (
-            '- **Phù hợp với quy mô và cơ cấu tổ chức hiện đại:** Các doanh nghiệp, tập đoàn hiện nay thường hoạt động đa quốc gia và áp dụng mô hình làm việc từ xa (Remote/Hybrid). Mô hình tập trung không còn phù hợp với một tổ chức có vị trí địa lý phân tán do chi phí đường truyền cao và độ trễ mạng lớn. CSDL phân tán áp dụng nguyên lý cực đại hóa tiến trình địa phương, đưa dữ liệu về lưu trữ tại node gần với người sử dụng nhất, triệt tiêu độ trễ mạng và nâng cao trải nghiệm truy xuất thời gian thực.\n'
-        )
+        expected = '- **Phù hợp với quy mô và cơ cấu tổ chức hiện đại:** Các doanh nghiệp, tập đoàn hiện nay thường hoạt động đa quốc gia và áp dụng mô hình làm việc từ xa (Remote/Hybrid). Mô hình tập trung không còn phù hợp với một tổ chức có vị trí địa lý phân tán do chi phí đường truyền cao và độ trễ mạng lớn. CSDL phân tán áp dụng nguyên lý cực đại hóa tiến trình địa phương, đưa dữ liệu về lưu trữ tại node gần với người sử dụng nhất, triệt tiêu độ trễ mạng và nâng cao trải nghiệm truy xuất thời gian thực.\n'
 
         result = MarkdownUtils.reformat_markdown_document(source, ['-', '+', '*'])
 
         self.assertEqual(result, expected)
 
     def test_reformat_joins_wrapped_ordered_list_item_and_normalizes_terminal_punctuation(self):
-        source = (
-            '1. Mục đầu tiên bị xuống\n'
-            'dòng và có lỗi dấu câu,.\n'
-            '2. Mục thứ hai giữ nguyên.\n'
-        )
-        expected = (
-            '1. Mục đầu tiên bị xuống dòng và có lỗi dấu câu.\n'
-            '2. Mục thứ hai giữ nguyên.\n'
-        )
+        source = '1. Mục đầu tiên bị xuống\ndòng và có lỗi dấu câu,.\n2. Mục thứ hai giữ nguyên.\n'
+        expected = '1. Mục đầu tiên bị xuống dòng và có lỗi dấu câu.\n2. Mục thứ hai giữ nguyên.\n'
 
         result = MarkdownUtils.reformat_markdown_document(source, ['-', '+', '*'])
 
@@ -185,12 +197,9 @@ class MarkdownListContinuationTests(unittest.TestCase):
         self.assertEqual(result, expected)
 
     def test_reformat_splits_paragraph_after_english_parenthetical_before_new_capitalized_clause(self):
-        source = (
-            'Bước 1: Phân rã truy vấn (Query Decomposition) Phân tách truy vấn thành các phần nhỏ hơn để xử lý.\n'
-        )
+        source = 'Bước 1: Phân rã truy vấn (Query Decomposition) Phân tách truy vấn thành các phần nhỏ hơn để xử lý.\n'
         expected = (
-            'Bước 1: Phân rã truy vấn (Query Decomposition)\n\n'
-            'Phân tách truy vấn thành các phần nhỏ hơn để xử lý.\n'
+            'Bước 1: Phân rã truy vấn (Query Decomposition)\n\nPhân tách truy vấn thành các phần nhỏ hơn để xử lý.\n'
         )
 
         result = MarkdownUtils.reformat_markdown_document(source, ['-', '+', '*'])
@@ -225,29 +234,32 @@ class MarkdownListContinuationTests(unittest.TestCase):
 
         self.assertEqual(result, expected)
 
-    def test_detects_line_inside_fenced_block(self):
-        text = (
-            '### So do\n\n'
-            '```plantuml\n'
-            '@startuml\n'
-            'Alice -> Bob: hello\n'
-            '```\n'
+    def test_reformat_preserves_dotted_inline_code_identifiers(self):
+        source = (
+            '- **Thực tiễn áp dụng:**\n'
+            '  - **Xác thực (Authentication):** Ứng dụng tích hợp dịch vụ Firebase Authentication '
+            '(thông qua `firebase.ts`) để cung cấp tính năng đăng nhập nhanh bằng tài khoản Google (SSO).\n'
+            '  - **Giao tiếp máy chủ:** Lớp `apiClient.ts` gửi yêu cầu đến máy chủ Backend '
+            '(tại địa chỉ `thanhvtapp.ddns.net`).\n'
         )
+
+        result = MarkdownUtils.reformat_markdown_document(source, ['-', '+', '*'])
+
+        self.assertIn('`firebase.ts`', result)
+        self.assertIn('`apiClient.ts`', result)
+        self.assertIn('`thanhvtapp.ddns.net`', result)
+        self.assertNotIn('`firebase. Ts`', result)
+        self.assertNotIn('`apiClient. Ts`', result)
+        self.assertNotIn('`thanhvtapp. Ddns. Net`', result)
+
+    def test_detects_line_inside_fenced_block(self):
+        text = '### So do\n\n```plantuml\n@startuml\nAlice -> Bob: hello\n```\n'
 
         self.assertTrue(MarkdownUtils.is_line_inside_fenced_block(text, 4))
         self.assertFalse(MarkdownUtils.is_line_inside_fenced_block(text, 1))
 
     def test_normalize_pasted_markdown_preserves_plantuml_block(self):
-        source = (
-            '```plantuml\n'
-            '@startuml\n'
-            'Alice -> Bob: hello\n'
-            'note right\n'
-            '  - keep this\n'
-            'end note\n'
-            '@enduml\n'
-            '```\n'
-        )
+        source = '```plantuml\n@startuml\nAlice -> Bob: hello\nnote right\n  - keep this\nend note\n@enduml\n```\n'
 
         result = MarkdownUtils.normalize_pasted_markdown(source)
 

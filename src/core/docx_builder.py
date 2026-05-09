@@ -20,6 +20,7 @@ class DocxBuilder:
 
     def _get_config(self):
         from src.core.config import TemplateConfig
+
         config_path = self.workspace_dir / 'config.yaml'
         if config_path.exists():
             return TemplateConfig.load(config_path)
@@ -145,13 +146,17 @@ class DocxBuilder:
                 else:
                     if mermaid_block and mermaid_buf:
                         self.diagram_idx += 1
-                        img_path = MediaDownloader.render_plantuml('\n'.join(mermaid_buf), self.diagram_idx, str(img_cache_dir))
+                        img_path = MediaDownloader.render_plantuml(
+                            '\n'.join(mermaid_buf), self.diagram_idx, str(img_cache_dir)
+                        )
                         if img_path:
                             p = self.doc.add_paragraph()
                             DocxHelpers.configure_media_paragraph(p, space_before=18, space_after=18)
                             run = p.add_run()
                             max_width, max_height = DocxHelpers.get_content_frame_size(self.doc, height_reserve=Cm(3))
-                            DocxHelpers.add_picture_fit(run, img_path, self.doc, max_width=max_width, max_height=max_height)
+                            DocxHelpers.add_picture_fit(
+                                run, img_path, self.doc, max_width=max_width, max_height=max_height
+                            )
                         else:
                             p = self.doc.add_paragraph()
                             r = p.add_run(f'[Bieu do PlantUML {self.diagram_idx} - khong the render]')
@@ -197,6 +202,9 @@ class DocxBuilder:
                         cell.paragraphs[0].clear()
                         p = cell.paragraphs[0]
                         p.alignment = WD_ALIGN_PARAGRAPH.CENTER if ri == 0 else WD_ALIGN_PARAGRAPH.LEFT
+                        p.paragraph_format.left_indent = Cm(0)
+                        p.paragraph_format.right_indent = Cm(0)
+                        p.paragraph_format.first_line_indent = Cm(0)
                         p.paragraph_format.space_before = Pt(2)
                         p.paragraph_format.space_after = Pt(2)
                         run = p.add_run(
@@ -343,7 +351,9 @@ class DocxBuilder:
                         p = self.doc.add_paragraph()
                         DocxHelpers.configure_media_paragraph(p, space_before=6, space_after=6)
                         max_width, max_height = DocxHelpers.get_content_frame_size(self.doc, height_reserve=Cm(4))
-                        DocxHelpers.add_picture_fit(p.add_run(), img_path, self.doc, max_width=max_width, max_height=max_height)
+                        DocxHelpers.add_picture_fit(
+                            p.add_run(), img_path, self.doc, max_width=max_width, max_height=max_height
+                        )
                     else:
                         p = self.doc.add_paragraph()
                         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -362,7 +372,9 @@ class DocxBuilder:
                         p = self.doc.add_paragraph()
                         DocxHelpers.configure_media_paragraph(p, space_before=6, space_after=6)
                         max_width, max_height = DocxHelpers.get_content_frame_size(self.doc, height_reserve=Cm(4))
-                        DocxHelpers.add_picture_fit(p.add_run(), img_path, self.doc, max_width=max_width, max_height=max_height)
+                        DocxHelpers.add_picture_fit(
+                            p.add_run(), img_path, self.doc, max_width=max_width, max_height=max_height
+                        )
                     else:
                         p = self.doc.add_paragraph()
                         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -387,5 +399,5 @@ class DocxBuilder:
             self.doc.save(str(output_path))
         except PermissionError as exc:
             raise RuntimeError(
-                f"Khong the ghi file {output_path.name}. Hay dong file Word cu truoc khi build lai."
+                f'Khong the ghi file {output_path.name}. Hay dong file Word cu truoc khi build lai.'
             ) from exc

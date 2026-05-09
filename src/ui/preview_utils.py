@@ -8,9 +8,24 @@ from src.core.media_downloader import MediaDownloader
 
 class PreviewTextExtractor(HTMLParser):
     BLOCK_TAGS = {
-        'p', 'div', 'section', 'article', 'header', 'footer', 'aside',
-        'ul', 'ol', 'li', 'pre', 'blockquote',
-        'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+        'p',
+        'div',
+        'section',
+        'article',
+        'header',
+        'footer',
+        'aside',
+        'ul',
+        'ol',
+        'li',
+        'pre',
+        'blockquote',
+        'h1',
+        'h2',
+        'h3',
+        'h4',
+        'h5',
+        'h6',
     }
 
     def __init__(self):
@@ -176,7 +191,7 @@ class PreviewUtils:
                     text_html = PreviewUtils.inline_segments_to_html(list_match.group('text').strip())
                     list_items.append(
                         f'<div class="custom-list-item level-{indent_level}">'
-                        f'<span class="list-marker">{html_lib.escape(marker)}</span>'
+                        f'<span class="list-marker">{html_lib.escape(marker)}</span> '
                         f'<span class="list-text">{text_html}</span>'
                         '</div>'
                     )
@@ -193,6 +208,7 @@ class PreviewUtils:
         raw_md = '\n'.join(out)
         try:
             import markdown
+
             body = markdown.markdown(raw_md, extensions=['tables', 'fenced_code'], output_format='html')
         except ImportError:
             body = '<pre>' + html_lib.escape(raw_md) + '</pre>'
