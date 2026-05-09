@@ -52,6 +52,9 @@ class VisualBuilderWindow(tk.Toplevel):
         self.configure(bg='#f3efe5')
         self.protocol('WM_DELETE_WINDOW', self._on_close)
 
+        style = ttk.Style()
+        style.configure('TButton', cursor='hand2')
+
         self._load_preview_capability()
         self._build_ui()
         self._load_chapter_list()
@@ -139,6 +142,7 @@ class VisualBuilderWindow(tk.Toplevel):
             font=('Consolas', 10),
             activestyle='none',
             exportselection=False,
+            cursor='hand2'
         )
         self.chapter_listbox.pack(side='left', fill='both', expand=True)
         scrollbar = ttk.Scrollbar(list_wrapper, orient='vertical', command=self.chapter_listbox.yview)
@@ -167,7 +171,7 @@ class VisualBuilderWindow(tk.Toplevel):
         ttk.Button(action_row, text='Search', command=self.run_advanced_search).pack(side='left')
         ttk.Button(action_row, text='Clear', command=self.clear_search).pack(side='left', padx=(6, 0))
 
-        self.search_results_listbox = tk.Listbox(search_frame, font=('Consolas', 9), height=10, activestyle='none')
+        self.search_results_listbox = tk.Listbox(search_frame, font=('Consolas', 9), height=10, activestyle='none', cursor='hand2')
         self.search_results_listbox.pack(fill='both', expand=True)
         self.search_results_listbox.bind('<Double-1>', self._open_selected_search_result)
 
@@ -719,7 +723,7 @@ class VisualBuilderWindow(tk.Toplevel):
         body.pack(fill='both', expand=True)
         ttk.Label(body, text='Select an image from the project asset library.').pack(anchor='w', pady=(0, 8))
 
-        listbox = tk.Listbox(body, width=72, height=12, exportselection=False, activestyle='none')
+        listbox = tk.Listbox(body, width=72, height=12, exportselection=False, activestyle='none', cursor='hand2')
         listbox.pack(fill='both', expand=True)
         for asset in assets:
             listbox.insert(tk.END, f'{asset.relative_path}  |  {asset.alt_text}')
