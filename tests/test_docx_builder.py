@@ -4,6 +4,7 @@ import zipfile
 from pathlib import Path
 
 import yaml
+from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT
 
 from src.core.docx_builder import DocxBuilder
 from src.core.docx_helpers import DocxHelpers
@@ -116,6 +117,51 @@ class DocxBuilderListMarkerTests(unittest.TestCase):
             if workspace.exists():
                 shutil.rmtree(workspace, ignore_errors=True)
 
+    def test_build_markdown_image_uses_caption_and_alignment_metadata(self):
+        workspace = PROJECT_ROOT / 'tests' / '_tmp_docx_builder_image_caption'
+        if workspace.exists():
+            shutil.rmtree(workspace, ignore_errors=True)
+        workspace.mkdir(parents=True, exist_ok=True)
+        try:
+            config_path = workspace / 'config.yaml'
+            markdown_path = workspace / 'assembled.md'
+            image_cache = workspace / '.diagram_cache'
+            output_path = workspace / 'out.docx'
+
+            config_path.write_text(
+                yaml.safe_dump(
+                    {
+                        'name': 'Test',
+                        'description': '',
+                        'type': 'report',
+                        'docx_template': 'template.docx',
+                        'required_files': ['Ch01_Test.md'],
+                    },
+                    allow_unicode=True,
+                    sort_keys=False,
+                ),
+                encoding='utf-8',
+            )
+            markdown_path.write_text(
+                '<!-- FILE: Ch01_Test.md -->\n\n'
+                f'![Dang nhap]({PROJECT_ROOT.as_posix()}/test_extracted.png)'
+                '{caption="Hình 4.1. Giao diện đăng nhập", width=50%, align=right}\n',
+                encoding='utf-8',
+            )
+
+            builder = DocxBuilder(workspace)
+            builder.build_from_markdown(str(markdown_path), image_cache)
+            builder.save(output_path)
+
+            with zipfile.ZipFile(output_path, 'r') as archive:
+                document_xml = archive.read('word/document.xml').decode('utf-8', errors='ignore')
+
+            self.assertIn('Hình 4.1. Giao diện đăng nhập', document_xml)
+            self.assertIn('w:jc w:val="right"', document_xml)
+        finally:
+            if workspace.exists():
+                shutil.rmtree(workspace, ignore_errors=True)
+
     def test_build_renders_relation_schema_code_terms_as_italic_prose(self):
         workspace = PROJECT_ROOT / 'tests' / '_tmp_docx_builder_relation_schema'
         if workspace.exists():
@@ -210,6 +256,61 @@ class DocxBuilderListMarkerTests(unittest.TestCase):
                 for cell in row.cells:
                     paragraph = cell.paragraphs[0]
                     self.assertEqual(paragraph.paragraph_format.first_line_indent.pt, 0)
+        finally:
+            if workspace.exists():
+                shutil.rmtree(workspace, ignore_errors=True)
+
+    def test_build_markdown_table_applies_header_and_cell_alignment_formatting(self):
+        workspace = PROJECT_ROOT / 'tests' / '_tmp_docx_builder_table_header_format'
+        if workspace.exists():
+            shutil.rmtree(workspace, ignore_errors=True)
+        workspace.mkdir(parents=True, exist_ok=True)
+        try:
+            config_path = workspace / 'config.yaml'
+            markdown_path = workspace / 'assembled.md'
+            image_cache = workspace / '.diagram_cache'
+            output_path = workspace / 'out.docx'
+
+            config_path.write_text(
+                yaml.safe_dump(
+                    {
+                        'name': 'Test',
+                        'description': '',
+                        'type': 'report',
+                        'docx_template': 'template.docx',
+                        'required_files': ['Ch01_Test.md'],
+                    },
+                    allow_unicode=True,
+                    sort_keys=False,
+                ),
+                encoding='utf-8',
+            )
+            markdown_path.write_text(
+                '<!-- FILE: Ch01_Test.md -->\n\n| Họ tên | Vai trò |\n| --- | --- |\n| Nguyễn Viết Tùng | Frontend |\n',
+                encoding='utf-8',
+            )
+
+            builder = DocxBuilder(workspace)
+            builder.build_from_markdown(str(markdown_path), image_cache)
+            builder.save(output_path)
+
+            table = builder.doc.tables[0]
+            header_cell = table.cell(0, 0)
+            body_cell = table.cell(1, 0)
+
+            self.assertEqual(header_cell.vertical_alignment, WD_CELL_VERTICAL_ALIGNMENT.CENTER)
+            self.assertEqual(body_cell.vertical_alignment, WD_CELL_VERTICAL_ALIGNMENT.CENTER)
+            self.assertTrue(header_cell.paragraphs[0].runs[0].bold)
+            self.assertFalse(bool(body_cell.paragraphs[0].runs[0].bold))
+
+            with zipfile.ZipFile(output_path, 'r') as archive:
+                document_xml = archive.read('word/document.xml').decode('utf-8', errors='ignore')
+
+            self.assertIn('w:fill="D9EAF7"', document_xml)
+            self.assertIn('w:tblHeader w:val="true"', document_xml)
+            self.assertIn('<w:tcMar>', document_xml)
+            self.assertIn('w:w="108" w:type="dxa"', document_xml)
+            self.assertIn('w:w="60" w:type="dxa"', document_xml)
         finally:
             if workspace.exists():
                 shutil.rmtree(workspace, ignore_errors=True)

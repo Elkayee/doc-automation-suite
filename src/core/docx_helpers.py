@@ -3,12 +3,13 @@ import unicodedata
 from pathlib import Path
 
 from docx.enum.section import WD_ORIENTATION
-from docx.enum.table import WD_TABLE_ALIGNMENT
+from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT, WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Emu, Inches, Pt, RGBColor
 
+from src.core.markdown_image import MarkdownImage
 from src.core.media_downloader import MediaDownloader
 
 # ── MÀUSẮC ───────────────────────────────────────────────────────────────────
@@ -16,6 +17,7 @@ COLOR_H1 = RGBColor(0x1A, 0x3A, 0x5C)
 COLOR_H2 = RGBColor(0x1F, 0x61, 0x9E)
 COLOR_H3 = RGBColor(0x2E, 0x86, 0xAB)
 COLOR_H4 = RGBColor(0x44, 0x9D, 0xD1)
+
 
 class DocxHelpers:
     EXAM_COVER_LEGACY_TEXT_MAP = {
@@ -89,6 +91,28 @@ class DocxHelpers:
         return cover
 
     @staticmethod
+    def get_markdown_table_settings(config):
+        settings = (config.settings if config and config.settings else {}).copy()
+        table_settings = (settings.get('markdown_table', {}) or {}).copy()
+        defaults = {
+            'font_name': 'Times New Roman',
+            'font_size': 11,
+            'header_fill': 'D9EAF7',
+            'header_alignment': 'center',
+            'body_alignment': 'left',
+            'vertical_alignment': 'center',
+            'space_before_pt': 2.0,
+            'space_after_pt': 2.0,
+            'line_spacing': 1.0,
+            'cell_padding_top_dxa': 60,
+            'cell_padding_bottom_dxa': 60,
+            'cell_padding_left_dxa': 108,
+            'cell_padding_right_dxa': 108,
+        }
+        defaults.update(table_settings)
+        return defaults
+
+    @staticmethod
     def get_page_settings(config):
         settings = (config.settings if config and config.settings else {}).copy()
         defaults = {
@@ -148,7 +172,9 @@ class DocxHelpers:
             paragraph.paragraph_format.first_line_indent = Cm(-special_indent_by_cm)
 
         paragraph.paragraph_format.space_before = Pt(float(settings.get('space_before_pt', 0.0)))
-        paragraph.paragraph_format.space_after = Pt(float(settings.get('space_after_pt', 6.0 if use_spacing_after else 0.0)))
+        paragraph.paragraph_format.space_after = Pt(
+            float(settings.get('space_after_pt', 6.0 if use_spacing_after else 0.0))
+        )
 
         line_spacing_mode = str(settings.get('line_spacing_mode', 'multiple')).lower()
         line_spacing_value = float(settings.get('line_spacing_value', 1.5))
@@ -236,6 +262,25 @@ class DocxHelpers:
         run.add_picture(str(image_path), width=target_width, height=target_height)
 
     @staticmethod
+    def parse_image_width_fraction(width: str) -> float:
+        value = str(width or '100%').strip()
+        if value.endswith('%'):
+            try:
+                return max(0.2, min(1.0, float(value[:-1]) / 100.0))
+            except ValueError:
+                return 1.0
+        return 1.0
+
+    @staticmethod
+    def parse_image_alignment(value: str):
+        alignment = str(value or 'center').strip().lower()
+        if alignment == 'left':
+            return WD_ALIGN_PARAGRAPH.LEFT
+        if alignment == 'right':
+            return WD_ALIGN_PARAGRAPH.RIGHT
+        return WD_ALIGN_PARAGRAPH.CENTER
+
+    @staticmethod
     def configure_media_paragraph(paragraph, *, alignment=WD_ALIGN_PARAGRAPH.CENTER, space_before=18, space_after=18):
         paragraph.alignment = alignment
         paragraph.paragraph_format.left_indent = Cm(0)
@@ -268,6 +313,75 @@ class DocxHelpers:
                 element.set(qn('w:color'), 'auto')
             else:
                 element.set(qn('w:val'), 'nil')
+
+    @staticmethod
+    def set_table_row_repeat_header(row):
+        tr_pr = row._tr.get_or_add_trPr()
+        tbl_header = tr_pr.find(qn('w:tblHeader'))
+        if tbl_header is None:
+            tbl_header = OxmlElement('w:tblHeader')
+            tr_pr.append(tbl_header)
+        tbl_header.set(qn('w:val'), 'true')
+
+    @staticmethod
+    def set_cell_margins(cell, *, top_dxa, right_dxa, bottom_dxa, left_dxa):
+        tc_pr = cell._tc.get_or_add_tcPr()
+        tc_mar = tc_pr.find(qn('w:tcMar'))
+        if tc_mar is None:
+            tc_mar = OxmlElement('w:tcMar')
+            tc_pr.append(tc_mar)
+
+        for edge, value in (
+            ('top', top_dxa),
+            ('right', right_dxa),
+            ('bottom', bottom_dxa),
+            ('left', left_dxa),
+        ):
+            element = tc_mar.find(qn(f'w:{edge}'))
+            if element is None:
+                element = OxmlElement(f'w:{edge}')
+                tc_mar.append(element)
+            element.set(qn('w:w'), str(int(value)))
+            element.set(qn('w:type'), 'dxa')
+
+    @staticmethod
+    def format_markdown_table_cell(cell, text, *, is_header, settings):
+        paragraph = cell.paragraphs[0]
+        paragraph.clear()
+        paragraph.alignment = DocxHelpers.parse_alignment(
+            settings.get('header_alignment', 'center') if is_header else settings.get('body_alignment', 'left')
+        )
+        paragraph.paragraph_format.left_indent = Cm(0)
+        paragraph.paragraph_format.right_indent = Cm(0)
+        paragraph.paragraph_format.first_line_indent = Cm(0)
+        paragraph.paragraph_format.space_before = Pt(float(settings.get('space_before_pt', 2.0)))
+        paragraph.paragraph_format.space_after = Pt(float(settings.get('space_after_pt', 2.0)))
+        paragraph.paragraph_format.line_spacing = float(settings.get('line_spacing', 1.0))
+
+        vertical_alignment = str(settings.get('vertical_alignment', 'center')).lower()
+        if vertical_alignment == 'center':
+            cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+        elif vertical_alignment == 'bottom':
+            cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.BOTTOM
+        else:
+            cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.TOP
+
+        DocxHelpers.set_cell_margins(
+            cell,
+            top_dxa=settings.get('cell_padding_top_dxa', 60),
+            right_dxa=settings.get('cell_padding_right_dxa', 108),
+            bottom_dxa=settings.get('cell_padding_bottom_dxa', 60),
+            left_dxa=settings.get('cell_padding_left_dxa', 108),
+        )
+
+        if is_header:
+            DocxHelpers.set_cell_bg(cell, settings.get('header_fill', 'D9EAF7'))
+
+        run = paragraph.add_run(text)
+        run.font.size = Pt(float(settings.get('font_size', 11)))
+        run.font.name = settings.get('font_name', 'Times New Roman')
+        run.bold = bool(is_header)
+        return paragraph
 
     @staticmethod
     def resolve_cover_asset_path(workspace_dir, relative_path):
@@ -376,8 +490,8 @@ class DocxHelpers:
 
         # --- Xay dung wp:anchor ---
         anchor = OxmlElement('wp:anchor')
-        anchor.set('distT', '114300')   # 0.9 cm tren
-        anchor.set('distB', '114300')   # 0.9 cm duoi
+        anchor.set('distT', '114300')  # 0.9 cm tren
+        anchor.set('distB', '114300')  # 0.9 cm duoi
         anchor.set('distL', '0')
         anchor.set('distR', '0')
         anchor.set('simplePos', '0')
@@ -388,21 +502,27 @@ class DocxHelpers:
         anchor.set('allowOverlap', '0')
 
         sp = OxmlElement('wp:simplePos')
-        sp.set('x', '0'); sp.set('y', '0')
+        sp.set('x', '0')
+        sp.set('y', '0')
         anchor.append(sp)
 
         ph = OxmlElement('wp:positionH')
         ph.set('relativeFrom', 'column')
-        ah = OxmlElement('wp:align'); ah.text = 'center'
-        ph.append(ah); anchor.append(ph)
+        ah = OxmlElement('wp:align')
+        ah.text = 'center'
+        ph.append(ah)
+        anchor.append(ph)
 
         pv = OxmlElement('wp:positionV')
         pv.set('relativeFrom', 'paragraph')
-        po = OxmlElement('wp:posOffset'); po.text = '0'
-        pv.append(po); anchor.append(pv)
+        po = OxmlElement('wp:posOffset')
+        po.text = '0'
+        pv.append(po)
+        anchor.append(pv)
 
         ext2 = OxmlElement('wp:extent')
-        ext2.set('cx', cx); ext2.set('cy', cy)
+        ext2.set('cx', cx)
+        ext2.set('cy', cy)
         anchor.append(ext2)
 
         ee = OxmlElement('wp:effectExtent')
@@ -413,7 +533,8 @@ class DocxHelpers:
         anchor.append(OxmlElement('wp:wrapTopAndBottom'))
 
         dp = OxmlElement('wp:docPr')
-        dp.set('id', pid); dp.set('name', pname)
+        dp.set('id', pid)
+        dp.set('name', pname)
         if pdescr:
             dp.set('descr', pdescr)
         anchor.append(dp)
@@ -432,7 +553,6 @@ class DocxHelpers:
 
         drawing.replace(inline, anchor)
 
-
     @staticmethod
     def resolve_media_path(base_dir, md_path, asset_path):
         asset = Path(asset_path)
@@ -445,7 +565,18 @@ class DocxHelpers:
         return (Path(base_dir) / Path(fallback_text)).resolve()
 
     @staticmethod
-    def add_markdown_image(doc, base_dir, md_path, image_ref):
+    def add_markdown_image(doc, base_dir, md_path, image):
+        if isinstance(image, MarkdownImage):
+            image_ref = image.path
+            caption = image.caption
+            width_fraction = DocxHelpers.parse_image_width_fraction(image.width)
+            alignment = DocxHelpers.parse_image_alignment(image.align)
+        else:
+            image_ref = str(image)
+            caption = ''
+            width_fraction = 1.0
+            alignment = WD_ALIGN_PARAGRAPH.CENTER
+
         image_path = DocxHelpers.resolve_media_path(base_dir, md_path, image_ref)
         if not image_path.exists():
             p = doc.add_paragraph()
@@ -456,10 +587,24 @@ class DocxHelpers:
             return
 
         p = doc.add_paragraph()
-        DocxHelpers.configure_media_paragraph(p)
+        DocxHelpers.configure_media_paragraph(p, alignment=alignment)
         run = p.add_run()
         max_width, max_height = DocxHelpers.get_content_frame_size(doc, height_reserve=Cm(2))
+        max_width = Emu(int(max_width * width_fraction))
         DocxHelpers.add_picture_fit(run, image_path, doc, max_width=max_width, max_height=max_height)
+        if caption:
+            caption_paragraph = doc.add_paragraph()
+            caption_paragraph.alignment = alignment
+            caption_paragraph.paragraph_format.left_indent = Cm(0)
+            caption_paragraph.paragraph_format.right_indent = Cm(0)
+            caption_paragraph.paragraph_format.first_line_indent = Cm(0)
+            caption_paragraph.paragraph_format.space_before = Pt(0)
+            caption_paragraph.paragraph_format.space_after = Pt(8)
+            caption_paragraph.paragraph_format.line_spacing = 1.0
+            run = caption_paragraph.add_run(caption)
+            run.font.name = 'Times New Roman'
+            run.font.size = Pt(12)
+            run.italic = True
 
     @staticmethod
     def add_page_break(doc):

@@ -1,13 +1,14 @@
-import html
 import re
 import sys
 import tkinter as tk
 from pathlib import Path
-from tkinter import messagebox, simpledialog, ttk
+from tkinter import filedialog, messagebox, simpledialog, ttk
 
 from src.core.assembler import DocumentAssembler
 from src.core.chapter_settings import ChapterSettings
 from src.core.docx_builder import DocxBuilder
+from src.core.image_assets import ProjectImageAssetService
+from src.core.markdown_image import build_markdown_image, parse_markdown_image_line
 from src.core.markdown_utils import MarkdownUtils
 from src.ui.preview_utils import PreviewUtils
 
@@ -87,6 +88,9 @@ class VisualBuilderWindow(tk.Toplevel):
         ttk.Button(toolbar, text='Rename', command=self.rename_chapter).pack(side='left', padx=(8, 0))
         ttk.Button(toolbar, text='Delete', command=self.delete_chapter).pack(side='left', padx=(8, 0))
         ttk.Button(toolbar, text='Reformat', command=self.reformat_current_chapter).pack(side='left', padx=(8, 0))
+        ttk.Button(toolbar, text='Insert Image', command=self.insert_image).pack(side='left', padx=(8, 0))
+        ttk.Button(toolbar, text='Project Images', command=self.insert_existing_image).pack(side='left', padx=(8, 0))
+        ttk.Button(toolbar, text='Image Props', command=self.edit_image_at_cursor).pack(side='left', padx=(8, 0))
         ttk.Button(toolbar, text='Paragraph', command=self.open_paragraph_settings).pack(side='left', padx=(16, 0))
         ttk.Button(toolbar, text='Margins', command=self.open_page_settings).pack(side='left', padx=(8, 0))
         ttk.Button(toolbar, text='List Markers', command=self.open_list_marker_settings).pack(side='left', padx=(8, 0))
@@ -556,6 +560,202 @@ class VisualBuilderWindow(tk.Toplevel):
         self._schedule_preview_refresh()
         self._schedule_highlight()
         self._set_status(f'Reformatted {self.current_file.name}')
+
+    def insert_image(self):
+        if not self.current_file:
+            messagebox.showwarning('Insert Image', 'Select a chapter before inserting an image.', parent=self)
+            return
+
+        selected_path = filedialog.askopenfilename(
+            parent=self,
+            title='Select image',
+            filetypes=[
+                ('Image files', '*.png *.jpg *.jpeg *.gif *.bmp *.webp'),
+                ('All files', '*.*'),
+            ],
+        )
+        if not selected_path:
+            return
+
+        source_path = Path(selected_path)
+        metadata = self._prompt_image_metadata(
+            title='Insert Image',
+            initial_alt=ProjectImageAssetService.default_alt_text(source_path),
+            initial_caption='',
+            initial_width='100%',
+            initial_align='center',
+        )
+        if metadata is None:
+            return
+
+        imported = ProjectImageAssetService.import_image(self.project_path, source_path)
+        markdown = build_markdown_image(
+            imported.relative_path,
+            alt=metadata['alt'].strip() or imported.alt_text,
+            caption=metadata['caption'].strip(),
+            width=self._normalize_image_width(metadata['width']),
+            align=self._normalize_image_align(metadata['align']),
+        )
+        self._insert_markdown_block(markdown)
+        self._set_status(f'Inserted image {Path(selected_path).name}')
+
+    def insert_existing_image(self):
+        if not self.current_file:
+            messagebox.showwarning('Project Images', 'Select a chapter before inserting an image.', parent=self)
+            return
+
+        assets = ProjectImageAssetService.list_images(self.project_path)
+        if not assets:
+            messagebox.showinfo('Project Images', 'No project images found yet.', parent=self)
+            return
+
+        selected = self._choose_existing_image_asset(assets)
+        if selected is None:
+            return
+
+        metadata = self._prompt_image_metadata(
+            title='Project Images',
+            initial_alt=selected.alt_text,
+            initial_caption='',
+            initial_width='100%',
+            initial_align='center',
+        )
+        if metadata is None:
+            return
+
+        markdown = build_markdown_image(
+            selected.relative_path,
+            alt=metadata['alt'].strip() or selected.alt_text,
+            caption=metadata['caption'].strip(),
+            width=self._normalize_image_width(metadata['width']),
+            align=self._normalize_image_align(metadata['align']),
+        )
+        self._insert_markdown_block(markdown)
+        self._set_status(f'Inserted project image {Path(selected.relative_path).name}')
+
+    def edit_image_at_cursor(self):
+        if not self.current_file:
+            messagebox.showwarning('Image Props', 'Select a chapter before editing image properties.', parent=self)
+            return
+
+        line_start = self.editor_text.index('insert linestart')
+        line_end = self.editor_text.index('insert lineend')
+        current_line = self.editor_text.get(line_start, line_end)
+        image = parse_markdown_image_line(current_line)
+        if image is None:
+            messagebox.showinfo('Image Props', 'Place the cursor on a Markdown image line to edit it.', parent=self)
+            return
+
+        metadata = self._prompt_image_metadata(
+            title='Image Props',
+            initial_alt=image.alt,
+            initial_caption=image.caption,
+            initial_width=image.width,
+            initial_align=image.align,
+        )
+        if metadata is None:
+            return
+
+        updated = build_markdown_image(
+            image.path,
+            alt=metadata['alt'].strip(),
+            caption=metadata['caption'].strip(),
+            width=self._normalize_image_width(metadata['width']),
+            align=self._normalize_image_align(metadata['align']),
+        )
+        self.editor_text.delete(line_start, line_end)
+        self.editor_text.insert(line_start, updated)
+        self.editor_text.mark_set(tk.INSERT, line_start)
+        self.editor_text.see(tk.INSERT)
+        self._is_dirty = True
+        self._refresh_title()
+        self._schedule_autosave()
+        self._schedule_preview_refresh()
+        self._schedule_highlight()
+        self._set_status('Updated image properties')
+
+    def _prompt_image_metadata(self, *, title: str, initial_alt: str, initial_caption: str, initial_width: str, initial_align: str):
+        alt_text = simpledialog.askstring(title, 'Alternative text:', parent=self, initialvalue=initial_alt)
+        if alt_text is None:
+            return None
+        caption = simpledialog.askstring(title, 'Caption (optional):', parent=self, initialvalue=initial_caption)
+        if caption is None:
+            return None
+        width = simpledialog.askstring(title, 'Width (%):', parent=self, initialvalue=initial_width)
+        if width is None:
+            return None
+        align = simpledialog.askstring(
+            title,
+            'Alignment (left/center/right):',
+            parent=self,
+            initialvalue=initial_align,
+        )
+        if align is None:
+            return None
+        return {'alt': alt_text, 'caption': caption, 'width': width, 'align': align}
+
+    def _insert_markdown_block(self, markdown: str):
+        insert_at = self.editor_text.index(tk.INSERT)
+        prefix = '' if insert_at.endswith('.0') else '\n'
+        suffix = '\n\n'
+        self.editor_text.insert(tk.INSERT, f'{prefix}{markdown}{suffix}')
+        self.editor_text.see(tk.INSERT)
+        self._is_dirty = True
+        self._refresh_title()
+        self._schedule_autosave()
+        self._schedule_preview_refresh()
+        self._schedule_highlight()
+
+    def _choose_existing_image_asset(self, assets):
+        dialog = tk.Toplevel(self)
+        dialog.title('Project Images')
+        dialog.transient(self)
+        dialog.grab_set()
+        dialog.resizable(False, False)
+
+        selected_asset = {'value': None}
+
+        body = ttk.Frame(dialog, padding=12)
+        body.pack(fill='both', expand=True)
+        ttk.Label(body, text='Select an image from the project asset library.').pack(anchor='w', pady=(0, 8))
+
+        listbox = tk.Listbox(body, width=72, height=12, exportselection=False, activestyle='none')
+        listbox.pack(fill='both', expand=True)
+        for asset in assets:
+            listbox.insert(tk.END, f'{asset.relative_path}  |  {asset.alt_text}')
+        listbox.selection_set(0)
+        listbox.activate(0)
+
+        button_row = ttk.Frame(body)
+        button_row.pack(fill='x', pady=(10, 0))
+
+        def confirm():
+            selection = listbox.curselection()
+            if not selection:
+                return
+            selected_asset['value'] = assets[selection[0]]
+            dialog.destroy()
+
+        ttk.Button(button_row, text='Insert', command=confirm).pack(side='right')
+        ttk.Button(button_row, text='Cancel', command=dialog.destroy).pack(side='right', padx=(0, 8))
+        dialog.wait_window()
+        return selected_asset['value']
+
+    @staticmethod
+    def _normalize_image_width(value: str) -> str:
+        text = str(value or '').strip()
+        if not text:
+            return '100%'
+        if text.endswith('%'):
+            return text
+        return f'{text}%'
+
+    @staticmethod
+    def _normalize_image_align(value: str) -> str:
+        text = str(value or '').strip().lower()
+        if text in {'left', 'center', 'right'}:
+            return text
+        return 'center'
 
     @staticmethod
     def _compute_global_line_for_file(entries, filename: str | None, local_line_number: int) -> int:
@@ -1443,37 +1643,14 @@ class VisualBuilderWindow(tk.Toplevel):
 
     def _render_preview_html(self, entries) -> str:
         css = self._load_preview_css()
-        self._preview_anchors_by_file = {}
-
-        if not entries:
-            return (
-                '<!DOCTYPE html><html><head><meta charset="utf-8">'
-                f'<style>{css}</style></head><body><div class="document-shell">'
-                '<section class="empty-state">No chapter content available.</section>'
-                '</div></body></html>'
-            )
-
-        page_sections = []
-        for index, entry in enumerate(entries, start=1):
-            anchored_md, anchors = PreviewUtils.inject_block_anchors(entry.content, entry.filename)
-            self._preview_anchors_by_file[entry.filename] = anchors
-            markers = ChapterSettings.get_list_markers_by_level(self.assembler.get_config(), entry.filename)
-            body = PreviewUtils.markdown_to_html_body_with_markers(anchored_md, list_markers_by_level=markers)
-            page_sections.append(
-
-                    f'<section class="page" id="{self._chapter_anchor(entry.filename)}" '
-                    f'data-page-label="Page {index}">'
-                    f'{body}</section>'
-
-            )
-
-        return (
-            '<!DOCTYPE html><html><head><meta charset="utf-8">'
-            f'<title>{html.escape(self.project_path.name)}</title><style>{css}</style>'
-            '</head><body><div class="document-shell">'
-            + ''.join(page_sections)
-            + '</div></body></html>'
+        html_source, anchors = PreviewUtils.render_paginated_html_document(
+            entries,
+            workspace_dir=self.project_path,
+            config=self.assembler.get_config(),
+            css_text=css,
         )
+        self._preview_anchors_by_file = anchors
+        return html_source
 
     def _chapter_anchor(self, filename: str) -> str:
         slug = re.sub(r'[^a-zA-Z0-9]+', '-', filename).strip('-').lower()

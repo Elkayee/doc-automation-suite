@@ -6,6 +6,7 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Cm, Pt, RGBColor
 
 from src.core.docx_helpers import DocxHelpers
+from src.core.markdown_image import parse_markdown_image_line
 from src.core.markdown_utils import MarkdownUtils
 from src.core.media_downloader import MediaDownloader
 
@@ -48,6 +49,7 @@ class DocxBuilder:
             lines = f.readlines()
 
         paragraph_settings = DocxHelpers.get_paragraph_settings(self.config)
+        markdown_table_settings = DocxHelpers.get_markdown_table_settings(self.config)
         style = self.doc.styles['Normal']
         style.font.name = paragraph_settings.get('font_name', 'Times New Roman')
         style.font.size = Pt(float(paragraph_settings.get('font_size', 14)))
@@ -197,23 +199,16 @@ class DocxBuilder:
                 tbl = self.doc.add_table(rows=len(data_rows), cols=max_cols)
                 tbl.style = 'Table Grid'
                 for ri, row in enumerate(data_rows):
+                    if ri == 0:
+                        DocxHelpers.set_table_row_repeat_header(tbl.rows[ri])
                     for ci, cell_text in enumerate(row):
                         cell = tbl.cell(ri, ci)
-                        cell.paragraphs[0].clear()
-                        p = cell.paragraphs[0]
-                        p.alignment = WD_ALIGN_PARAGRAPH.CENTER if ri == 0 else WD_ALIGN_PARAGRAPH.LEFT
-                        p.paragraph_format.left_indent = Cm(0)
-                        p.paragraph_format.right_indent = Cm(0)
-                        p.paragraph_format.first_line_indent = Cm(0)
-                        p.paragraph_format.space_before = Pt(2)
-                        p.paragraph_format.space_after = Pt(2)
-                        run = p.add_run(
-                            MarkdownUtils.strip_md_markup(MarkdownUtils.normalize_html_breaks(cell_text, '\n'))
+                        DocxHelpers.format_markdown_table_cell(
+                            cell,
+                            MarkdownUtils.strip_md_markup(MarkdownUtils.normalize_html_breaks(cell_text, '\n')),
+                            is_header=ri == 0,
+                            settings=markdown_table_settings,
                         )
-                        run.font.size = Pt(11)
-                        run.font.name = 'Times New Roman'
-                        if ri == 0:
-                            run.bold = True
                 _sp = self.doc.add_paragraph()
                 _sp.paragraph_format.space_before = Pt(0)
                 _sp.paragraph_format.space_after = Pt(6)
@@ -239,9 +234,9 @@ class DocxBuilder:
                 continue
 
             # Markdown image
-            m_image = re.match(r'^\s*!\[.*?\]\(([^)]+)\)\s*$', line)
-            if m_image:
-                DocxHelpers.add_markdown_image(self.doc, self.workspace_dir, md_path, m_image.group(1).strip())
+            parsed_image = parse_markdown_image_line(line)
+            if parsed_image:
+                DocxHelpers.add_markdown_image(self.doc, self.workspace_dir, md_path, parsed_image)
                 i += 1
                 continue
 
