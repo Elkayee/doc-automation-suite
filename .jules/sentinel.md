@@ -1,0 +1,4 @@
+## 2024-05-24 - [CRITICAL] Prevent Path Traversal in Configuration Files
+**Vulnerability:** The application was directly loading `docx_template` and `required_files` properties from user-provided `config.yaml` files without validating or sanitizing the paths. An attacker could specify arbitrary relative paths (e.g., `../../../etc/passwd` or `/absolute/path`) leading to path traversal attacks during file reading and template processing.
+**Learning:** Configurations providing file references must be sanitized. Blindly trusting properties loaded via `yaml.safe_load` that translate into OS file paths opens the application up to arbitrary local file reads.
+**Prevention:** Implement explicit `is_safe_path` checks for any file paths extracted from configurations, explicitly blocking directory traversals (`..`) and absolute/root path components (`/`, `\\`). Drop invalid configurations or provide a safe default instead of failing silently.
