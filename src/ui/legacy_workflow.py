@@ -217,7 +217,7 @@ def launch_workflow_ui():
     style.configure('TFrame', background='#f3efe5')
     style.configure('TLabel', background='#f3efe5', foreground='#2b241b', font=('Georgia', 11))
     style.configure('Header.TLabel', background='#f3efe5', foreground='#1f3f5b', font=('Georgia', 18, 'bold'))
-    style.configure('TButton', font=('Georgia', 10, 'bold'))
+    style.configure('TButton', font=('Georgia', 10, 'bold'), cursor='hand2')
     style.configure('TNotebook', background='#f3efe5', borderwidth=0)
     style.configure('TNotebook.Tab', font=('Georgia', 10, 'bold'))
 
@@ -298,7 +298,7 @@ def launch_workflow_ui():
     editor_paned.add(preview_frame, weight=3)
 
     # -- Listbox --
-    file_listbox = tk.Listbox(file_list_frame, font=('Consolas', 10))
+    file_listbox = tk.Listbox(file_list_frame, font=('Consolas', 10), cursor='hand2')
     file_listbox.pack(side='left', fill='both', expand=True)
     scrollbar = ttk.Scrollbar(file_list_frame, orient='vertical', command=file_listbox.yview)
     scrollbar.pack(side='right', fill='y')
