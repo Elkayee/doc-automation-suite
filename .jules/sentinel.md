@@ -1,0 +1,4 @@
+## 2024-05-15 - Path Traversal Vulnerability in YAML Configurations
+**Vulnerability:** The application was loading file paths (such as `docx_template`, `required_files`, and `chapter_order`) from a user-supplied `config.yaml` file without any validation. This could allow directory traversal attacks (e.g., using `../`) or absolute path specifications to read or write arbitrary files on the system.
+**Learning:** Relying on user input for file operations must include validation to prevent escaping the intended project sandbox. Safe defaults alone are insufficient when an attacker can explicitly override them with null or malicious string paths.
+**Prevention:** Added a strict `is_safe_path` method to block absolute paths and parent directory references (`..`) before incorporating parsed values from the YAML dictionary. Also, use `data.get(key) or default_value` to handle explicitly `null` configuration overrides safely.
