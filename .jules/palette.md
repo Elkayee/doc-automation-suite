@@ -1,0 +1,10 @@
+## 2024-05-10 - Tkinter Listbox Empty State Pattern
+
+**Learning:** Tkinter listboxes don't have built-in empty states. When a listbox has no items, it
+appears completely blank, leaving users unsure if data is loading or truly empty. Inserting a
+placeholder string helps, but event handlers (like double-click to open, or delete) will throw
+errors if they interact with this placeholder as if it were real data. **Action:** Implement listbox
+empty states by inserting a placeholder string when `listbox.size() == 0`, visually distinguishing
+it using `listbox.itemconfig(0, foreground='gray')`, and crucially, updating ALL relevant event
+handlers to explicitly check `listbox.itemcget(idx, 'foreground') == 'gray'` and return early to
+prevent invalid actions.
