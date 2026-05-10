@@ -1,0 +1,4 @@
+
+## 2024-05-10 - Bounded String Splitting in Markdown Parsing
+**Learning:** In text processing code that searches for specific structural elements (like markdown fences), using an unbounded `text.split('\n')` creates severe memory allocations for large strings, especially if it's evaluated for a specific line index only. However, Python's manual iterative loops (e.g. `while index < limit`) using `str.find('\n')` are noticeably slower than the native C-implemented `str.split()`.
+**Action:** When you only need to process lines up to a known limit, use `text.split('\n', limit_number)`. This combines the speed of native C implementation with a hard memory bound, avoiding unbounded $O(N)$ allocations. Always precede it with an $O(1)$ fast-path substring check (e.g. `if marker not in text: return False`) to avoid splits entirely if the marker doesn't exist.
