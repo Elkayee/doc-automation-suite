@@ -1,3 +1,4 @@
+import os
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
@@ -53,7 +54,7 @@ class PreviewAnchorMappingTests(unittest.TestCase):
         entries = [
             ChapterAssemblyEntry(
                 filename='Ch01_Test.md',
-                path=Path('/app/tests/Ch01_Test.md'),
+                path=Path(os.path.abspath('tests/Ch01_Test.md')),
                 content=(
                     '### Tieu de\n\n'
                     'Doan van mo dau rat dai. ' * 40
@@ -81,7 +82,7 @@ class PreviewAnchorMappingTests(unittest.TestCase):
 
         html, anchors = PreviewUtils.render_paginated_html_document(
             entries,
-            workspace_dir=Path('/app'),
+            workspace_dir=Path(os.path.abspath('.')),
             config=config,
         )
 
