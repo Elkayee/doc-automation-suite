@@ -60,6 +60,9 @@ class PreviewAnchorMappingTests(unittest.TestCase):
             # Create a dummy image
             Image.new('RGB', (100, 100), color='red').save(img_path)
 
+            # Ensure path string is using forward slashes for the markdown parser
+            img_path_str = str(img_path).replace('\\', '/')
+
             entries = [
                 ChapterAssemblyEntry(
                     filename='Ch01_Test.md',
@@ -67,7 +70,7 @@ class PreviewAnchorMappingTests(unittest.TestCase):
                     content=(
                         '### Tieu de\n\n'
                         'Doan van mo dau rat dai. ' * 40 + '\n\n'
-                        f'![Dang nhap]({img_path}){{caption="Hình 1", width=80%, align=center}}\n\n'
+                        f'![Dang nhap]({img_path_str}){{caption="Hình 1", width=80%, align=center}}\n\n'
                         + ('Them noi dung de tach trang.\n\n' * 30)
                     ),
                     start_line=1,
