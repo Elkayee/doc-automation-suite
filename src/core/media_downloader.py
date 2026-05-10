@@ -34,18 +34,35 @@ class MediaDownloader:
                     marker = handle.read(1)
 
                 if not marker or marker in {
-                    b'\xd8', b'\xd9', b'\x01',
-                    b'\xd0', b'\xd1', b'\xd2', b'\xd3',
-                    b'\xd4', b'\xd5', b'\xd6', b'\xd7',
+                    b'\xd8',
+                    b'\xd9',
+                    b'\x01',
+                    b'\xd0',
+                    b'\xd1',
+                    b'\xd2',
+                    b'\xd3',
+                    b'\xd4',
+                    b'\xd5',
+                    b'\xd6',
+                    b'\xd7',
                 }:
                     continue
 
                 segment_length = struct.unpack('>H', handle.read(2))[0]
                 if marker in {
-                    b'\xc0', b'\xc1', b'\xc2', b'\xc3',
-                    b'\xc5', b'\xc6', b'\xc7',
-                    b'\xc9', b'\xca', b'\xcb',
-                    b'\xcd', b'\xce', b'\xcf',
+                    b'\xc0',
+                    b'\xc1',
+                    b'\xc2',
+                    b'\xc3',
+                    b'\xc5',
+                    b'\xc6',
+                    b'\xc7',
+                    b'\xc9',
+                    b'\xca',
+                    b'\xcb',
+                    b'\xcd',
+                    b'\xce',
+                    b'\xcf',
                 }:
                     handle.read(1)
                     height = struct.unpack('>H', handle.read(2))[0]
