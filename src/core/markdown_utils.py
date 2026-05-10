@@ -685,8 +685,15 @@ class MarkdownUtils:
 
     @staticmethod
     def is_line_inside_fenced_block(text, line_number):
-        lines = text.replace('\r\n', '\n').replace('\r', '\n').split('\n')
         safe_line_number = max(1, int(line_number))
+
+        # Fast path: O(1) string search to skip parsing if no fences exist
+        if '```' not in text:
+            return False
+
+        # Limit string splitting to `safe_line_number` to prevent unbounded O(N)
+        # memory allocation when parsing large text documents
+        lines = text.replace('\r\n', '\n').replace('\r', '\n').split('\n', safe_line_number)
         in_code_fence = False
 
         for index, line in enumerate(lines, start=1):
