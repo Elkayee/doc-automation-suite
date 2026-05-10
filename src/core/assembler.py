@@ -51,11 +51,7 @@ class DocumentAssembler:
                 ordered.append(filename)
                 seen.add(filename)
 
-        extras = sorted(
-            path.name
-            for path in self.chapters_dir.glob('*.md')
-            if path.name not in seen
-        )
+        extras = sorted(path.name for path in self.chapters_dir.glob('*.md') if path.name not in seen)
         ordered.extend(extras)
         return ordered
 
