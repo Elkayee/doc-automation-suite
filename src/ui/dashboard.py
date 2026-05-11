@@ -70,7 +70,7 @@ class DashboardApp:
             recent_header_frame, text='Xoa Du An', style='Action.TButton', command=self.delete_selected_project
         ).pack(side='right')
 
-        self.projects_list = tk.Listbox(main_container, font=('Consolas', 11), height=10)
+        self.projects_list = tk.Listbox(main_container, font=('Consolas', 11), height=10, cursor='hand2')
         self.projects_list.pack(fill='both', expand=True)
         self.projects_list.bind('<Double-1>', lambda _event: self.open_selected_project())
 
@@ -81,6 +81,10 @@ class DashboardApp:
         for entry in self.workspaces_dir.iterdir():
             if entry.is_dir() and (entry / 'config.yaml').exists():
                 self.projects_list.insert(tk.END, entry.name)
+
+        if self.projects_list.size() == 0:
+            self.projects_list.insert(tk.END, 'Chua co du an nao')
+            self.projects_list.itemconfig(0, foreground='gray')
 
     def show_create_dialog(self):
         dialog = tk.Toplevel(self.root)
@@ -141,13 +145,16 @@ class DashboardApp:
             messagebox.showwarning('Canh bao', 'Vui long chon mot du an de xoa', parent=self.root)
             return
 
+        if self.projects_list.itemcget(self.projects_list.curselection()[0], 'foreground') == 'gray':
+            return
+
         idx = self.projects_list.curselection()[0]
         name = self.projects_list.get(idx)
 
         confirm = messagebox.askyesno(
             'Xac nhan xoa',
             f"Ban co chac chan muon xoa du an '{name}' khong?\nHanh dong nay khong the hoan tac.",
-            parent=self.root
+            parent=self.root,
         )
 
         if confirm:
@@ -157,7 +164,7 @@ class DashboardApp:
                 messagebox.showinfo('Thanh cong', f"Da xoa du an '{name}'", parent=self.root)
                 self.refresh_projects()
             except Exception as e:
-                messagebox.showerror('Loi', f"Khong the xoa du an:\n{str(e)}", parent=self.root)
+                messagebox.showerror('Loi', f'Khong the xoa du an:\n{str(e)}', parent=self.root)
 
     def open_project(self):
         path = filedialog.askdirectory(initialdir=str(self.workspaces_dir))
@@ -167,6 +174,10 @@ class DashboardApp:
     def open_selected_project(self):
         if not self.projects_list.curselection():
             return
+
+        if self.projects_list.itemcget(self.projects_list.curselection()[0], 'foreground') == 'gray':
+            return
+
         idx = self.projects_list.curselection()[0]
         name = self.projects_list.get(idx)
         self._launch_workspace(self.workspaces_dir / name)

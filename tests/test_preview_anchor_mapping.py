@@ -50,46 +50,58 @@ class PreviewAnchorMappingTests(unittest.TestCase):
         self.assertIn('<span class="list-marker">-</span> <span class="list-text">', html)
 
     def test_render_paginated_html_document_renders_images_and_splits_pages(self):
-        entries = [
-            ChapterAssemblyEntry(
-                filename='Ch01_Test.md',
-                path=Path('D:/doc-automation-suite/tests/Ch01_Test.md'),
-                content=(
-                    '### Tieu de\n\n'
-                    'Doan van mo dau rat dai. ' * 40
-                    + '\n\n'
-                    '![Dang nhap](D:/doc-automation-suite/test_extracted.png){caption="Hình 1", width=80%, align=center}\n\n'
-                    + ('Them noi dung de tach trang.\n\n' * 30)
-                ),
-                start_line=1,
-                end_line=70,
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir)
+            img_path = tmp_path / 'test_extracted.png'
+            minimal_png = (
+                b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00'
+                b'\x1f\x15\xc4\x89\x00\x00\x00\x0bIDAT\x08\x99c\xf8\x0f\x04\x00\x09\xfb\x03\xfd\xe3U\xf2'
+                b'\x9c\x00\x00\x00\x00IEND\xaeB`\x82'
             )
-        ]
-        config = SimpleNamespace(
-            settings={
-                'page_height_cm': 10.0,
-                'page_width_cm': 21.0,
-                'margin_top_cm': 1.0,
-                'margin_bottom_cm': 1.0,
-                'margin_left_cm': 1.5,
-                'margin_right_cm': 1.5,
-                'font_size': 14,
-                'line_spacing_mode': 'multiple',
-                'line_spacing_value': 1.5,
-            }
-        )
+            img_path.write_bytes(minimal_png)
+            img_str_path = str(img_path).replace('\\', '/')
 
-        html, anchors = PreviewUtils.render_paginated_html_document(
-            entries,
-            workspace_dir=Path('D:/doc-automation-suite'),
-            config=config,
-        )
+            entries = [
+                ChapterAssemblyEntry(
+                    filename='Ch01_Test.md',
+                    path=tmp_path / 'Ch01_Test.md',
+                    content=(
+                        '### Tieu de\n\n'
+                        'Doan van mo dau rat dai. ' * 40 + '\n\n'
+                        f'![Dang nhap]({img_str_path}){{caption="Hình 1", width=80%, align=center}}\n\n'
+                        + ('Them noi dung de tach trang.\n\n' * 30)
+                    ),
+                    start_line=1,
+                    end_line=70,
+                )
+            ]
+            config = SimpleNamespace(
+                settings={
+                    'page_height_cm': 10.0,
+                    'page_width_cm': 21.0,
+                    'margin_top_cm': 1.0,
+                    'margin_bottom_cm': 1.0,
+                    'margin_left_cm': 1.5,
+                    'margin_right_cm': 1.5,
+                    'font_size': 14,
+                    'line_spacing_mode': 'multiple',
+                    'line_spacing_value': 1.5,
+                }
+            )
 
-        self.assertGreater(html.count('<section class="page"'), 1)
-        self.assertIn('class="image-block align-center', html)
-        self.assertIn('Hình 1', html)
-        self.assertIn('chapter-ch01-test-md-block-', html)
-        self.assertIn('Ch01_Test.md', anchors)
+            html, anchors = PreviewUtils.render_paginated_html_document(
+                entries,
+                workspace_dir=tmp_path,
+                config=config,
+            )
+
+            self.assertGreater(html.count('<section class="page"'), 1)
+            self.assertIn('class="image-block align-center', html)
+            self.assertIn('Hình 1', html)
+            self.assertIn('chapter-ch01-test-md-block-', html)
+            self.assertIn('Ch01_Test.md', anchors)
 
 
 if __name__ == '__main__':
