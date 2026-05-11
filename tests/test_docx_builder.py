@@ -18,6 +18,13 @@ class DocxBuilderListMarkerTests(unittest.TestCase):
         if workspace.exists():
             shutil.rmtree(workspace, ignore_errors=True)
         workspace.mkdir(parents=True, exist_ok=True)
+
+        # Setup image asset inside project
+        image_dir = workspace / 'assets' / 'images'
+        image_dir.mkdir(parents=True, exist_ok=True)
+        image_path = image_dir / 'test.png'
+        image_path.write_bytes(b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\x0bIDAT\x08\x99c\xf8\x0f\x04\x00\x09\xfb\x03\xfd\xe3U\xf2\x9c\x00\x00\x00\x00IEND\xaeB`\x82')
+
         try:
             config_path = workspace / 'config.yaml'
             markdown_path = workspace / 'assembled.md'
@@ -64,6 +71,13 @@ class DocxBuilderListMarkerTests(unittest.TestCase):
         if workspace.exists():
             shutil.rmtree(workspace, ignore_errors=True)
         workspace.mkdir(parents=True, exist_ok=True)
+
+        # Setup image asset inside project
+        image_dir = workspace / 'assets' / 'images'
+        image_dir.mkdir(parents=True, exist_ok=True)
+        image_path = image_dir / 'test.png'
+        image_path.write_bytes(b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\x0bIDAT\x08\x99c\xf8\x0f\x04\x00\x09\xfb\x03\xfd\xe3U\xf2\x9c\x00\x00\x00\x00IEND\xaeB`\x82')
+
         try:
             config_path = workspace / 'config.yaml'
             markdown_path = workspace / 'assembled.md'
@@ -91,7 +105,7 @@ class DocxBuilderListMarkerTests(unittest.TestCase):
             markdown_path.write_text(
                 '<!-- FILE: Ch01_Test.md -->\n\n'
                 'Doan truoc.\n\n'
-                f'![Image]({PROJECT_ROOT.as_posix()}/test_extracted.png)\n\n'
+                f'![Image]({image_path.as_posix()})\n\n'
                 'Doan sau.\n',
                 encoding='utf-8',
             )
@@ -122,6 +136,13 @@ class DocxBuilderListMarkerTests(unittest.TestCase):
         if workspace.exists():
             shutil.rmtree(workspace, ignore_errors=True)
         workspace.mkdir(parents=True, exist_ok=True)
+
+        # Setup image asset inside project
+        image_dir = workspace / 'assets' / 'images'
+        image_dir.mkdir(parents=True, exist_ok=True)
+        image_path = image_dir / 'test.png'
+        image_path.write_bytes(b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\x0bIDAT\x08\x99c\xf8\x0f\x04\x00\x09\xfb\x03\xfd\xe3U\xf2\x9c\x00\x00\x00\x00IEND\xaeB`\x82')
+
         try:
             config_path = workspace / 'config.yaml'
             markdown_path = workspace / 'assembled.md'
@@ -144,7 +165,7 @@ class DocxBuilderListMarkerTests(unittest.TestCase):
             )
             markdown_path.write_text(
                 '<!-- FILE: Ch01_Test.md -->\n\n'
-                f'![Dang nhap]({PROJECT_ROOT.as_posix()}/test_extracted.png)'
+                f'![Dang nhap]({image_path.as_posix()})'
                 '{caption="Hình 4.1. Giao diện đăng nhập", width=50%, align=right}\n',
                 encoding='utf-8',
             )
