@@ -685,8 +685,19 @@ class MarkdownUtils:
 
     @staticmethod
     def is_line_inside_fenced_block(text, line_number):
-        lines = text.replace('\r\n', '\n').replace('\r', '\n').split('\n')
+        # BOLT OPTIMIZATION: Fast path to skip unnecessary allocations if no code block exists
+        if '```' not in text:
+            return False
+
+        # BOLT OPTIMIZATION: Only normalize newlines if Windows line endings actually exist
+        if '\r' in text:
+            text = text.replace('\r\n', '\n').replace('\r', '\n')
+
         safe_line_number = max(1, int(line_number))
+
+        # BOLT OPTIMIZATION: Bound string split to safe_line_number to avoid parsing the rest of document
+        lines = text.split('\n', safe_line_number)
+
         in_code_fence = False
 
         for index, line in enumerate(lines, start=1):
