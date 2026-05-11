@@ -1,0 +1,3 @@
+## 2024-05-11 - Tkinter Empty States and Disabled Interactions
+**Learning:** When adding empty state placeholder text to Tkinter Listboxes (e.g., using `itemconfig(0, foreground='gray')`), the text itself is selectable, which can trigger errors or unintended side effects in event handlers that rely on the selection.
+**Action:** Always check the item's foreground color (`if listbox.itemcget(idx, 'foreground') == 'gray'`) in all selection event handlers (clicks, delete actions, opens) and return early or show a warning to prevent interaction with the empty state placeholder. Also add `hand2` cursor to buttons for better interaction hints.
