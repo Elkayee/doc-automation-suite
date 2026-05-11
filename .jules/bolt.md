@@ -1,3 +1,9 @@
 ## 2024-05-11 - Fast-Path and Bounded Splits
-**Learning:** Performance Anti-pattern: When parsing text up to a specific line, unbounded `text.replace(...).split('\n')` allocates a full array for the entire string. Avoid manual iterative `str.find('\n')` loops as they are slower in Python; instead, use a fast-path substring check (`if marker not in text`) combined with bounded splitting using `maxsplit` (e.g., `text.split('\n', safe_line_number)`).
-**Action:** Always check if we need to split the entire string or only up to a certain delimiter or line number, and apply bounded maxsplit parameters when possible, wrapped with an O(1) fast-path guard.
+
+**Learning:** Performance Anti-pattern: When parsing text up to a specific line, unbounded
+`text.replace(...).split('\n')` allocates a full array for the entire string. Avoid manual iterative
+`str.find('\n')` loops as they are slower in Python; instead, use a fast-path substring check
+(`if marker not in text`) combined with bounded splitting using `maxsplit` (e.g.,
+`text.split('\n', safe_line_number)`). **Action:** Always check if we need to split the entire
+string or only up to a certain delimiter or line number, and apply bounded maxsplit parameters when
+possible, wrapped with an O(1) fast-path guard.
