@@ -1,0 +1,3 @@
+## 2024-05-24 - Tkinter Listbox Empty State Pattern
+**Learning:** When implementing empty states in Tkinter `Listbox` widgets using a placeholder string (e.g., "No items found"), it's critical to realize that the placeholder is an actual selectable item. If users click or double-click it, the event handlers will fire and attempt to process the placeholder text as real data, leading to errors.
+**Action:** Always visually differentiate the placeholder (e.g., `listbox.itemconfig(0, foreground='gray')`) AND explicitly guard ALL related event handlers by checking `listbox.itemcget(idx, 'foreground') == 'gray'` to return early and prevent invalid interactions.
