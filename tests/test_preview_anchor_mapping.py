@@ -57,7 +57,7 @@ class PreviewAnchorMappingTests(unittest.TestCase):
                 content=(
                     '### Tieu de\n\n'
                     'Doan van mo dau rat dai. ' * 40 + '\n\n'
-                    '![Dang nhap](/app/test_extracted.png){caption="Hình 1", width=80%, align=center}\n\n'
+                    f'![Dang nhap]({str(Path.cwd() / "test_extracted.png").replace(chr(92), "/")}){{caption="Hình 1", width=80%, align=center}}\n\n'
                     + ('Them noi dung de tach trang.\n\n' * 30)
                 ),
                 start_line=1,
