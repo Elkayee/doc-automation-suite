@@ -52,8 +52,8 @@ class PreviewAnchorMappingTests(unittest.TestCase):
     def test_render_paginated_html_document_renders_images_and_splits_pages(self):
         # BOLT Fix for linux paths failing: Path("D:/...") isn't absolute in Linux runner
         # Use relative paths for dummy files instead
-        import tempfile
         import shutil
+        import tempfile
 
         temp_dir = Path(tempfile.mkdtemp())
         test_img = temp_dir / 'test_extracted.png'
@@ -70,8 +70,7 @@ class PreviewAnchorMappingTests(unittest.TestCase):
                 path=md_file,
                 content=(
                     '### Tieu de\n\n'
-                    'Doan van mo dau rat dai. ' * 40
-                    + '\n\n'
+                    'Doan van mo dau rat dai. ' * 40 + '\n\n'
                     f'![Dang nhap]({img_path_str}){{caption="Hình 1", width=80%, align=center}}\n\n'
                     + ('Them noi dung de tach trang.\n\n' * 30)
                 ),
