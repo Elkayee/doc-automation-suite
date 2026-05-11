@@ -26,14 +26,29 @@ class TemplateConfig:
         if not isinstance(data, dict):
             raise ValueError(f"Invalid configuration format in {config_path}. Expected a dictionary.")
 
+        # Security: Prevent path traversal vulnerabilities by checking for '..'
+        docx_template = data.get('docx_template', 'template.docx')
+        if '..' in docx_template:
+            raise ValueError(f"Path traversal detected in docx_template: {docx_template}")
+
+        required_files = data.get('required_files', [])
+        for file_path in required_files:
+            if '..' in str(file_path):
+                raise ValueError(f"Path traversal detected in required_files: {file_path}")
+
+        chapter_order = data.get('chapter_order', []) or []
+        for file_path in chapter_order:
+            if '..' in str(file_path):
+                raise ValueError(f"Path traversal detected in chapter_order: {file_path}")
+
         return cls(
             name=data.get('name', 'Unknown Template'),
             description=data.get('description', ''),
             type=data.get('type', 'report'),
-            required_files=data.get('required_files', []),
-            docx_template=data.get('docx_template', 'template.docx'),
+            required_files=required_files,
+            docx_template=docx_template,
             settings=data.get('settings', {}),
-            chapter_order=data.get('chapter_order', []) or [],
+            chapter_order=chapter_order,
         )
 
     def save(self, config_path: Path) -> None:

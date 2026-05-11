@@ -13,8 +13,13 @@ class ImageAssetServiceTests(unittest.TestCase):
         if workspace.exists():
             shutil.rmtree(workspace, ignore_errors=True)
         workspace.mkdir(parents=True, exist_ok=True)
+
+        # Setup source image asset
+        source_image_path = workspace / 'test_extracted.png'
+        source_image_path.write_bytes(b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\x0bIDAT\x08\x99c\xf8\x0f\x04\x00\x09\xfb\x03\xfd\xe3U\xf2\x9c\x00\x00\x00\x00IEND\xaeB`\x82')
+
         try:
-            imported = ProjectImageAssetService.import_image(workspace, PROJECT_ROOT / 'test_extracted.png')
+            imported = ProjectImageAssetService.import_image(workspace, source_image_path)
 
             self.assertTrue(imported.absolute_path.exists())
             self.assertEqual(imported.relative_path, 'assets/images/test_extracted.png')
@@ -29,8 +34,13 @@ class ImageAssetServiceTests(unittest.TestCase):
             shutil.rmtree(workspace, ignore_errors=True)
         image_dir = workspace / 'assets' / 'images'
         image_dir.mkdir(parents=True, exist_ok=True)
+
+        # Setup source image asset
+        source_image_path = workspace / 'test_extracted.png'
+        source_image_path.write_bytes(b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\x0bIDAT\x08\x99c\xf8\x0f\x04\x00\x09\xfb\x03\xfd\xe3U\xf2\x9c\x00\x00\x00\x00IEND\xaeB`\x82')
+
         try:
-            shutil.copy2(PROJECT_ROOT / 'test_extracted.png', image_dir / 'a.png')
+            shutil.copy2(source_image_path, image_dir / 'a.png')
             (image_dir / 'notes.txt').write_text('ignore me', encoding='utf-8')
 
             assets = ProjectImageAssetService.list_images(workspace)

@@ -50,15 +50,22 @@ class PreviewAnchorMappingTests(unittest.TestCase):
         self.assertIn('<span class="list-marker">-</span> <span class="list-text">', html)
 
     def test_render_paginated_html_document_renders_images_and_splits_pages(self):
+        workspace = Path.cwd()
+        md_file = workspace / 'Ch01_Test.md'
+        img_file = workspace / 'test_extracted.png'
+
+        # Write a dummy image file so resolve_media_path finds it
+        img_file.write_bytes(b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\x0bIDAT\x08\x99c\xf8\x0f\x04\x00\x09\xfb\x03\xfd\xe3U\xf2\x9c\x00\x00\x00\x00IEND\xaeB`\x82')
+
         entries = [
             ChapterAssemblyEntry(
                 filename='Ch01_Test.md',
-                path=Path('D:/doc-automation-suite/tests/Ch01_Test.md'),
+                path=md_file,
                 content=(
                     '### Tieu de\n\n'
                     'Doan van mo dau rat dai. ' * 40
                     + '\n\n'
-                    '![Dang nhap](D:/doc-automation-suite/test_extracted.png){caption="Hình 1", width=80%, align=center}\n\n'
+                    f'![Dang nhap]({img_file.as_posix()}){{caption="Hình 1", width=80%, align=center}}\n\n'
                     + ('Them noi dung de tach trang.\n\n' * 30)
                 ),
                 start_line=1,
@@ -81,15 +88,19 @@ class PreviewAnchorMappingTests(unittest.TestCase):
 
         html, anchors = PreviewUtils.render_paginated_html_document(
             entries,
-            workspace_dir=Path('D:/doc-automation-suite'),
+            workspace_dir=workspace,
             config=config,
         )
 
-        self.assertGreater(html.count('<section class="page"'), 1)
-        self.assertIn('class="image-block align-center', html)
-        self.assertIn('Hình 1', html)
-        self.assertIn('chapter-ch01-test-md-block-', html)
-        self.assertIn('Ch01_Test.md', anchors)
+        try:
+            self.assertGreater(html.count('<section class="page"'), 1)
+            self.assertIn('class="image-block align-center', html)
+            self.assertIn('Hình 1', html)
+            self.assertIn('chapter-ch01-test-md-block-', html)
+            self.assertIn('Ch01_Test.md', anchors)
+        finally:
+            if img_file.exists():
+                img_file.unlink()
 
 
 if __name__ == '__main__':
