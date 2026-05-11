@@ -1,0 +1,3 @@
+## 2024-05-11 - Unbounded Line Scanning in Fenced Block Checks
+**Learning:** Checking if a specific line is inside a fenced block using `text.replace('\r\n', '\n').split('\n')` creates severe memory and computation overhead on large markdown files because it processes the entire text indiscriminately.
+**Action:** Use fast-path checks (`if marker not in text`) to avoid unnecessary scanning, fast-path checks for carriage returns to prevent full-string copying (`if '\r' in text`), and bounded limits (`text.split('\n', limit)`) to minimize allocations when only parsing up to a specific line number.
