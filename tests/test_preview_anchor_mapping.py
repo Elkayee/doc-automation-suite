@@ -55,7 +55,6 @@ class PreviewAnchorMappingTests(unittest.TestCase):
             tmp_path = Path(tmpdir)
             img_path = tmp_path / 'test_extracted.png'
             # Need a valid image file to get dimensions
-            import struct
             with open(img_path, 'wb') as f:
                 f.write(b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\x0bIDATx\x9cc\xfa\xcf\x00\x00\x04\x00\x01^\x08\xd1\x8c\x00\x00\x00\x00IEND\xaeB`\x82')
 
