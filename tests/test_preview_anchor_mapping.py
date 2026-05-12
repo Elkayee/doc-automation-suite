@@ -51,8 +51,8 @@ class PreviewAnchorMappingTests(unittest.TestCase):
 
     def test_render_paginated_html_document_renders_images_and_splits_pages(self):
         # Determine current path
-        from tempfile import TemporaryDirectory
         import struct
+        from tempfile import TemporaryDirectory
 
         with TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
@@ -74,8 +74,7 @@ class PreviewAnchorMappingTests(unittest.TestCase):
                     path=temp_path / 'tests' / 'Ch01_Test.md',
                     content=(
                         '### Tieu de\n\n'
-                        'Doan van mo dau rat dai. ' * 40
-                        + '\n\n'
+                        'Doan van mo dau rat dai. ' * 40 + '\n\n'
                         f'![Dang nhap]({image_path.as_posix()}){{caption="Hình 1", width=80%, align=center}}\n\n'
                         + ('Them noi dung de tach trang.\n\n' * 30)
                     ),
