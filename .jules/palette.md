@@ -1,3 +1,9 @@
 ## 2024-05-24 - Tkinter Listbox Empty State Pattern
-**Learning:** Implementing empty states directly within `tk.Listbox` using placeholder strings and distinct colors (e.g., `foreground='gray'`) is simple and visually clear, but it requires updating *all* relevant listbox event handlers (like click, double-click, and delete actions) to explicitly check `listbox.itemcget(idx, 'foreground') == 'gray'` to ignore interactions with the placeholder.
-**Action:** When adding empty state placeholders to a Tkinter listbox, always identify and update all associated event bindings to prevent the application from attempting to process the placeholder text as a valid list item.
+
+**Learning:** Implementing empty states directly within `tk.Listbox` using placeholder strings and
+distinct colors (e.g., `foreground='gray'`) is simple and visually clear, but it requires updating
+_all_ relevant listbox event handlers (like click, double-click, and delete actions) to explicitly
+check `listbox.itemcget(idx, 'foreground') == 'gray'` to ignore interactions with the placeholder.
+**Action:** When adding empty state placeholders to a Tkinter listbox, always identify and update
+all associated event bindings to prevent the application from attempting to process the placeholder
+text as a valid list item.
