@@ -1,0 +1,3 @@
+## 2026-05-12 - Tkinter Listbox Empty States
+**Learning:** Tkinter Listboxes don't have built-in empty state placeholders. Simply inserting a disabled item isn't enough; visual cues (like text color) must be applied manually, and all listbox interaction event handlers must explicitly inspect the item properties to prevent invalid actions on the placeholder text.
+**Action:** When implementing empty states in Tkinter listboxes, insert a placeholder, set `itemconfig(idx, foreground='gray')`, and guard all event handlers (e.g., selection, double-click) with `if listbox.itemcget(idx, 'foreground') == 'gray': return`.
