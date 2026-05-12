@@ -32,7 +32,8 @@ class DashboardApp:
         style.configure('TFrame', background='#f3efe5')
         style.configure('Header.TLabel', background='#f3efe5', foreground='#1f3f5b', font=('Georgia', 24, 'bold'))
         style.configure('SubHeader.TLabel', background='#f3efe5', foreground='#2b241b', font=('Georgia', 14))
-        style.configure('Action.TButton', font=('Georgia', 12, 'bold'), padding=10)
+        style.configure('TButton', cursor='hand2')
+        style.configure('Action.TButton', font=('Georgia', 12, 'bold'), padding=10, cursor='hand2')
 
     def _build_ui(self):
         main_container = ttk.Frame(self.root, padding=30)
@@ -70,7 +71,7 @@ class DashboardApp:
             recent_header_frame, text='Xoa Du An', style='Action.TButton', command=self.delete_selected_project
         ).pack(side='right')
 
-        self.projects_list = tk.Listbox(main_container, font=('Consolas', 11), height=10)
+        self.projects_list = tk.Listbox(main_container, font=('Consolas', 11), height=10, cursor='hand2')
         self.projects_list.pack(fill='both', expand=True)
         self.projects_list.bind('<Double-1>', lambda _event: self.open_selected_project())
 
@@ -81,6 +82,10 @@ class DashboardApp:
         for entry in self.workspaces_dir.iterdir():
             if entry.is_dir() and (entry / 'config.yaml').exists():
                 self.projects_list.insert(tk.END, entry.name)
+
+        if self.projects_list.size() == 0:
+            self.projects_list.insert(0, "Chua co du an nao")
+            self.projects_list.itemconfig(0, foreground='gray')
 
     def show_create_dialog(self):
         dialog = tk.Toplevel(self.root)
@@ -142,6 +147,8 @@ class DashboardApp:
             return
 
         idx = self.projects_list.curselection()[0]
+        if self.projects_list.itemcget(idx, 'foreground') == 'gray':
+            return
         name = self.projects_list.get(idx)
 
         confirm = messagebox.askyesno(
@@ -168,6 +175,8 @@ class DashboardApp:
         if not self.projects_list.curselection():
             return
         idx = self.projects_list.curselection()[0]
+        if self.projects_list.itemcget(idx, 'foreground') == 'gray':
+            return
         name = self.projects_list.get(idx)
         self._launch_workspace(self.workspaces_dir / name)
 
