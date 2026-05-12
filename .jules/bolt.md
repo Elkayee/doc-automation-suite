@@ -1,3 +1,11 @@
 ## 2024-05-15 - Unbounded Splitting Anti-Pattern in Markdown Parsing
-**Learning:** In `src/core/markdown_utils.py`, `is_line_inside_fenced_block` was using an unbounded `.replace('\r\n', '\n').replace('\r', '\n').split('\n')` to parse text and check if a specific line number was inside a code block. For large texts (e.g., thousands of lines), this allocates an array for the entire string and creates an unnecessary memory copy even if there are no code fences in the text.
-**Action:** When extracting or checking lines in large text buffers, ALWAYS implement a fast-path string check (`if marker not in text: return`) and use bounded splitting (`text.split('\n', limit)`) to minimize allocations and avoid parsing beyond the needed scope. Avoid `.replace` calls when the character (e.g., `\r`) is not present by wrapping it in `if char in text:`.
+
+**Learning:** In `src/core/markdown_utils.py`, `is_line_inside_fenced_block` was using an unbounded
+`.replace('\r\n', '\n').replace('\r', '\n').split('\n')` to parse text and check if a specific line
+number was inside a code block. For large texts (e.g., thousands of lines), this allocates an array
+for the entire string and creates an unnecessary memory copy even if there are no code fences in the
+text. **Action:** When extracting or checking lines in large text buffers, ALWAYS implement a
+fast-path string check (`if marker not in text: return`) and use bounded splitting
+(`text.split('\n', limit)`) to minimize allocations and avoid parsing beyond the needed scope. Avoid
+`.replace` calls when the character (e.g., `\r`) is not present by wrapping it in
+`if char in text:`.
