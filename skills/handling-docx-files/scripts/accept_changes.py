@@ -4,16 +4,21 @@ Requires LibreOffice (soffice) to be installed.
 """
 
 import argparse
+import atexit
 import logging
 import shutil
 import subprocess
+import tempfile
 from pathlib import Path
 
 from office.soffice import get_soffice_env
 
 logger = logging.getLogger(__name__)
 
-LIBREOFFICE_PROFILE = '/tmp/libreoffice_docx_profile'
+# Dynamically generate a secure temporary directory instead of using a hardcoded predictable path
+LIBREOFFICE_PROFILE = tempfile.mkdtemp(prefix='libreoffice_docx_profile_')
+atexit.register(lambda: shutil.rmtree(LIBREOFFICE_PROFILE, ignore_errors=True))
+
 MACRO_DIR = f'{LIBREOFFICE_PROFILE}/user/basic/Standard'
 
 ACCEPT_CHANGES_MACRO = """<?xml version="1.0" encoding="UTF-8"?>
