@@ -50,8 +50,8 @@ class PreviewAnchorMappingTests(unittest.TestCase):
         self.assertIn('<span class="list-marker">-</span> <span class="list-text">', html)
 
     def test_render_paginated_html_document_renders_images_and_splits_pages(self):
-        import tempfile
         import struct
+        import tempfile
 
         with tempfile.TemporaryDirectory() as td:
             workspace_dir = Path(td)
