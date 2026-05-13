@@ -36,7 +36,7 @@ class ChapterSettings:
             marker = str(raw_value).strip() if raw_value is not None else ''
             normalized.append(marker or default_value)
 
-        for raw_value in raw_markers[len(defaults):]:
+        for raw_value in raw_markers[len(defaults) :]:
             marker = str(raw_value).strip() if raw_value is not None else ''
             normalized.append(marker or normalized[-1])
 

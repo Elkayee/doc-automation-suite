@@ -9,8 +9,8 @@ def main():
         import docx  # noqa: F401
         import yaml  # noqa: F401
     except ImportError as e:
-        missing_module = str(e).split("'")[1] if "'" in str(e) else "a required module"
-        print(f"Missing {missing_module}. Please run: pip install -r requirements.txt")
+        missing_module = str(e).split("'")[1] if "'" in str(e) else 'a required module'
+        print(f'Missing {missing_module}. Please run: pip install -r requirements.txt')
         sys.exit(1)
 
     # Start Dashboard
@@ -21,5 +21,5 @@ def main():
     root.mainloop()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
