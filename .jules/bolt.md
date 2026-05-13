@@ -1,0 +1,3 @@
+## 2024-05-18 - Unbounded String Splitting Anti-Pattern
+**Learning:** In Python, unbounded parsing up to a target line using `text.replace('\r\n', '\n').split('\n')` on large text buffers allocates a full array for the entire string, causing severe memory and compute overhead on large documents. Repeated iterations on such buffers create O(N^2) time complexity.
+**Action:** Guard string operations (`replace`) with fast-path substring checks (e.g., `if '\r' in text`), use fast-path presence checks for the parsed marker (`if '```' not in text: return False`), and bound string splitting via `maxsplit` (e.g., `text.split('\n', limit)`).
