@@ -37,7 +37,8 @@ def run_soffice(args: list[str], **kwargs) -> subprocess.CompletedProcess:
     return subprocess.run(['soffice'] + args, env=env, **kwargs)
 
 
-_SHIM_SO = Path(tempfile.gettempdir()) / 'lo_socket_shim.so'
+_SHIM_SO = None
+_shim_dir = None
 
 
 def _needs_shim() -> bool:
@@ -50,10 +51,14 @@ def _needs_shim() -> bool:
 
 
 def _ensure_shim() -> Path:
-    if _SHIM_SO.exists():
+    global _SHIM_SO, _shim_dir
+    if _SHIM_SO is not None and _SHIM_SO.exists():
         return _SHIM_SO
 
-    src = Path(tempfile.gettempdir()) / 'lo_socket_shim.c'
+    _shim_dir = tempfile.TemporaryDirectory(prefix='lo_socket_shim_')
+    _SHIM_SO = Path(_shim_dir.name) / 'lo_socket_shim.so'
+
+    src = Path(_shim_dir.name) / 'lo_socket_shim.c'
     src.write_text(_SHIM_SOURCE)
     subprocess.run(
         ['gcc', '-shared', '-fPIC', '-o', str(_SHIM_SO), str(src), '-ldl'],
