@@ -1,0 +1,11 @@
+## 2024-05-24 - Tkinter Listbox Empty States and Cursors
+
+**Learning:** In Tkinter, providing visual feedback like a 'hand2' cursor on interactive elements
+(`ttk.Button`, `tk.Listbox`) improves micro-UX. Moreover, listboxes with dynamic items lack native
+empty states. Inserting a disabled-looking placeholder (using
+`listbox.itemconfig(0, foreground='gray')`) acts as helpful guidance, provided all event handlers
+explicitly check for the `foreground='gray'` state to prevent erroneous actions on the placeholder
+text. **Action:** When working on Tkinter UI, always add `cursor='hand2'` to clickable elements. For
+dynamic listboxes, implement an explicit empty state placeholder with gray styling, and guard all
+related event handlers (`<Double-1>`, selection triggers, etc.) against interacting with the
+placeholder string.
