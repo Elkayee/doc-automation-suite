@@ -1,0 +1,9 @@
+## 2024-05-13 - Fast-path check and maxsplit in markdown parsing
+
+**Learning:** In text processing applications, aggressively reading string splitting functions
+(`str.split('\n')`) on large texts causes full array allocations. Using an O(1) early exit
+`if marker not in text:` combined with bounded `text.split('\n', safe_line_number)` dramatically
+reduces memory and CPU overhead for line parsing algorithms up to a specific index. **Action:** When
+searching lines for a token to determine state at a line number, check for the token's presence
+globally first. If present, only split up to the line number needed, avoiding allocations for the
+rest of the file.
