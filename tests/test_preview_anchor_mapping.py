@@ -50,15 +50,20 @@ class PreviewAnchorMappingTests(unittest.TestCase):
         self.assertIn('<span class="list-marker">-</span> <span class="list-text">', html)
 
     def test_render_paginated_html_document_renders_images_and_splits_pages(self):
+        cwd = Path.cwd()
+        md_path = cwd / 'tests' / 'Ch01_Test.md'
+        img_path = cwd / 'test_extracted.png'
+
+        img_url = str(img_path).replace("\\", "/")
         entries = [
             ChapterAssemblyEntry(
                 filename='Ch01_Test.md',
-                path=Path('D:/doc-automation-suite/tests/Ch01_Test.md'),
+                path=md_path,
                 content=(
                     '### Tieu de\n\n'
                     'Doan van mo dau rat dai. ' * 40
                     + '\n\n'
-                    '![Dang nhap](D:/doc-automation-suite/test_extracted.png){caption="Hình 1", width=80%, align=center}\n\n'
+                    f'![Dang nhap]({img_url}){{caption="Hình 1", width=80%, align=center}}\n\n'
                     + ('Them noi dung de tach trang.\n\n' * 30)
                 ),
                 start_line=1,
