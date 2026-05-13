@@ -54,6 +54,7 @@ class PreviewAnchorMappingTests(unittest.TestCase):
         md_path = cwd / 'tests' / 'Ch01_Test.md'
         img_path = cwd / 'test_extracted.png'
 
+        img_url = str(img_path).replace("\\", "/")
         entries = [
             ChapterAssemblyEntry(
                 filename='Ch01_Test.md',
@@ -62,7 +63,7 @@ class PreviewAnchorMappingTests(unittest.TestCase):
                     '### Tieu de\n\n'
                     'Doan van mo dau rat dai. ' * 40
                     + '\n\n'
-                    f'![Dang nhap]({str(img_path).replace("\\\\", "/")}){{caption="Hình 1", width=80%, align=center}}\n\n'
+                    f'![Dang nhap]({img_url}){{caption="Hình 1", width=80%, align=center}}\n\n'
                     + ('Them noi dung de tach trang.\n\n' * 30)
                 ),
                 start_line=1,
