@@ -1,3 +1,10 @@
 ## 2024-05-13 - Tkinter Listbox Empty States
-**Learning:** When using a placeholder string to implement an empty state in a Tkinter `tk.Listbox` (e.g., when `listbox.size() == 0`), the placeholder is still selectable and interactive. If you don't handle this, UI actions meant for actual items will throw errors or perform invalid actions on the placeholder text. We can differentiate the placeholder by giving it a distinct visual style like `listbox.itemconfig(0, foreground='gray')`.
-**Action:** When implementing placeholder items in a `tk.Listbox`, always update ALL relevant event handlers (selection, double-click, open/delete functions) to explicitly check `if listbox.itemcget(idx, 'foreground') == 'gray': return` and exit early to prevent invalid actions on the placeholder text.
+
+**Learning:** When using a placeholder string to implement an empty state in a Tkinter `tk.Listbox`
+(e.g., when `listbox.size() == 0`), the placeholder is still selectable and interactive. If you
+don't handle this, UI actions meant for actual items will throw errors or perform invalid actions on
+the placeholder text. We can differentiate the placeholder by giving it a distinct visual style like
+`listbox.itemconfig(0, foreground='gray')`. **Action:** When implementing placeholder items in a
+`tk.Listbox`, always update ALL relevant event handlers (selection, double-click, open/delete
+functions) to explicitly check `if listbox.itemcget(idx, 'foreground') == 'gray': return` and exit
+early to prevent invalid actions on the placeholder text.
