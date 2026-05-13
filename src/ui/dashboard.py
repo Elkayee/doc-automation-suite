@@ -149,7 +149,6 @@ class DashboardApp:
         idx = self.projects_list.curselection()[0]
         if self.projects_list.itemcget(idx, 'foreground') == 'gray':
             return
-
         name = self.projects_list.get(idx)
 
         confirm = messagebox.askyesno(
@@ -178,7 +177,6 @@ class DashboardApp:
         idx = self.projects_list.curselection()[0]
         if self.projects_list.itemcget(idx, 'foreground') == 'gray':
             return
-
         name = self.projects_list.get(idx)
         self._launch_workspace(self.workspaces_dir / name)
 
