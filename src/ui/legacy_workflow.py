@@ -124,7 +124,6 @@ def ensure_output_docx_closed(docx_out):
         ) from exc
 
 
-
 def assemble_markdown(chapter_dir, output_path):
     assembler = DocumentAssembler(Path(chapter_dir).parent)
     final, processed_files = assembler.save_assembled_for_export(Path(output_path))
@@ -163,6 +162,7 @@ def step_assemble():
 # ── Parser MD → DOCX ─────────────────────────────────────────────────────────
 # Removed duplicate parsing logic, now using src.core.docx_builder
 
+
 def step_convert(md_out=MD_OUT, docx_out=DOCX_OUT, img_cache=IMG_CACHE):
     print('=' * 55)
     print('BƯỚC 2: Convert MD → DOCX')
@@ -171,7 +171,7 @@ def step_convert(md_out=MD_OUT, docx_out=DOCX_OUT, img_cache=IMG_CACHE):
     print(f'  Output: {docx_out}')
     print()
 
-    builder = DocxBuilder(BASE) # BASE is the original workspace
+    builder = DocxBuilder(BASE)  # BASE is the original workspace
     builder.build_from_markdown(str(md_out), Path(img_cache))
 
     out = docx_out
@@ -217,9 +217,9 @@ def launch_workflow_ui():
     style.configure('TFrame', background='#f3efe5')
     style.configure('TLabel', background='#f3efe5', foreground='#2b241b', font=('Georgia', 11))
     style.configure('Header.TLabel', background='#f3efe5', foreground='#1f3f5b', font=('Georgia', 18, 'bold'))
-    style.configure('TButton', font=('Georgia', 10, 'bold'))
+    style.configure('TButton', font=('Georgia', 10, 'bold'), cursor='hand2')
     style.configure('TNotebook', background='#f3efe5', borderwidth=0)
-    style.configure('TNotebook.Tab', font=('Georgia', 10, 'bold'))
+    style.configure('TNotebook.Tab', font=('Georgia', 10, 'bold'), cursor='hand2')
 
     container = ttk.Frame(root, padding=18)
     container.pack(fill='both', expand=True)
@@ -298,7 +298,7 @@ def launch_workflow_ui():
     editor_paned.add(preview_frame, weight=3)
 
     # -- Listbox --
-    file_listbox = tk.Listbox(file_list_frame, font=('Consolas', 10))
+    file_listbox = tk.Listbox(file_list_frame, font=('Consolas', 10), cursor='hand2')
     file_listbox.pack(side='left', fill='both', expand=True)
     scrollbar = ttk.Scrollbar(file_list_frame, orient='vertical', command=file_listbox.yview)
     scrollbar.pack(side='right', fill='y')
@@ -401,10 +401,17 @@ img { max-width: 100%; height: auto; display: block; margin: 8px auto; }
         for f in collect_chapter_files(CH_DIR):
             file_listbox.insert(tk.END, os.path.basename(f))
 
+        if file_listbox.size() == 0:
+            file_listbox.insert(tk.END, 'Không có file nào')
+            file_listbox.itemconfig(0, foreground='gray')
+
     def on_file_select(event):
         if not file_listbox.curselection():
             return
         idx = file_listbox.curselection()[0]
+        if file_listbox.itemcget(idx, 'foreground') == 'gray':
+            return
+
         filename = file_listbox.get(idx)
         filepath = os.path.join(CH_DIR, filename)
         current_file.set(filepath)
