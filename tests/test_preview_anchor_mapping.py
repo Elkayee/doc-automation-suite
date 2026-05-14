@@ -1,6 +1,7 @@
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
+from unittest import mock
 
 from src.core.assembler import ChapterAssemblyEntry
 from src.ui.preview_utils import PreviewUtils
@@ -49,15 +50,17 @@ class PreviewAnchorMappingTests(unittest.TestCase):
 
         self.assertIn('<span class="list-marker">-</span> <span class="list-text">', html)
 
-    def test_render_paginated_html_document_renders_images_and_splits_pages(self):
+    @mock.patch('src.core.media_downloader.MediaDownloader.get_image_dimensions', return_value=(800, 600))
+    @mock.patch('pathlib.Path.exists', return_value=True)
+    @mock.patch('pathlib.Path.is_absolute', return_value=True)
+    def test_render_paginated_html_document_renders_images_and_splits_pages(self, mock_is_abs, mock_exists, mock_dims):
         entries = [
             ChapterAssemblyEntry(
                 filename='Ch01_Test.md',
                 path=Path('D:/doc-automation-suite/tests/Ch01_Test.md'),
                 content=(
                     '### Tieu de\n\n'
-                    'Doan van mo dau rat dai. ' * 40
-                    + '\n\n'
+                    'Doan van mo dau rat dai. ' * 40 + '\n\n'
                     '![Dang nhap](D:/doc-automation-suite/test_extracted.png){caption="Hình 1", width=80%, align=center}\n\n'
                     + ('Them noi dung de tach trang.\n\n' * 30)
                 ),
