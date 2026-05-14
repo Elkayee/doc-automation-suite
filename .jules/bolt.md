@@ -1,3 +1,8 @@
 ## 2024-05-24 - Unbounded Split and Replace Optimization
-**Learning:** Calling `text.replace('\r\n', '\n').replace('\r', '\n').split('\n')` without a fast-path substring check or limit leads to O(N) allocation of the entire string for large text buffers when looking for the state of a single line, causing severe memory and computation overhead.
-**Action:** Always wrap `.replace('\r\n', '\n')` in `if '\r' in text:` fast-paths, use `if marker not in text` early exits (e.g., `if '```' not in text`), and use `.split('\n', limit)` to cap memory allocations in functions like `is_line_inside_fenced_block`.
+
+**Learning:** Calling `text.replace('\r\n', '\n').replace('\r', '\n').split('\n')` without a
+fast-path substring check or limit leads to O(N) allocation of the entire string for large text
+buffers when looking for the state of a single line, causing severe memory and computation overhead.
+**Action:** Always wrap `.replace('\r\n', '\n')` in `if '\r' in text:` fast-paths, use
+`if marker not in text` early exits (e.g., `if '```' not in text`), and use `.split('\n', limit)` to
+cap memory allocations in functions like `is_line_inside_fenced_block`.
