@@ -50,9 +50,8 @@ class PreviewAnchorMappingTests(unittest.TestCase):
         self.assertIn('<span class="list-marker">-</span> <span class="list-text">', html)
 
     def test_render_paginated_html_document_renders_images_and_splits_pages(self):
-        import tempfile
         import struct
-        from pathlib import Path
+        import tempfile
 
         with tempfile.TemporaryDirectory() as td:
             temp_dir = Path(td)
@@ -70,8 +69,7 @@ class PreviewAnchorMappingTests(unittest.TestCase):
                     path=workspace_dir / 'tests' / 'Ch01_Test.md',
                     content=(
                         '### Tieu de\n\n'
-                        'Doan van mo dau rat dai. ' * 40
-                        + '\n\n'
+                        'Doan van mo dau rat dai. ' * 40 + '\n\n'
                         f'![Dang nhap]({img_path_str}){{caption="Hình 1", width=80%, align=center}}\n\n'
                         + ('Them noi dung de tach trang.\n\n' * 30)
                     ),
