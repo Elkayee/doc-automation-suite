@@ -1,0 +1,8 @@
+## 2024-05-14 - Empty State and Hover Cursors in Tkinter Listbox
+
+**Learning:** Tkinter `Listbox` widgets lack a built-in mechanism for empty states and don't
+visually distinguish themselves clearly on hover. **Action:** Implemented a placeholder row pattern
+by checking `listbox.size() == 0`, adding placeholder text, and using
+`listbox.itemconfig(0, foreground='gray')`. All interaction handlers must explicitly ignore items
+where `listbox.itemcget(idx, 'foreground') == 'gray'` to prevent performing actions on the
+placeholder text. Added `cursor='hand2'` to buttons and the listbox to improve interaction cues.
