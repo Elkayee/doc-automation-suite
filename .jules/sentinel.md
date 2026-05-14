@@ -1,4 +1,11 @@
 ## 2025-02-14 - Predictable Temporary Files Vulnerability in LibreOffice Integrations
-**Vulnerability:** Found hardcoded, predictable temporary file paths used for the LibreOffice user profile (`/tmp/libreoffice_docx_profile`) and the socket shim C/SO files (`Path(tempfile.gettempdir()) / 'lo_socket_shim.c'`).
-**Learning:** Using predictable paths for temporary directories or files allows malicious local users to manipulate those files before or during execution (e.g. symlink attacks, TOCTOU), compromising application security or escalating privileges.
-**Prevention:** Always use `tempfile.TemporaryDirectory()` or `tempfile.NamedTemporaryFile()` to generate unpredictable, secure temporary file paths. Retain a reference to the `TemporaryDirectory` instance (e.g. at the module level) to ensure it is not garbage collected prematurely.
+
+**Vulnerability:** Found hardcoded, predictable temporary file paths used for the LibreOffice user
+profile (`/tmp/libreoffice_docx_profile`) and the socket shim C/SO files
+(`Path(tempfile.gettempdir()) / 'lo_socket_shim.c'`). **Learning:** Using predictable paths for
+temporary directories or files allows malicious local users to manipulate those files before or
+during execution (e.g. symlink attacks, TOCTOU), compromising application security or escalating
+privileges. **Prevention:** Always use `tempfile.TemporaryDirectory()` or
+`tempfile.NamedTemporaryFile()` to generate unpredictable, secure temporary file paths. Retain a
+reference to the `TemporaryDirectory` instance (e.g. at the module level) to ensure it is not
+garbage collected prematurely.
