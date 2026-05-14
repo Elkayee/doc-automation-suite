@@ -50,15 +50,24 @@ class PreviewAnchorMappingTests(unittest.TestCase):
         self.assertIn('<span class="list-marker">-</span> <span class="list-text">', html)
 
     def test_render_paginated_html_document_renders_images_and_splits_pages(self):
+        workspace = Path.cwd()
+        test_img_path = workspace / 'test_extracted.png'
+        # Create a dummy image file so the renderer finds it
+        with open(test_img_path, 'wb') as f:
+            f.write(b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82')
+
+        # Ensure path uses forward slashes for Markdown compatibility
+        md_img_path = str(test_img_path).replace('\\', '/')
+
         entries = [
             ChapterAssemblyEntry(
                 filename='Ch01_Test.md',
-                path=Path('D:/doc-automation-suite/tests/Ch01_Test.md'),
+                path=workspace / 'tests' / 'Ch01_Test.md',
                 content=(
                     '### Tieu de\n\n'
                     'Doan van mo dau rat dai. ' * 40
                     + '\n\n'
-                    '![Dang nhap](D:/doc-automation-suite/test_extracted.png){caption="Hình 1", width=80%, align=center}\n\n'
+                    f'![Dang nhap]({md_img_path}){{caption="Hình 1", width=80%, align=center}}\n\n'
                     + ('Them noi dung de tach trang.\n\n' * 30)
                 ),
                 start_line=1,
@@ -81,7 +90,7 @@ class PreviewAnchorMappingTests(unittest.TestCase):
 
         html, anchors = PreviewUtils.render_paginated_html_document(
             entries,
-            workspace_dir=Path('D:/doc-automation-suite'),
+            workspace_dir=workspace,
             config=config,
         )
 
@@ -90,6 +99,10 @@ class PreviewAnchorMappingTests(unittest.TestCase):
         self.assertIn('Hình 1', html)
         self.assertIn('chapter-ch01-test-md-block-', html)
         self.assertIn('Ch01_Test.md', anchors)
+
+        # Cleanup
+        if test_img_path.exists():
+            test_img_path.unlink()
 
 
 if __name__ == '__main__':

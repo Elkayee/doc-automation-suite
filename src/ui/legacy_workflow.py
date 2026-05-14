@@ -124,7 +124,6 @@ def ensure_output_docx_closed(docx_out):
         ) from exc
 
 
-
 def assemble_markdown(chapter_dir, output_path):
     assembler = DocumentAssembler(Path(chapter_dir).parent)
     final, processed_files = assembler.save_assembled_for_export(Path(output_path))
@@ -163,6 +162,7 @@ def step_assemble():
 # ── Parser MD → DOCX ─────────────────────────────────────────────────────────
 # Removed duplicate parsing logic, now using src.core.docx_builder
 
+
 def step_convert(md_out=MD_OUT, docx_out=DOCX_OUT, img_cache=IMG_CACHE):
     print('=' * 55)
     print('BƯỚC 2: Convert MD → DOCX')
@@ -171,7 +171,7 @@ def step_convert(md_out=MD_OUT, docx_out=DOCX_OUT, img_cache=IMG_CACHE):
     print(f'  Output: {docx_out}')
     print()
 
-    builder = DocxBuilder(BASE) # BASE is the original workspace
+    builder = DocxBuilder(BASE)  # BASE is the original workspace
     builder.build_from_markdown(str(md_out), Path(img_cache))
 
     out = docx_out
@@ -472,7 +472,8 @@ img { max-width: 100%; }
         fd, temp_path = tempfile.mkstemp(suffix='.html')
         with os.fdopen(fd, 'w', encoding='utf-8') as f:
             f.write(html_content)
-        webbrowser.open('file:///' + temp_path.replace('\\', '/'))
+        # 🛡️ Sentinel: Use Path.as_uri() to prevent path traversal risks and ensure correct URI encoding.
+        webbrowser.open(Path(temp_path).as_uri())
         log(f'Preview: {os.path.basename(filepath)}')
 
     def docx_to_chapters():
