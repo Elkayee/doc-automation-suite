@@ -1,3 +1,9 @@
 ## 2024-05-24 - Empty State and Hand Cursor in Tkinter
-**Learning:** Tkinter listboxes lack built-in empty states, which can leave users confused when lists are empty. Additionally, default Tkinter buttons do not show a hand cursor on hover, making them feel less interactive compared to web elements. Inserting a placeholder item and visually styling it with a 'gray' foreground solves the empty state problem, provided all event handlers check and ignore interactions with the placeholder text.
-**Action:** Always add explicit visual empty states for `tk.Listbox` and configure interactive elements (`TButton` via `ttk.Style()`, `tk.Listbox` via kwargs) with `cursor='hand2'` to improve perceived interactivity.
+
+**Learning:** Tkinter listboxes lack built-in empty states, which can leave users confused when
+lists are empty. Additionally, default Tkinter buttons do not show a hand cursor on hover, making
+them feel less interactive compared to web elements. Inserting a placeholder item and visually
+styling it with a 'gray' foreground solves the empty state problem, provided all event handlers
+check and ignore interactions with the placeholder text. **Action:** Always add explicit visual
+empty states for `tk.Listbox` and configure interactive elements (`TButton` via `ttk.Style()`,
+`tk.Listbox` via kwargs) with `cursor='hand2'` to improve perceived interactivity.
