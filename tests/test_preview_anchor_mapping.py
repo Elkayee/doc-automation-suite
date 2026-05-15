@@ -1,4 +1,5 @@
 import unittest
+import unittest.mock
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -49,15 +50,20 @@ class PreviewAnchorMappingTests(unittest.TestCase):
 
         self.assertIn('<span class="list-marker">-</span> <span class="list-text">', html)
 
-    def test_render_paginated_html_document_renders_images_and_splits_pages(self):
+    @unittest.mock.patch('src.core.docx_helpers.DocxHelpers.resolve_media_path')
+    def test_render_paginated_html_document_renders_images_and_splits_pages(self, mock_resolve_media_path):
+        mock_path = unittest.mock.MagicMock()
+        mock_path.exists.return_value = True
+        mock_path.resolve.return_value.as_uri.return_value = 'file:///D:/doc-automation-suite/test_extracted.png'
+        mock_resolve_media_path.return_value = mock_path
+
         entries = [
             ChapterAssemblyEntry(
                 filename='Ch01_Test.md',
                 path=Path('D:/doc-automation-suite/tests/Ch01_Test.md'),
                 content=(
                     '### Tieu de\n\n'
-                    'Doan van mo dau rat dai. ' * 40
-                    + '\n\n'
+                    'Doan van mo dau rat dai. ' * 40 + '\n\n'
                     '![Dang nhap](D:/doc-automation-suite/test_extracted.png){caption="Hình 1", width=80%, align=center}\n\n'
                     + ('Them noi dung de tach trang.\n\n' * 30)
                 ),
