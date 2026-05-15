@@ -1,0 +1,3 @@
+## 2024-05-15 - Implement secure empty state for Tkinter Listbox
+**Learning:** Adding empty states to `tk.Listbox` requires guarding the event handlers. A pure visual placeholder string must be conditionally ignored in handlers (like double-click or delete) by explicitly checking its visual properties (`itemcget(idx, 'foreground') == 'gray'`), otherwise users can accidentally perform actions on the placeholder itself.
+**Action:** Always pair a `Listbox` empty state placeholder injection with corresponding conditional checks in all bound events or command functions that operate on list selection.
