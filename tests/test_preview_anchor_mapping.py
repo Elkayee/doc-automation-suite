@@ -50,15 +50,20 @@ class PreviewAnchorMappingTests(unittest.TestCase):
         self.assertIn('<span class="list-marker">-</span> <span class="list-text">', html)
 
     def test_render_paginated_html_document_renders_images_and_splits_pages(self):
+        # Dynamically create paths based on cwd to avoid Windows absolute path
+        # resolution issues when testing on posix (Linux) runners.
+        workspace_dir = Path.cwd()
+        md_path = workspace_dir / 'tests' / 'Ch01_Test.md'
+        image_path = workspace_dir / 'test_extracted.png'
+
         entries = [
             ChapterAssemblyEntry(
                 filename='Ch01_Test.md',
-                path=Path('D:/doc-automation-suite/tests/Ch01_Test.md'),
+                path=md_path,
                 content=(
                     '### Tieu de\n\n'
-                    'Doan van mo dau rat dai. ' * 40
-                    + '\n\n'
-                    '![Dang nhap](D:/doc-automation-suite/test_extracted.png){caption="Hình 1", width=80%, align=center}\n\n'
+                    'Doan van mo dau rat dai. ' * 40 + '\n\n'
+                    f'![Dang nhap]({image_path.as_posix()}){{caption="Hình 1", width=80%, align=center}}\n\n'
                     + ('Them noi dung de tach trang.\n\n' * 30)
                 ),
                 start_line=1,
@@ -81,7 +86,7 @@ class PreviewAnchorMappingTests(unittest.TestCase):
 
         html, anchors = PreviewUtils.render_paginated_html_document(
             entries,
-            workspace_dir=Path('D:/doc-automation-suite'),
+            workspace_dir=workspace_dir,
             config=config,
         )
 
