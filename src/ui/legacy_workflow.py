@@ -472,7 +472,7 @@ img { max-width: 100%; }
         fd, temp_path = tempfile.mkstemp(suffix='.html')
         with os.fdopen(fd, 'w', encoding='utf-8') as f:
             f.write(html_content)
-        webbrowser.open('file:///' + temp_path.replace('\\', '/'))
+        webbrowser.open(Path(temp_path).as_uri())
         log(f'Preview: {os.path.basename(filepath)}')
 
     def docx_to_chapters():
