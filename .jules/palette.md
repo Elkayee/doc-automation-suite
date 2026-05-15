@@ -1,0 +1,3 @@
+## 2024-05-15 - Implement Listbox Empty States correctly
+**Learning:** When a Tkinter `tk.Listbox` is empty, users lack context. A standard empty state requires visually distinguishing placeholder text (e.g., using `listbox.itemconfig(0, foreground='gray')`). Furthermore, all interactive event handlers (like click, double-click, open, or delete) must actively check for this gray text and return early to prevent errors when users inevitably attempt to interact with the placeholder string as if it were a valid item.
+**Action:** Always pair a visual placeholder text insertion with programmatic guards across all relevant listbox event bindings by explicitly checking `listbox.itemcget(idx, 'foreground') == 'gray'`.
