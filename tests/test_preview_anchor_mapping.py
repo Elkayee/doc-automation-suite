@@ -1,7 +1,7 @@
 import unittest
-from unittest.mock import patch
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import patch
 
 from src.core.assembler import ChapterAssemblyEntry
 from src.ui.preview_utils import PreviewUtils
@@ -58,8 +58,7 @@ class PreviewAnchorMappingTests(unittest.TestCase):
                 path=Path('D:/doc-automation-suite/tests/Ch01_Test.md'),
                 content=(
                     '### Tieu de\n\n'
-                    'Doan van mo dau rat dai. ' * 40
-                    + '\n\n'
+                    'Doan van mo dau rat dai. ' * 40 + '\n\n'
                     '![Dang nhap](D:/doc-automation-suite/test_extracted.png){caption="Hình 1", width=80%, align=center}\n\n'
                     + ('Them noi dung de tach trang.\n\n' * 30)
                 ),
