@@ -46,7 +46,9 @@ jobs:
         run: npm run lint
 
       - name: Run tests
-        run: uv run pytest --cov --cov-report=xml --cov-report=term
+        run: |
+          uv run pytest --cov --cov-report=xml --cov-report=term
+          ls -la coverage.xml
 
       - name: Upload coverage
         uses: codecov/codecov-action@v5
