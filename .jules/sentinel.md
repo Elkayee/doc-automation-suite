@@ -1,0 +1,11 @@
+## 2024-05-15 - Path Traversal in Configuration Parsing
+
+**Vulnerability:** The application was vulnerable to path traversal because it loaded configuration
+YAML files that could contain malicious paths using the `..` notation in strings like
+`docx_template`, `required_files` or nested settings. **Learning:** Config parsing modules usually
+require explicit sanitization of any file paths defined in user-controlled files to avoid path
+traversal logic issues or side-effects further down the line (e.g. overwriting/reading sensitive
+files based on the supplied path). **Prevention:** Implement a recursive validation function when
+loading configurations. It iterates through configuration objects (strings, dicts, lists) and
+strictly checks if `..` exists as a path segment (split by `/` after normalizing slashes) in any
+string, throwing a `ValueError` immediately upon detection instead of silently dropping the entry.
