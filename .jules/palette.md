@@ -1,0 +1,9 @@
+## 2024-05-17 - [Add Empty State to Tkinter Listbox]
+
+**Learning:** In Tkinter, listboxes lacking default states can be unintuitive. A simple way to add
+an empty state is to insert a placeholder item and color it gray to denote it is non-interactive.
+However, any existing actions (such as delete or open handlers) that rely on `curselection` must
+explicitly check `itemcget(idx, 'foreground') == 'gray'` and return early so the placeholder isn't
+treated as actual data. **Action:** When implementing an empty state inside a `tk.Listbox`, insert a
+placeholder text when `size() == 0`, distinguish it with `itemconfig(idx, foreground='gray')`, and
+update ALL related event handlers to ignore items where `itemcget(idx, 'foreground') == 'gray'`.
