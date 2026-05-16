@@ -58,7 +58,7 @@ class PreviewAnchorMappingTests(unittest.TestCase):
                     '### Tieu de\n\n'
                     'Doan van mo dau rat dai. ' * 40
                     + '\n\n'
-                    '![Dang nhap](D:/doc-automation-suite/test_extracted.png){caption="Hình 1", width=80%, align=center}\n\n'
+                    f'![Dang nhap]({str(Path.cwd().as_posix())}/test_extracted.png){{caption="Hình 1", width=80%, align=center}}\n\n'
                     + ('Them noi dung de tach trang.\n\n' * 30)
                 ),
                 start_line=1,
@@ -81,7 +81,7 @@ class PreviewAnchorMappingTests(unittest.TestCase):
 
         html, anchors = PreviewUtils.render_paginated_html_document(
             entries,
-            workspace_dir=Path('D:/doc-automation-suite'),
+            workspace_dir=Path.cwd(),
             config=config,
         )
 
