@@ -16,15 +16,32 @@ class TemplateConfig:
     chapter_order: list[str] = field(default_factory=list)
 
     @classmethod
+    def _validate_no_path_traversal(cls, data: Any, path: str = '') -> None:
+        if isinstance(data, dict):
+            for k, v in data.items():
+                cls._validate_no_path_traversal(v, f'{path}.{k}' if path else k)
+        elif isinstance(data, list):
+            for i, v in enumerate(data):
+                cls._validate_no_path_traversal(v, f'{path}[{i}]')
+        elif isinstance(data, str):
+            # Check for path traversal in strings
+            normalized = data.replace('\\', '/')
+            parts = normalized.split('/')
+            if '..' in parts:
+                raise ValueError(f'Path traversal detected in config at {path}: {data}')
+
+    @classmethod
     def load(cls, config_path: Path) -> 'TemplateConfig':
         if not config_path.exists():
-            raise FileNotFoundError(f"Config file not found: {config_path}")
+            raise FileNotFoundError(f'Config file not found: {config_path}')
 
         with open(config_path, encoding='utf-8') as f:
             data = yaml.safe_load(f) or {}
 
         if not isinstance(data, dict):
-            raise ValueError(f"Invalid configuration format in {config_path}. Expected a dictionary.")
+            raise ValueError(f'Invalid configuration format in {config_path}. Expected a dictionary.')
+
+        cls._validate_no_path_traversal(data)
 
         return cls(
             name=data.get('name', 'Unknown Template'),

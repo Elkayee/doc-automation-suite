@@ -10,6 +10,8 @@ on:
 jobs:
   ci-cd:
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       - name: Checkout code
@@ -44,11 +46,14 @@ jobs:
         run: npm run lint
 
       - name: Run tests
-        run: uv run pytest --cov --cov-report=xml --cov-report=term
+        run: |
+          uv run pytest --cov=src --cov-report=xml --cov-report=term
+          ls -la coverage.xml
 
       - name: Upload coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         if: always()
         with:
-          file: ./coverage.xml
+          files: ./coverage.xml
+          token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
