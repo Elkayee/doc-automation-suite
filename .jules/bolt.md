@@ -1,0 +1,9 @@
+## 2024-03-24 - [Unbounded split in keystroke handlers]
+
+**Learning:** Performing an unbounded string split (e.g. `text.split('\n')`) on large text buffers
+causes a severe performance bottleneck because it allocates full arrays for the entire string. Doing
+this inside a keystroke event handler like `_handle_editor_return` results in UI lag per keystroke.
+**Action:** When searching for a line or marker in a text buffer, use a bounded split combined with
+a fast path check (`if 'marker' not in text: return`) and `maxsplit` like `text.split('\n', limit)`
+to minimize allocations. Ensure you only process the prefix and correctly handle the unsplit
+remainder.

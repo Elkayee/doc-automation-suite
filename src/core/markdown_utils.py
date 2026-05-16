@@ -685,11 +685,29 @@ class MarkdownUtils:
 
     @staticmethod
     def is_line_inside_fenced_block(text, line_number):
-        lines = text.replace('\r\n', '\n').replace('\r', '\n').split('\n')
+        # ⚡ Bolt: Fast-path skip when no code blocks exist to avoid O(N) allocation
+        if '```' not in text:
+            return False
+
+        # ⚡ Bolt: Normalize line endings only if necessary
+        if '\r' in text:
+            text = text.replace('\r\n', '\n').replace('\r', '\n')
+
         safe_line_number = max(1, int(line_number))
+        # ⚡ Bolt: Use bounded maxsplit to avoid large allocations on trailing text
+        lines = text.split('\n', safe_line_number)
         in_code_fence = False
 
         for index, line in enumerate(lines, start=1):
+            if index > safe_line_number:
+                break
+
+            # If we're at the very end of the maxsplit array and we haven't reached safe_line_number yet,
+            # we need to make sure we're only checking the first line of the remainder chunk.
+            if index == len(lines):
+                line = line.split('\n', 1)[0]
+
+            # Check if line is a code fence toggle
             if line.strip().startswith('```'):
                 in_code_fence = not in_code_fence
                 continue
