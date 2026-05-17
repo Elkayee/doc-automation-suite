@@ -685,27 +685,14 @@ class MarkdownUtils:
 
     @staticmethod
     def is_line_inside_fenced_block(text, line_number):
+        lines = text.replace('\r\n', '\n').replace('\r', '\n').split('\n')
         safe_line_number = max(1, int(line_number))
-
-        # Fast path check to avoid splitting entirely if no backticks exist
-        if '```' not in text:
-            return False
-
-        # Avoid redundant string copies if \r is absent
-        if '\r' in text:
-            text = text.replace('\r\n', '\n').replace('\r', '\n')
-
-        # Use bounded maxsplit to avoid allocating the entire file buffer
-        lines = text.split('\n', safe_line_number)
         in_code_fence = False
 
         for index, line in enumerate(lines, start=1):
-            # When index == safe_line_number, it is guaranteed to be a single
-            # line without newlines, so no additional split is needed.
             if line.strip().startswith('```'):
                 in_code_fence = not in_code_fence
                 continue
-
             if index == safe_line_number:
                 return in_code_fence
 
