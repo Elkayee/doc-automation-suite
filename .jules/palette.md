@@ -1,0 +1,11 @@
+## 2025-05-18 - Empty States and Interaction Affordance in Tkinter Listbox
+
+**Learning:** Tkinter Listboxes do not natively support robust "empty states" (e.g. placeholder text
+when empty). To ensure good UX, we can insert a grayed-out placeholder item when the list is empty,
+but this requires updating all relevant event handlers (e.g. deletion, opening) to explicitly verify
+`listbox.itemcget(idx, 'foreground') == 'gray'` to block actions on the placeholder item.
+Additionally, hover cursors must be set explicitly using
+`root.option_add('*TButton*cursor', 'hand2')` and passed to `tk.Listbox` initialization. **Action:**
+When working with Tkinter Listboxes, explicitly handle zero-item empty states via stylistic
+placeholders, always bind guards to event callbacks, and use `cursor='hand2'` to visually indicate
+interactivity.
