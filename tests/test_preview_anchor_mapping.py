@@ -1,6 +1,7 @@
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import patch
 
 from src.core.assembler import ChapterAssemblyEntry
 from src.ui.preview_utils import PreviewUtils
@@ -79,11 +80,12 @@ class PreviewAnchorMappingTests(unittest.TestCase):
             }
         )
 
-        html, anchors = PreviewUtils.render_paginated_html_document(
-            entries,
-            workspace_dir=Path('D:/doc-automation-suite'),
-            config=config,
-        )
+        with patch.object(PreviewUtils, '_resolve_preview_image_src', return_value='file:///mock.png'):
+            html, anchors = PreviewUtils.render_paginated_html_document(
+                entries,
+                workspace_dir=Path('D:/doc-automation-suite'),
+                config=config,
+            )
 
         self.assertGreater(html.count('<section class="page"'), 1)
         self.assertIn('class="image-block align-center', html)
