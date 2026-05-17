@@ -1,0 +1,3 @@
+## 2024-05-17 - [Optimize large text splitting in visual builder interaction parsing]
+**Learning:** Calling an unbounded `split('\n')` on large editor text buffers for every keystroke action (like checking if the cursor is in a fenced block) causes significant execution overhead because it creates a giant array of lines.
+**Action:** Use an early return check (e.g. `if '```' not in text`) and bound the string splitting using a max limit (`text.split('\n', limit)`), taking care to parse only the first line of the final trailing chunk to maintain correctness without allocating unnecessary arrays.
