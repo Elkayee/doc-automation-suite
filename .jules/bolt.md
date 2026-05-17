@@ -1,0 +1,3 @@
+## 2025-02-18 - Optimize Tkinter Keystroke Handlers with Bounded String Splitting
+**Learning:** Using unbounded `.replace().split('\n')` inside Tkinter keystroke event handlers (like return key handlers) causes severe memory allocation and compute overhead because it parses the entire text buffer for every keystroke. This causes noticeable lag on larger documents.
+**Action:** Replace unbounded splitting with bounded splitting using `.split('\n', maxsplit)` combined with O(1) fast-path substring checks (e.g., `if '```' not in text: return False`). This bounds the processing to only the lines required, dropping overhead from O(N) to O(K) where K is the target line number.
