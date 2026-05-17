@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -79,11 +80,13 @@ class PreviewAnchorMappingTests(unittest.TestCase):
             }
         )
 
-        html, anchors = PreviewUtils.render_paginated_html_document(
-            entries,
-            workspace_dir=Path('D:/doc-automation-suite'),
-            config=config,
-        )
+        with patch('src.ui.preview_utils.PreviewUtils._resolve_preview_image_src') as mock_resolve:
+            mock_resolve.return_value = 'file:///mock.png'
+            html, anchors = PreviewUtils.render_paginated_html_document(
+                entries,
+                workspace_dir=Path('D:/doc-automation-suite'),
+                config=config,
+            )
 
         self.assertGreater(html.count('<section class="page"'), 1)
         self.assertIn('class="image-block align-center', html)
