@@ -49,7 +49,10 @@ class PreviewAnchorMappingTests(unittest.TestCase):
 
         self.assertIn('<span class="list-marker">-</span> <span class="list-text">', html)
 
-    def test_render_paginated_html_document_renders_images_and_splits_pages(self):
+    from unittest.mock import patch
+
+    @patch('src.ui.preview_utils.PreviewUtils._resolve_preview_image_src', return_value='file:///mock.png')
+    def test_render_paginated_html_document_renders_images_and_splits_pages(self, mock_resolve):
         entries = [
             ChapterAssemblyEntry(
                 filename='Ch01_Test.md',
