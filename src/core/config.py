@@ -5,6 +5,19 @@ from typing import Any
 import yaml
 
 
+def _validate_no_path_traversal(data: Any) -> None:
+    if isinstance(data, str):
+        if '..' in data.replace('\\', '/').split('/'):
+            raise ValueError(f'Path traversal detected: {data}')
+    elif isinstance(data, dict):
+        for key, value in data.items():
+            _validate_no_path_traversal(key)
+            _validate_no_path_traversal(value)
+    elif isinstance(data, list) or isinstance(data, tuple):
+        for item in data:
+            _validate_no_path_traversal(item)
+
+
 @dataclass
 class TemplateConfig:
     name: str
@@ -18,13 +31,15 @@ class TemplateConfig:
     @classmethod
     def load(cls, config_path: Path) -> 'TemplateConfig':
         if not config_path.exists():
-            raise FileNotFoundError(f"Config file not found: {config_path}")
+            raise FileNotFoundError(f'Config file not found: {config_path}')
 
         with open(config_path, encoding='utf-8') as f:
             data = yaml.safe_load(f) or {}
 
         if not isinstance(data, dict):
-            raise ValueError(f"Invalid configuration format in {config_path}. Expected a dictionary.")
+            raise ValueError(f'Invalid configuration format in {config_path}. Expected a dictionary.')
+
+        _validate_no_path_traversal(data)
 
         return cls(
             name=data.get('name', 'Unknown Template'),
