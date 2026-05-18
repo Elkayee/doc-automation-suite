@@ -162,7 +162,8 @@ class VisualBuilderSyncTests(unittest.TestCase):
         self.assertTrue(window._is_dirty)
 
     def test_ensure_frontmatter_file_creates_toc_once(self):
-        workspace = Path('D:/doc-automation-suite/tests/_tmp_visual_frontmatter')
+        import tempfile
+        workspace = Path(tempfile.gettempdir()) / '_tmp_visual_frontmatter'
         if workspace.exists():
             shutil.rmtree(workspace, ignore_errors=True)
         (workspace / 'chapters').mkdir(parents=True, exist_ok=True)
