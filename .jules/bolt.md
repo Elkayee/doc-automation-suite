@@ -1,0 +1,10 @@
+## 2024-05-18 - Fast-path checks and bounded splitting in UI Event Handlers
+
+**Learning:** Parsing large text buffers inside keystroke event handlers (like Return key events in
+Tkinter) using unbounded `str.split('\n')` causes significant memory allocation and execution
+overhead on every keystroke, degrading responsiveness. **Action:** When evaluating localized states
+(like "is the current line inside a block"), always use O(1) fast-path checks (e.g.,
+`if marker not in text: return`) and bounded split limits (`text.split('\n', safe_line_number)`)
+instead of full string splits. Note that when using `maxsplit`, the final element in the list
+contains the un-split remainder, so only evaluate its first line if parsing line-by-line (e.g.,
+`line.split('\n', 1)[0]`).
