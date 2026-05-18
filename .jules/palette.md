@@ -1,3 +1,11 @@
 ## 2024-05-18 - [Tkinter Listbox Empty States]
-**Learning:** Tkinter `Listbox` doesn't have a native "empty state" property. Inserting placeholder text into the listbox when it's empty is a common workaround. However, because this placeholder text is selectable like any other item, user actions (like double-clicking or pressing a "Delete" button) might trigger errors or unintended behavior on the placeholder string.
-**Action:** When implementing a placeholder in a Tkinter `Listbox`, visually distinguish it (e.g., `listbox.itemconfig(0, foreground='gray')`). More importantly, update ALL event handlers linked to the listbox (e.g., selection handlers, context menus, action buttons) to explicitly check the item's foreground color (`if listbox.itemcget(idx, 'foreground') == 'gray': return`) and return early to prevent the placeholder from being processed as a valid data item.
+
+**Learning:** Tkinter `Listbox` doesn't have a native "empty state" property. Inserting placeholder
+text into the listbox when it's empty is a common workaround. However, because this placeholder text
+is selectable like any other item, user actions (like double-clicking or pressing a "Delete" button)
+might trigger errors or unintended behavior on the placeholder string. **Action:** When implementing
+a placeholder in a Tkinter `Listbox`, visually distinguish it (e.g.,
+`listbox.itemconfig(0, foreground='gray')`). More importantly, update ALL event handlers linked to
+the listbox (e.g., selection handlers, context menus, action buttons) to explicitly check the item's
+foreground color (`if listbox.itemcget(idx, 'foreground') == 'gray': return`) and return early to
+prevent the placeholder from being processed as a valid data item.
