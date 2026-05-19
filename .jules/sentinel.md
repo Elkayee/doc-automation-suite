@@ -1,0 +1,4 @@
+## 2024-05-15 - [Predictable Temporary File Vulnerability in `soffice` Shim]
+**Vulnerability:** The scripts `skills/handling-docx-files/scripts/office/soffice.py` and `skills/xu-ly-van-phong/scripts/office/soffice.py` used predictable, hardcoded temporary file paths (e.g., `Path(tempfile.gettempdir()) / 'lo_socket_shim.so'`) for application shims. This exposes the application to predictable temporary file attacks such as symlink manipulation.
+**Learning:** Using predictable paths in shared directories like `/tmp` allows attackers to pre-create files or symlinks, potentially leading to unauthorized file overwrites or execution of malicious code.
+**Prevention:** Always securely generate randomized paths using the `tempfile` module. When using `tempfile.TemporaryDirectory()` at the module level, assign the directory instance to a global variable to prevent premature garbage collection.
