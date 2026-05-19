@@ -8,6 +8,8 @@ from pathlib import Path
 import defusedxml.minidom
 import lxml.etree
 
+TEMPLATE_PATTERN = re.compile(r'\{\{[^}]*\}\}')
+
 
 class BaseSchemaValidator:
     IGNORED_VALIDATION_ERRORS = [
@@ -732,7 +734,6 @@ class BaseSchemaValidator:
 
     def _remove_template_tags_from_text_nodes(self, xml_doc):
         warnings = []
-        template_pattern = re.compile(r'\{\{[^}]*\}\}')
 
         xml_string = lxml.etree.tostring(xml_doc, encoding='unicode')
         xml_copy = lxml.etree.fromstring(xml_string)
@@ -740,11 +741,11 @@ class BaseSchemaValidator:
         def process_text_content(text, content_type):
             if not text:
                 return text
-            matches = list(template_pattern.finditer(text))
+            matches = list(TEMPLATE_PATTERN.finditer(text))
             if matches:
                 for match in matches:
                     warnings.append(f'Found template tag in {content_type}: {match.group()}')
-                return template_pattern.sub('', text)
+                return TEMPLATE_PATTERN.sub('', text)
             return text
 
         for elem in xml_copy.iter():
