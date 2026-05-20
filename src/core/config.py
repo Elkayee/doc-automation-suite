@@ -18,13 +18,33 @@ class TemplateConfig:
     @classmethod
     def load(cls, config_path: Path) -> 'TemplateConfig':
         if not config_path.exists():
-            raise FileNotFoundError(f"Config file not found: {config_path}")
+            raise FileNotFoundError(f'Config file not found: {config_path}')
 
         with open(config_path, encoding='utf-8') as f:
             data = yaml.safe_load(f) or {}
 
+        def _validate_no_path_traversal(val: Any) -> None:
+            if isinstance(val, str):
+                import os
+
+                # Block absolute paths
+                if os.path.isabs(val) or val.startswith('/') or val.startswith('\\'):
+                    raise ValueError('Absolute paths are not allowed in configuration for security reasons')
+
+                parts = val.replace('\\', '/').split('/')
+                if '..' in parts:
+                    raise ValueError('Path traversal detected in configuration')
+            elif isinstance(val, list):
+                for item in val:
+                    _validate_no_path_traversal(item)
+            elif isinstance(val, dict):
+                for v in val.values():
+                    _validate_no_path_traversal(v)
+
+        _validate_no_path_traversal(data)
+
         if not isinstance(data, dict):
-            raise ValueError(f"Invalid configuration format in {config_path}. Expected a dictionary.")
+            raise ValueError(f'Invalid configuration format in {config_path}. Expected a dictionary.')
 
         return cls(
             name=data.get('name', 'Unknown Template'),
