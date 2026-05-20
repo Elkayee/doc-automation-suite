@@ -8,6 +8,12 @@ from .base import BaseSchemaValidator
 
 
 class PPTXSchemaValidator(BaseSchemaValidator):
+    # Pre-compiled regex pattern to optimize UUID validation performance
+    # and prevent redundant compilations during XML attribute checking loops.
+    UUID_PATTERN = re.compile(
+        r'^[\{\(]?[0-9A-Fa-f]{8}-?[0-9A-Fa-f]{4}-?[0-9A-Fa-f]{4}-?[0-9A-Fa-f]{4}-?[0-9A-Fa-f]{12}[\}\)]?$'
+    )
+
     PRESENTATIONML_NAMESPACE = 'http://schemas.openxmlformats.org/presentationml/2006/main'
 
     ELEMENT_RELATIONSHIP_TYPES = {
@@ -60,9 +66,6 @@ class PPTXSchemaValidator(BaseSchemaValidator):
         import lxml.etree
 
         errors = []
-        uuid_pattern = re.compile(
-            r'^[\{\(]?[0-9A-Fa-f]{8}-?[0-9A-Fa-f]{4}-?[0-9A-Fa-f]{4}-?[0-9A-Fa-f]{4}-?[0-9A-Fa-f]{12}[\}\)]?$'
-        )
 
         for xml_file in self.xml_files:
             try:
@@ -73,7 +76,7 @@ class PPTXSchemaValidator(BaseSchemaValidator):
                         attr_name = attr.split('}')[-1].lower()
                         if attr_name == 'id' or attr_name.endswith('id'):
                             if self._looks_like_uuid(value):
-                                if not uuid_pattern.match(value):
+                                if not self.UUID_PATTERN.match(value):
                                     errors.append(
                                         f'  {xml_file.relative_to(self.unpacked_dir)}: '
                                         f"Line {elem.sourceline}: ID '{value}' appears to be a UUID but contains invalid hex characters"
