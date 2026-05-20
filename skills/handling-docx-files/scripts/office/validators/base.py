@@ -10,6 +10,9 @@ import lxml.etree
 
 
 class BaseSchemaValidator:
+    # Pre-compile regex for performance
+    TEMPLATE_PATTERN = re.compile(r'\{\{[^}]*\}\}')
+
     IGNORED_VALIDATION_ERRORS = [
         'hyphenationZone',
         'purl.org/dc/terms',
@@ -732,7 +735,6 @@ class BaseSchemaValidator:
 
     def _remove_template_tags_from_text_nodes(self, xml_doc):
         warnings = []
-        template_pattern = re.compile(r'\{\{[^}]*\}\}')
 
         xml_string = lxml.etree.tostring(xml_doc, encoding='unicode')
         xml_copy = lxml.etree.fromstring(xml_string)
@@ -740,11 +742,11 @@ class BaseSchemaValidator:
         def process_text_content(text, content_type):
             if not text:
                 return text
-            matches = list(template_pattern.finditer(text))
+            matches = list(self.TEMPLATE_PATTERN.finditer(text))
             if matches:
                 for match in matches:
                     warnings.append(f'Found template tag in {content_type}: {match.group()}')
-                return template_pattern.sub('', text)
+                return self.TEMPLATE_PATTERN.sub('', text)
             return text
 
         for elem in xml_copy.iter():
