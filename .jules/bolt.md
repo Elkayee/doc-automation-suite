@@ -1,3 +1,8 @@
 ## 2026-05-21 - Fast-path substring check for string replacement
-**Learning:** While CPython's `str.replace()` optimally returns the original reference if the target substring doesn't exist, calling it still incurs Python method overhead. More importantly, calling it multiple times (e.g. `text.replace('\r\n', '\n').replace('\r', '\n')`) requires the first `replace` to fully traverse the text buffer even if the substring is absent.
-**Action:** Wrap full-string replace operations with a fast-path substring check (e.g., `if '\r' in text:`) to bypass unnecessary text buffer traversals when the target characters are absent.
+
+**Learning:** While CPython's `str.replace()` optimally returns the original reference if the target
+substring doesn't exist, calling it still incurs Python method overhead. More importantly, calling
+it multiple times (e.g. `text.replace('\r\n', '\n').replace('\r', '\n')`) requires the first
+`replace` to fully traverse the text buffer even if the substring is absent. **Action:** Wrap
+full-string replace operations with a fast-path substring check (e.g., `if '\r' in text:`) to bypass
+unnecessary text buffer traversals when the target characters are absent.
