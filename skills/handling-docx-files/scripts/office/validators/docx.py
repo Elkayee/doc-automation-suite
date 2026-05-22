@@ -20,6 +20,9 @@ class DOCXSchemaValidator(BaseSchemaValidator):
 
     ELEMENT_RELATIONSHIP_TYPES = {}
 
+    WHITESPACE_START_RE = re.compile(r'^[ \t\n\r]')
+    WHITESPACE_END_RE = re.compile(r'[ \t\n\r]$')
+
     def validate(self):
         if not self.validate_xml():
             return False
@@ -75,7 +78,7 @@ class DOCXSchemaValidator(BaseSchemaValidator):
                 for elem in root.iter(f'{{{self.WORD_2006_NAMESPACE}}}t'):
                     if elem.text:
                         text = elem.text
-                        if re.search(r'^[ \t\n\r]', text) or re.search(r'[ \t\n\r]$', text):
+                        if self.WHITESPACE_START_RE.search(text) or self.WHITESPACE_END_RE.search(text):
                             xml_space_attr = f'{{{self.XML_NAMESPACE}}}space'
                             if xml_space_attr not in elem.attrib or elem.attrib[xml_space_attr] != 'preserve':
                                 text_preview = repr(text)[:50] + '...' if len(repr(text)) > 50 else repr(text)
