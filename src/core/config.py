@@ -1,8 +1,21 @@
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 import yaml
+
+
+def _check_path_string(val: str) -> None:
+    if not isinstance(val, str):
+        return
+    if os.path.isabs(val) or val.startswith('/') or val.startswith('\\'):
+        raise ValueError(f'Absolute paths are not allowed: {val}')
+    if len(val) >= 2 and val[1] == ':' and val[0].isalpha():
+        raise ValueError(f'Absolute paths are not allowed: {val}')
+    parts = val.replace('\\', '/').split('/')
+    if '..' in parts:
+        raise ValueError(f"Parent directory references ('..') are not allowed: {val}")
 
 
 @dataclass
@@ -18,13 +31,20 @@ class TemplateConfig:
     @classmethod
     def load(cls, config_path: Path) -> 'TemplateConfig':
         if not config_path.exists():
-            raise FileNotFoundError(f"Config file not found: {config_path}")
+            raise FileNotFoundError(f'Config file not found: {config_path}')
 
         with open(config_path, encoding='utf-8') as f:
             data = yaml.safe_load(f) or {}
 
         if not isinstance(data, dict):
-            raise ValueError(f"Invalid configuration format in {config_path}. Expected a dictionary.")
+            raise ValueError(f'Invalid configuration format in {config_path}. Expected a dictionary.')
+
+        for item in data.get('required_files', []):
+            _check_path_string(item)
+        for item in data.get('chapter_order', []):
+            _check_path_string(item)
+        if 'docx_template' in data:
+            _check_path_string(data['docx_template'])
 
         return cls(
             name=data.get('name', 'Unknown Template'),
