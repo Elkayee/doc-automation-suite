@@ -21,7 +21,9 @@ class MarkdownImageSupportTests(unittest.TestCase):
         )
 
     def test_build_markdown_image_round_trips_with_defaults(self):
-        markdown = build_markdown_image('assets/images/login.png', alt='Dang nhap', caption='', width='100%', align='center')
+        markdown = build_markdown_image(
+            'assets/images/login.png', alt='Dang nhap', caption='', width='100%', align='center'
+        )
         image = parse_markdown_image_line(markdown)
 
         self.assertEqual(image.alt, 'Dang nhap')
