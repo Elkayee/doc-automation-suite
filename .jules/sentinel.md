@@ -1,8 +1,9 @@
-## 2024-05-24 - Config File Path Traversal
+## 2024-05-24 - XML External Entity (XXE) Vulnerability
 
-**Vulnerability:** Path traversal possible through config files (`docx_template`, `required_files`,
-`chapter_order`). **Learning:** Parsing configurations with file references using `pathlib` combined
-with absolute paths or `..` can lead to arbitrary file access and discard the base directory.
-**Prevention:** Sanitize file paths explicitly by blocking parent directory references (`..`) and
-absolute paths using `os.path.isabs` and platform-specific checks across platforms. Apply this
-selectively only to fields intended to be file paths.
+**Vulnerability:** XML External Entity (XXE) vulnerability in parsing DOCX/PPTX XML files.
+**Learning:** `lxml.etree.parse` and `lxml.etree.fromstring` resolve external entities by default.
+This can lead to arbitrary local file reads if an attacker provides a crafted document with a
+malicious DOCTYPE definition containing an external entity (e.g., `SYSTEM "file:///etc/passwd"`).
+**Prevention:** Always explicitly create an `lxml.etree.XMLParser(resolve_entities=False)` and pass
+it via the `parser` keyword argument when parsing untrusted XML files using `lxml.etree.parse` or
+`lxml.etree.fromstring`.

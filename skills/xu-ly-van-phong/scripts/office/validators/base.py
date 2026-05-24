@@ -8,6 +8,9 @@ from pathlib import Path
 import defusedxml.minidom
 import lxml.etree
 
+def _safe_parse(source):
+    return lxml.etree.parse(source, parser=lxml.etree.XMLParser(resolve_entities=False))
+
 
 class BaseSchemaValidator:
     IGNORED_VALIDATION_ERRORS = [
@@ -138,7 +141,7 @@ class BaseSchemaValidator:
 
         for xml_file in self.xml_files:
             try:
-                lxml.etree.parse(str(xml_file))
+                _safe_parse(str(xml_file))
             except lxml.etree.XMLSyntaxError as e:
                 errors.append(f'  {xml_file.relative_to(self.unpacked_dir)}: Line {e.lineno}: {e.msg}')
             except Exception as e:
@@ -159,7 +162,7 @@ class BaseSchemaValidator:
 
         for xml_file in self.xml_files:
             try:
-                root = lxml.etree.parse(str(xml_file)).getroot()
+                root = _safe_parse(str(xml_file)).getroot()
                 declared = set(root.nsmap.keys()) - {None}
 
                 for attr_val in [v for k, v in root.attrib.items() if k.endswith('Ignorable')]:
@@ -186,7 +189,7 @@ class BaseSchemaValidator:
 
         for xml_file in self.xml_files:
             try:
-                root = lxml.etree.parse(str(xml_file)).getroot()
+                root = _safe_parse(str(xml_file)).getroot()
                 file_ids = {}
 
                 mc_elements = root.xpath('.//mc:AlternateContent', namespaces={'mc': self.MC_NAMESPACE})
@@ -278,7 +281,7 @@ class BaseSchemaValidator:
 
         for rels_file in rels_files:
             try:
-                rels_root = lxml.etree.parse(str(rels_file)).getroot()
+                rels_root = _safe_parse(str(rels_file)).getroot()
 
                 rels_dir = rels_file.parent
 
@@ -341,7 +344,6 @@ class BaseSchemaValidator:
             return True
 
     def validate_all_relationship_ids(self):
-        import lxml.etree
 
         errors = []
 
@@ -356,7 +358,7 @@ class BaseSchemaValidator:
                 continue
 
             try:
-                rels_root = lxml.etree.parse(str(rels_file)).getroot()
+                rels_root = _safe_parse(str(rels_file)).getroot()
                 rid_to_type = {}
 
                 for rel in rels_root.findall(f'.//{{{self.PACKAGE_RELATIONSHIPS_NAMESPACE}}}Relationship'):
@@ -372,7 +374,7 @@ class BaseSchemaValidator:
                         type_name = rel_type.split('/')[-1] if '/' in rel_type else rel_type
                         rid_to_type[rid] = type_name
 
-                xml_root = lxml.etree.parse(str(xml_file)).getroot()
+                xml_root = _safe_parse(str(xml_file)).getroot()
 
                 r_ns = self.OFFICE_RELATIONSHIPS_NAMESPACE
                 rid_attrs_to_check = ['id', 'embed', 'link']
@@ -448,7 +450,7 @@ class BaseSchemaValidator:
             return False
 
         try:
-            root = lxml.etree.parse(str(content_types_file)).getroot()
+            root = _safe_parse(str(content_types_file)).getroot()
             declared_parts = set()
             declared_extensions = set()
 
@@ -494,7 +496,7 @@ class BaseSchemaValidator:
                     continue
 
                 try:
-                    root_tag = lxml.etree.parse(str(xml_file)).getroot().tag
+                    root_tag = _safe_parse(str(xml_file)).getroot().tag
                     root_name = root_tag.split('}')[-1] if '}' in root_tag else root_tag
 
                     if root_name in declarable_roots and path_str not in declared_parts:
@@ -680,12 +682,12 @@ class BaseSchemaValidator:
 
         try:
             with open(schema_path, 'rb') as xsd_file:
-                parser = lxml.etree.XMLParser()
+                parser = lxml.etree.XMLParser(resolve_entities=False)
                 xsd_doc = lxml.etree.parse(xsd_file, parser=parser, base_url=str(schema_path))
                 schema = lxml.etree.XMLSchema(xsd_doc)
 
             with open(xml_file) as f:
-                xml_doc = lxml.etree.parse(f)
+                xml_doc = _safe_parse(f)
 
             xml_doc, _ = self._remove_template_tags_from_text_nodes(xml_doc)
             xml_doc = self._preprocess_for_mc_ignorable(xml_doc)
