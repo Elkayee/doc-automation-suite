@@ -18,13 +18,35 @@ class TemplateConfig:
     @classmethod
     def load(cls, config_path: Path) -> 'TemplateConfig':
         if not config_path.exists():
-            raise FileNotFoundError(f"Config file not found: {config_path}")
+            raise FileNotFoundError(f'Config file not found: {config_path}')
 
         with open(config_path, encoding='utf-8') as f:
             data = yaml.safe_load(f) or {}
 
         if not isinstance(data, dict):
-            raise ValueError(f"Invalid configuration format in {config_path}. Expected a dictionary.")
+            raise ValueError(f'Invalid configuration format in {config_path}. Expected a dictionary.')
+
+        def validate_path(val: str, field_name: str) -> None:
+            if not isinstance(val, str):
+                return
+            import os
+
+            if os.path.isabs(val) or val.startswith('/') or val.startswith('\\'):
+                raise ValueError(f'Absolute paths are not allowed in {field_name}: {val}')
+            if len(val) >= 2 and val[1] == ':' and val[0].isalpha():
+                raise ValueError(f'Absolute paths are not allowed in {field_name}: {val}')
+            parts = val.replace('\\', '/').split('/')
+            if '..' in parts:
+                raise ValueError(f'Parent directory references (..) are not allowed in {field_name}: {val}')
+
+        if 'docx_template' in data:
+            validate_path(data['docx_template'], 'docx_template')
+
+        for f_name in data.get('required_files', []):
+            validate_path(f_name, 'required_files')
+
+        for f_name in data.get('chapter_order', []):
+            validate_path(f_name, 'chapter_order')
 
         return cls(
             name=data.get('name', 'Unknown Template'),
