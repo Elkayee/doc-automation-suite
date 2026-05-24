@@ -319,6 +319,22 @@ class MarkdownListContinuationTests(unittest.TestCase):
 
         self.assertEqual(result, expected)
 
+    def test_is_line_inside_fenced_block_when_line_is_outside(self):
+        text = "```\ncode\n```\noutside"
+        self.assertFalse(MarkdownUtils.is_line_inside_fenced_block(text, 4))
+
+    def test_is_line_inside_fenced_block_when_line_is_inside(self):
+        text = "```\ncode\n```\noutside"
+        self.assertTrue(MarkdownUtils.is_line_inside_fenced_block(text, 2))
+
+    def test_is_line_inside_fenced_block_when_line_is_fence_start(self):
+        text = "```\ncode\n```\noutside"
+        self.assertFalse(MarkdownUtils.is_line_inside_fenced_block(text, 1))
+
+    def test_is_line_inside_fenced_block_when_line_is_fence_end(self):
+        text = "```\ncode\n```\noutside"
+        self.assertFalse(MarkdownUtils.is_line_inside_fenced_block(text, 3))
+
 
 if __name__ == '__main__':
     unittest.main()
