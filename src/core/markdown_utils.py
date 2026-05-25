@@ -685,6 +685,10 @@ class MarkdownUtils:
 
     @staticmethod
     def is_line_inside_fenced_block(text, line_number):
+        # Performance optimization:
+        # Instead of allocating full-document replacements and splits (e.g., text.replace(...).split('\n')),
+        # we perform a bounded, iterative substring search using str.find() that breaks early.
+        # This prevents O(N) memory allocation and processing overhead per UI keystroke on large files.
         safe_line_number = max(1, int(line_number))
         in_code_fence = False
         start = 0
