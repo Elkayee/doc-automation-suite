@@ -685,16 +685,26 @@ class MarkdownUtils:
 
     @staticmethod
     def is_line_inside_fenced_block(text, line_number):
-        lines = text.replace('\r\n', '\n').replace('\r', '\n').split('\n')
         safe_line_number = max(1, int(line_number))
         in_code_fence = False
+        start = 0
+        current_line = 1
 
-        for index, line in enumerate(lines, start=1):
+        while start <= len(text) and current_line <= safe_line_number:
+            newline_idx = text.find('\n', start)
+            if newline_idx == -1:
+                line = text[start:]
+                start = len(text) + 1
+            else:
+                line = text[start:newline_idx]
+                start = newline_idx + 1
+
             if line.strip().startswith('```'):
                 in_code_fence = not in_code_fence
-                continue
-            if index == safe_line_number:
+            elif current_line == safe_line_number:
                 return in_code_fence
+
+            current_line += 1
 
         return False
 
