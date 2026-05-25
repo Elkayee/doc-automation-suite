@@ -8,6 +8,10 @@ from pathlib import Path
 import defusedxml.minidom
 import lxml.etree
 
+# Configure secure default parser to prevent XXE vulnerabilities
+secure_parser = lxml.etree.XMLParser(resolve_entities=False)
+lxml.etree.set_default_parser(secure_parser)
+
 
 class BaseSchemaValidator:
     IGNORED_VALIDATION_ERRORS = [

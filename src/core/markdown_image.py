@@ -11,9 +11,7 @@ class MarkdownImage:
     align: str = 'center'
 
 
-IMAGE_LINE_RE = re.compile(
-    r'^\s*!\[(?P<alt>[^\]]*)\]\((?P<path>[^)]+)\)\s*(?:\{(?P<meta>[^}]*)\})?\s*$'
-)
+IMAGE_LINE_RE = re.compile(r'^\s*!\[(?P<alt>[^\]]*)\]\((?P<path>[^)]+)\)\s*(?:\{(?P<meta>[^}]*)\})?\s*$')
 META_TOKEN_RE = re.compile(r'(\w+)\s*=\s*("(?:[^"\\]|\\.)*"|[^,\s]+)')
 
 
@@ -47,6 +45,8 @@ def parse_markdown_image_line(line: str) -> MarkdownImage | None:
     )
 
 
-def build_markdown_image(path: str, *, alt: str = '', caption: str = '', width: str = '100%', align: str = 'center') -> str:
+def build_markdown_image(
+    path: str, *, alt: str = '', caption: str = '', width: str = '100%', align: str = 'center'
+) -> str:
     safe_caption = caption.replace('"', '\\"')
     return f'![{alt}]({path}){{caption="{safe_caption}", width={width}, align={align}}}'
