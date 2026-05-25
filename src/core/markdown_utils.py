@@ -685,16 +685,51 @@ class MarkdownUtils:
 
     @staticmethod
     def is_line_inside_fenced_block(text, line_number):
-        lines = text.replace('\r\n', '\n').replace('\r', '\n').split('\n')
         safe_line_number = max(1, int(line_number))
-        in_code_fence = False
 
-        for index, line in enumerate(lines, start=1):
-            if line.strip().startswith('```'):
+        # Fast path optimization: If there are no backticks in the text at all,
+        # we can immediately return False without allocating or iterating.
+        if '```' not in text:
+            return False
+
+        in_code_fence = False
+        start_idx = 0
+        current_line = 1
+        text_len = len(text)
+
+        # Performance Optimization: Avoid full-string .replace() and .split() allocations
+        # on large documents (O(N) overhead). Instead, iteratively find line boundaries
+        # up to the requested line_number using str.find().
+        while start_idx <= text_len:
+            nl_idx = text.find('\n', start_idx)
+            cr_idx = text.find('\r', start_idx)
+
+            if nl_idx == -1 and cr_idx == -1:
+                end_idx = text_len
+                next_start = text_len + 1
+            elif nl_idx != -1 and (cr_idx == -1 or nl_idx < cr_idx):
+                end_idx = nl_idx
+                next_start = nl_idx + 1
+            else:
+                end_idx = cr_idx
+                next_start = cr_idx + 1
+                if next_start < text_len and text[next_start] == '\n':
+                    next_start += 1
+
+            line = text[start_idx:end_idx]
+
+            # Fast substring check before running expensive strip/startswith
+            if '```' in line and line.strip().startswith('```'):
                 in_code_fence = not in_code_fence
+                start_idx = next_start
+                current_line += 1
                 continue
-            if index == safe_line_number:
+
+            if current_line == safe_line_number:
                 return in_code_fence
+
+            start_idx = next_start
+            current_line += 1
 
         return False
 
