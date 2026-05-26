@@ -8,6 +8,9 @@ from pathlib import Path
 import defusedxml.minidom
 import lxml.etree
 
+# Mitigate XXE globally for all lxml.etree operations
+lxml.etree.set_default_parser(lxml.etree.XMLParser(resolve_entities=False))
+
 
 class BaseSchemaValidator:
     IGNORED_VALIDATION_ERRORS = [
