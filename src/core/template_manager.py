@@ -19,14 +19,14 @@ class TemplateManager:
                     try:
                         templates[entry.name] = TemplateConfig.load(config_path)
                     except Exception as e:
-                        print(f"Error loading template {entry.name}: {e}")
+                        print(f'Error loading template {entry.name}: {e}')
         return templates
 
     def create_project(self, template_id: str, dest_dir: Path) -> bool:
         """Creates a new project in dest_dir based on the template_id."""
         template_path = self.templates_dir / template_id
         if not template_path.exists() or not (template_path / 'config.yaml').exists():
-            raise ValueError(f"Invalid template ID: {template_id}")
+            raise ValueError(f'Invalid template ID: {template_id}')
 
         # Create destination directory
         dest_dir.mkdir(parents=True, exist_ok=True)
@@ -59,6 +59,6 @@ class TemplateManager:
             else:
                 # Create empty file if no boilerplate exists
                 title = filename.replace('.md', '').replace('_', ' ')
-                dest_file.write_text(f"# {title}\n\n[Nhập nội dung vào đây]\n", encoding='utf-8')
+                dest_file.write_text(f'# {title}\n\n[Nhập nội dung vào đây]\n', encoding='utf-8')
 
         return True
