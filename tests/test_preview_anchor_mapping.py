@@ -1,7 +1,7 @@
 import unittest
-from unittest.mock import patch
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import patch
 
 from src.core.assembler import ChapterAssemblyEntry
 from src.ui.preview_utils import PreviewUtils
