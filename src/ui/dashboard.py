@@ -22,6 +22,7 @@ class DashboardApp:
         self.root.title('Doc Automation Suite - Dashboard')
         self.root.geometry('800x600')
         self.root.configure(bg='#f3efe5')
+        self.root.option_add('*TButton*cursor', 'hand2')
 
         self._setup_styles()
         self._build_ui()
@@ -70,7 +71,7 @@ class DashboardApp:
             recent_header_frame, text='Xoa Du An', style='Action.TButton', command=self.delete_selected_project
         ).pack(side='right')
 
-        self.projects_list = tk.Listbox(main_container, font=('Consolas', 11), height=10)
+        self.projects_list = tk.Listbox(main_container, font=('Consolas', 11), height=10, cursor='hand2')
         self.projects_list.pack(fill='both', expand=True)
         self.projects_list.bind('<Double-1>', lambda _event: self.open_selected_project())
 
@@ -147,7 +148,7 @@ class DashboardApp:
         confirm = messagebox.askyesno(
             'Xac nhan xoa',
             f"Ban co chac chan muon xoa du an '{name}' khong?\nHanh dong nay khong the hoan tac.",
-            parent=self.root
+            parent=self.root,
         )
 
         if confirm:
@@ -157,7 +158,7 @@ class DashboardApp:
                 messagebox.showinfo('Thanh cong', f"Da xoa du an '{name}'", parent=self.root)
                 self.refresh_projects()
             except Exception as e:
-                messagebox.showerror('Loi', f"Khong the xoa du an:\n{str(e)}", parent=self.root)
+                messagebox.showerror('Loi', f'Khong the xoa du an:\n{str(e)}', parent=self.root)
 
     def open_project(self):
         path = filedialog.askdirectory(initialdir=str(self.workspaces_dir))
