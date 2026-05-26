@@ -1,3 +1,4 @@
+import io
 import re
 
 from docx.shared import Cm
@@ -685,11 +686,13 @@ class MarkdownUtils:
 
     @staticmethod
     def is_line_inside_fenced_block(text, line_number):
-        lines = text.replace('\r\n', '\n').replace('\r', '\n').split('\n')
         safe_line_number = max(1, int(line_number))
         in_code_fence = False
 
-        for index, line in enumerate(lines, start=1):
+        # ⚡ Bolt Optimization: Use io.StringIO for lazy iteration instead of
+        # text.replace().split() to avoid full-document string array allocation.
+        # This prevents O(N) memory/time overhead when checking early lines.
+        for index, line in enumerate(io.StringIO(text), start=1):
             if line.strip().startswith('```'):
                 in_code_fence = not in_code_fence
                 continue
