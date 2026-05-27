@@ -1,0 +1,3 @@
+## 2024-05-27 - Optimize line parsing in `is_line_inside_fenced_block`
+**Learning:** Parsing large text strings to check line blocks using `replace` and `split` allocates the entire list of lines in memory and iterates everything unnecessarily (O(n) memory allocation). Using Python's built-in `io.StringIO(text, newline=None)` provides lazy, highly optimized C-level iteration that correctly handles universal newlines without requiring string copies or pre-allocated lists.
+**Action:** When iterating lines in large strings, use `io.StringIO(text, newline=None)` instead of `.replace('\r\n', '\n').replace('\r', '\n').split('\n')` to improve speed and drastically reduce memory overhead, avoiding manual `.find('\n')` loops that degrade performance.
