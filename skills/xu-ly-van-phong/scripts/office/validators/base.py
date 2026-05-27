@@ -8,6 +8,7 @@ from pathlib import Path
 import defusedxml.minidom
 import lxml.etree
 
+# Prevent XML External Entity (XXE) attacks by disabling entity resolution globally for lxml
 lxml.etree.set_default_parser(lxml.etree.XMLParser(resolve_entities=False))
 
 
