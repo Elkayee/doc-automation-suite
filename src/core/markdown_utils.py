@@ -686,6 +686,9 @@ class MarkdownUtils:
     @staticmethod
     def is_line_inside_fenced_block(text, line_number):
         safe_line_number = max(1, int(line_number))
+        # PERFORMANCE: Use bounded split (.split('\n', limit)) to prevent O(N) memory
+        # allocations on large documents when we only need to check the first few lines.
+        # This makes the UI significantly more responsive during keystrokes.
         lines = text.replace('\r\n', '\n').replace('\r', '\n').split('\n', safe_line_number)
         in_code_fence = False
 
