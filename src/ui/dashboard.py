@@ -78,9 +78,15 @@ class DashboardApp:
 
     def refresh_projects(self):
         self.projects_list.delete(0, tk.END)
+        found_project = False
         for entry in self.workspaces_dir.iterdir():
             if entry.is_dir() and (entry / 'config.yaml').exists():
                 self.projects_list.insert(tk.END, entry.name)
+                found_project = True
+
+        if not found_project:
+            self.projects_list.insert(tk.END, '(Chua co du an nao)')
+            self.projects_list.itemconfig(0, foreground='gray')
 
     def show_create_dialog(self):
         dialog = tk.Toplevel(self.root)
@@ -142,12 +148,16 @@ class DashboardApp:
             return
 
         idx = self.projects_list.curselection()[0]
+        if self.projects_list.itemcget(idx, 'foreground') == 'gray':
+            self.projects_list.selection_clear(idx)
+            return
+
         name = self.projects_list.get(idx)
 
         confirm = messagebox.askyesno(
             'Xac nhan xoa',
             f"Ban co chac chan muon xoa du an '{name}' khong?\nHanh dong nay khong the hoan tac.",
-            parent=self.root
+            parent=self.root,
         )
 
         if confirm:
@@ -157,7 +167,7 @@ class DashboardApp:
                 messagebox.showinfo('Thanh cong', f"Da xoa du an '{name}'", parent=self.root)
                 self.refresh_projects()
             except Exception as e:
-                messagebox.showerror('Loi', f"Khong the xoa du an:\n{str(e)}", parent=self.root)
+                messagebox.showerror('Loi', f'Khong the xoa du an:\n{str(e)}', parent=self.root)
 
     def open_project(self):
         path = filedialog.askdirectory(initialdir=str(self.workspaces_dir))
@@ -168,6 +178,10 @@ class DashboardApp:
         if not self.projects_list.curselection():
             return
         idx = self.projects_list.curselection()[0]
+        if self.projects_list.itemcget(idx, 'foreground') == 'gray':
+            self.projects_list.selection_clear(idx)
+            return
+
         name = self.projects_list.get(idx)
         self._launch_workspace(self.workspaces_dir / name)
 
