@@ -70,12 +70,15 @@ class DashboardApp:
             recent_header_frame, text='Xoa Du An', style='Action.TButton', command=self.delete_selected_project
         ).pack(side='right')
 
-        self.projects_list = tk.Listbox(main_container, font=('Consolas', 11), height=10)
+        self.list_container = ttk.Frame(main_container)
+        self.list_container.pack(fill='both', expand=True)
+
+        self.projects_list = tk.Listbox(self.list_container, font=('Consolas', 11), height=10)
         self.projects_list.pack(fill='both', expand=True)
         self.projects_list.bind('<Double-1>', lambda _event: self.open_selected_project())
 
         self.empty_state_label = ttk.Label(
-            main_container,
+            self.list_container,
             text='No projects found. Create a new project to get started.',
             font=('Georgia', 11, 'italic'),
             foreground='#666666',
