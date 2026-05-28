@@ -74,13 +74,31 @@ class DashboardApp:
         self.projects_list.pack(fill='both', expand=True)
         self.projects_list.bind('<Double-1>', lambda _event: self.open_selected_project())
 
+        self.empty_state_label = ttk.Label(
+            main_container,
+            text='No projects found. Create a new project to get started.',
+            font=('Georgia', 11, 'italic'),
+            foreground='#666666',
+            background='#f3efe5',
+            anchor='center',
+        )
+
         self.refresh_projects()
 
     def refresh_projects(self):
         self.projects_list.delete(0, tk.END)
+        project_count = 0
         for entry in self.workspaces_dir.iterdir():
             if entry.is_dir() and (entry / 'config.yaml').exists():
                 self.projects_list.insert(tk.END, entry.name)
+                project_count += 1
+
+        if project_count > 0:
+            self.empty_state_label.pack_forget()
+            self.projects_list.pack(fill='both', expand=True)
+        else:
+            self.projects_list.pack_forget()
+            self.empty_state_label.pack(fill='both', expand=True, pady=20)
 
     def show_create_dialog(self):
         dialog = tk.Toplevel(self.root)
@@ -147,7 +165,7 @@ class DashboardApp:
         confirm = messagebox.askyesno(
             'Xac nhan xoa',
             f"Ban co chac chan muon xoa du an '{name}' khong?\nHanh dong nay khong the hoan tac.",
-            parent=self.root
+            parent=self.root,
         )
 
         if confirm:
@@ -157,7 +175,7 @@ class DashboardApp:
                 messagebox.showinfo('Thanh cong', f"Da xoa du an '{name}'", parent=self.root)
                 self.refresh_projects()
             except Exception as e:
-                messagebox.showerror('Loi', f"Khong the xoa du an:\n{str(e)}", parent=self.root)
+                messagebox.showerror('Loi', f'Khong the xoa du an:\n{str(e)}', parent=self.root)
 
     def open_project(self):
         path = filedialog.askdirectory(initialdir=str(self.workspaces_dir))
