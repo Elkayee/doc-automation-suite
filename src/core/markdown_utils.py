@@ -685,8 +685,11 @@ class MarkdownUtils:
 
     @staticmethod
     def is_line_inside_fenced_block(text, line_number):
-        lines = text.replace('\r\n', '\n').replace('\r', '\n').split('\n')
         safe_line_number = max(1, int(line_number))
+        # ⚡ Bolt: Use bounded split to limit memory allocation to O(N) rather than O(L)
+        # where N is safe_line_number and L is total lines in the document.
+        # This reduces list overhead when parsing blocks in large documents.
+        lines = text.replace('\r\n', '\n').replace('\r', '\n').split('\n', safe_line_number)
         in_code_fence = False
 
         for index, line in enumerate(lines, start=1):
