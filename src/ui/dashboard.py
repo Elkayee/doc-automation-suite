@@ -70,7 +70,14 @@ class DashboardApp:
             recent_header_frame, text='Xoa Du An', style='Action.TButton', command=self.delete_selected_project
         ).pack(side='right')
 
-        self.projects_list = tk.Listbox(main_container, font=('Consolas', 11), height=10)
+        self.list_wrapper_frame = ttk.Frame(main_container)
+        self.list_wrapper_frame.pack(fill='both', expand=True)
+
+        self.empty_state_label = ttk.Label(
+            self.list_wrapper_frame, text='Chua co du an nao', foreground='gray', font=('Consolas', 11, 'italic')
+        )
+
+        self.projects_list = tk.Listbox(self.list_wrapper_frame, font=('Consolas', 11), height=10)
         self.projects_list.pack(fill='both', expand=True)
         self.projects_list.bind('<Double-1>', lambda _event: self.open_selected_project())
 
@@ -81,11 +88,13 @@ class DashboardApp:
         for entry in self.workspaces_dir.iterdir():
             if entry.is_dir() and (entry / 'config.yaml').exists():
                 self.projects_list.insert(tk.END, entry.name)
-                self.projects_list.itemconfig(tk.END, foreground='black')
 
         if self.projects_list.size() == 0:
-            self.projects_list.insert(tk.END, 'Chua co du an nao')
-            self.projects_list.itemconfig(0, foreground='gray')
+            self.projects_list.pack_forget()
+            self.empty_state_label.pack(anchor='center', pady=40)
+        else:
+            self.empty_state_label.pack_forget()
+            self.projects_list.pack(fill='both', expand=True)
 
     def show_create_dialog(self):
         dialog = tk.Toplevel(self.root)
@@ -147,10 +156,6 @@ class DashboardApp:
             return
 
         idx = self.projects_list.curselection()[0]
-        if self.projects_list.itemcget(idx, 'foreground') == 'gray':
-            self.projects_list.selection_clear(idx)
-            return
-
         name = self.projects_list.get(idx)
 
         confirm = messagebox.askyesno(
@@ -177,10 +182,6 @@ class DashboardApp:
         if not self.projects_list.curselection():
             return
         idx = self.projects_list.curselection()[0]
-        if self.projects_list.itemcget(idx, 'foreground') == 'gray':
-            self.projects_list.selection_clear(idx)
-            return
-
         name = self.projects_list.get(idx)
         self._launch_workspace(self.workspaces_dir / name)
 
