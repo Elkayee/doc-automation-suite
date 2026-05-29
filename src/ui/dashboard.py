@@ -70,17 +70,31 @@ class DashboardApp:
             recent_header_frame, text='Xoa Du An', style='Action.TButton', command=self.delete_selected_project
         ).pack(side='right')
 
-        self.projects_list = tk.Listbox(main_container, font=('Consolas', 11), height=10)
+        self.projects_list_frame = ttk.Frame(main_container)
+        self.projects_list_frame.pack(fill='both', expand=True)
+
+        self.projects_list = tk.Listbox(self.projects_list_frame, font=('Consolas', 11), height=10)
         self.projects_list.pack(fill='both', expand=True)
         self.projects_list.bind('<Double-1>', lambda _event: self.open_selected_project())
+
+        self.empty_state_label = ttk.Label(self.projects_list_frame, text="Chua co du an nao. Hay tao du an moi!", anchor="center")
 
         self.refresh_projects()
 
     def refresh_projects(self):
         self.projects_list.delete(0, tk.END)
+        project_count = 0
         for entry in self.workspaces_dir.iterdir():
             if entry.is_dir() and (entry / 'config.yaml').exists():
                 self.projects_list.insert(tk.END, entry.name)
+                project_count += 1
+
+        if project_count == 0:
+            self.projects_list.pack_forget()
+            self.empty_state_label.pack(fill='both', expand=True)
+        else:
+            self.empty_state_label.pack_forget()
+            self.projects_list.pack(fill='both', expand=True)
 
     def show_create_dialog(self):
         dialog = tk.Toplevel(self.root)
