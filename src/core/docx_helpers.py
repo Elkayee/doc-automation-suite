@@ -555,9 +555,15 @@ class DocxHelpers:
 
     @staticmethod
     def resolve_media_path(base_dir, md_path, asset_path):
-        asset = Path(asset_path)
-        if asset.is_absolute():
+        import re
+        asset_str = str(asset_path)
+        asset = Path(asset_str)
+        # Windows absolute paths (e.g., C:/) are not considered absolute by Path.is_absolute() on POSIX
+        if asset.is_absolute() or re.match(r'^[a-zA-Z]:[\\/]', asset_str):
+            # In test environments, mock absolute paths may not actually exist.
+            # We return them directly so that the caller can check their existence.
             return asset
+
         primary = (Path(md_path).resolve().parent / asset).resolve()
         if primary.exists():
             return primary
