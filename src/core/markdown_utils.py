@@ -19,6 +19,7 @@ class MarkdownUtils:
     MD_LINK_RE = re.compile(r'\[([^\]]+)\]\([^)]*\)')
     BOLD_RE = re.compile(r'\*\*([^*]+)\*\*')
     ITALIC_RE = re.compile(r'\*([^*]+)\*')
+    MD_INLINE_CODE_RE = re.compile(r'`([^`]+)`')
     HTML_BREAK_RE = re.compile(r'<br\s*/?>', flags=re.IGNORECASE)
     PUNCT_COMMA_PERIOD_RE = re.compile(r'([,;:])\s*\.(?=(?:\s|$|[*_`)\]}>"\']))')
     PUNCT_SPACE_BEFORE_RE = re.compile(r'\s+([.,;:!?)])')
@@ -47,7 +48,7 @@ class MarkdownUtils:
     def strip_md_markup(text):
         text = MarkdownUtils.BOLD_RE.sub(r'\1', text)
         text = MarkdownUtils.ITALIC_RE.sub(r'\1', text)
-        text = MarkdownUtils.INLINE_CODE_RE.sub(r'\1', text)
+        text = MarkdownUtils.MD_INLINE_CODE_RE.sub(r'\1', text)
         return text
 
     @staticmethod
