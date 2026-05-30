@@ -15,6 +15,18 @@ class MarkdownUtils:
     RELATION_SCHEMA_CODE_RE = re.compile(
         r'[A-Za-z][A-Za-z0-9_]*\(\s*[A-Za-z][A-Za-z0-9_]*(?:\s*,\s*[A-Za-z][A-Za-z0-9_]*)*\s*\)'
     )
+    WHITESPACE_RE = re.compile(r'\s+')
+    MD_LINK_RE = re.compile(r'\[([^\]]+)\]\([^)]*\)')
+    BOLD_RE = re.compile(r'\*\*([^*]+)\*\*')
+    ITALIC_RE = re.compile(r'\*([^*]+)\*')
+    HTML_BREAK_RE = re.compile(r'<br\s*/?>', flags=re.IGNORECASE)
+    PUNCT_COMMA_PERIOD_RE = re.compile(r'([,;:])\s*\.(?=(?:\s|$|[*_`)\]}>"\']))')
+    PUNCT_SPACE_BEFORE_RE = re.compile(r'\s+([.,;:!?)])')
+    PUNCT_SPACE_AFTER_OPEN_RE = re.compile(r'([([{])\s+')
+    PUNCT_SPACE_BEFORE_CLOSE_RE = re.compile(r'\s+([)\]}])')
+    PUNCT_MISSING_SPACE_RE = re.compile(r'([.,;:!?])([^\s\d.,;:!?)\]}\'"\\`*_])')
+    PARENTHETICAL_RE = re.compile(r'(\([A-Za-z][A-Za-z0-9\s_-]*\))\s+([A-ZÀ-Ỹ][^\n]*)')
+    PARENTHETICAL_BOLD_RE = re.compile(r'(\*\*[^*\n]*\([A-Za-z][A-Za-z0-9\s_-]*\)\*\*)\s+([A-ZÀ-Ỹ][^\n]*)')
     UNICODE_WORD_RE = re.compile(r'\b[^\W\d_]+\b', re.UNICODE)
     PROTECTED_TITLECASE_WORDS = {
         'Châu',
@@ -29,18 +41,18 @@ class MarkdownUtils:
 
     @staticmethod
     def strip_md_links(text):
-        return re.sub(r'\[([^\]]+)\]\([^)]*\)', r'\1', text)
+        return MarkdownUtils.MD_LINK_RE.sub(r'\1', text)
 
     @staticmethod
     def strip_md_markup(text):
-        text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)
-        text = re.sub(r'\*([^*]+)\*', r'\1', text)
-        text = re.sub(r'`([^`]+)`', r'\1', text)
+        text = MarkdownUtils.BOLD_RE.sub(r'\1', text)
+        text = MarkdownUtils.ITALIC_RE.sub(r'\1', text)
+        text = MarkdownUtils.INLINE_CODE_RE.sub(r'\1', text)
         return text
 
     @staticmethod
     def normalize_html_breaks(text, replacement=' '):
-        return re.sub(r'<br\s*/?>', replacement, text, flags=re.IGNORECASE)
+        return MarkdownUtils.HTML_BREAK_RE.sub(replacement, text)
 
     @staticmethod
     def is_inline_word_char(char):
@@ -152,11 +164,11 @@ class MarkdownUtils:
 
     @staticmethod
     def _normalize_punctuation_segment(text):
-        text = re.sub(r'([,;:])\s*\.(?=(?:\s|$|[*_`)\]}>"\']))', '.', text)
-        text = re.sub(r'\s+([.,;:!?)])', r'\1', text)
-        text = re.sub(r'([([{])\s+', r'\1', text)
-        text = re.sub(r'\s+([)\]}])', r'\1', text)
-        text = re.sub(r'([.,;:!?])([^\s\d.,;:!?)\]}\'"\\`*_])', r'\1 \2', text)
+        text = MarkdownUtils.PUNCT_COMMA_PERIOD_RE.sub('.', text)
+        text = MarkdownUtils.PUNCT_SPACE_BEFORE_RE.sub(r'\1', text)
+        text = MarkdownUtils.PUNCT_SPACE_AFTER_OPEN_RE.sub(r'\1', text)
+        text = MarkdownUtils.PUNCT_SPACE_BEFORE_CLOSE_RE.sub(r'\1', text)
+        text = MarkdownUtils.PUNCT_MISSING_SPACE_RE.sub(r'\1 \2', text)
         return text
 
     @classmethod
@@ -179,10 +191,10 @@ class MarkdownUtils:
             if not content:
                 return match.group(0)
             if cls.SIMPLE_PROSE_CODE_RE.fullmatch(content):
-                prose = re.sub(r'\s+', ' ', content.replace('_', ' ')).strip()
+                prose = cls.WHITESPACE_RE.sub(' ', content.replace('_', ' ')).strip()
                 return f'*{prose}*'
             if cls.RELATION_SCHEMA_CODE_RE.fullmatch(content):
-                prose = re.sub(r'\s+', ' ', content).strip()
+                prose = cls.WHITESPACE_RE.sub(' ', content).strip()
                 return f'*{prose}*'
             return match.group(0)
 
@@ -195,13 +207,11 @@ class MarkdownUtils:
 
     @classmethod
     def split_report_parenthetical_clauses(cls, text):
-        text = re.sub(
-            r'(\([A-Za-z][A-Za-z0-9\s_-]*\))\s+([A-ZÀ-Ỹ][^\n]*)',
+        text = cls.PARENTHETICAL_RE.sub(
             lambda match: f'{match.group(1)}\n\n{match.group(2)[0].upper()}{match.group(2)[1:]}',
             text,
         )
-        return re.sub(
-            r'(\*\*[^*\n]*\([A-Za-z][A-Za-z0-9\s_-]*\)\*\*)\s+([A-ZÀ-Ỹ][^\n]*)',
+        return cls.PARENTHETICAL_BOLD_RE.sub(
             lambda match: f'{match.group(1)}\n\n{match.group(2)}',
             text,
         )
@@ -298,7 +308,7 @@ class MarkdownUtils:
             if not paragraph_parts:
                 return
             paragraph = ' '.join(part.strip() for part in paragraph_parts if part.strip())
-            paragraph = re.sub(r'\s+', ' ', paragraph).strip()
+            paragraph = cls.WHITESPACE_RE.sub(' ', paragraph).strip()
             if paragraph:
                 paragraph = cls.split_report_parenthetical_clauses(paragraph)
                 paragraph = cls.normalize_report_capitalization(paragraph)
@@ -581,7 +591,7 @@ class MarkdownUtils:
             if not paragraph_parts:
                 return
             paragraph = ' '.join(part.strip() for part in paragraph_parts if part.strip())
-            paragraph = re.sub(r'\s+', ' ', paragraph).strip()
+            paragraph = cls.WHITESPACE_RE.sub(' ', paragraph).strip()
             if paragraph:
                 paragraph = cls.normalize_inline_special_terms(paragraph)
                 paragraph = cls.split_report_parenthetical_clauses(paragraph)
@@ -594,7 +604,7 @@ class MarkdownUtils:
             if list_prefix is None:
                 return
             item_text = ' '.join(part.strip() for part in list_parts if part.strip())
-            item_text = re.sub(r'\s+', ' ', item_text).strip()
+            item_text = cls.WHITESPACE_RE.sub(' ', item_text).strip()
             item_text = cls.normalize_inline_special_terms(item_text)
             item_text = cls.normalize_report_capitalization(item_text)
             reformatted.append(
