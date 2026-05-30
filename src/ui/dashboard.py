@@ -70,17 +70,36 @@ class DashboardApp:
             recent_header_frame, text='Xoa Du An', style='Action.TButton', command=self.delete_selected_project
         ).pack(side='right')
 
-        self.projects_list = tk.Listbox(main_container, font=('Consolas', 11), height=10)
-        self.projects_list.pack(fill='both', expand=True)
+        self.projects_list_frame = ttk.Frame(main_container)
+        self.projects_list_frame.pack(fill='both', expand=True)
+
+        self.projects_list = tk.Listbox(self.projects_list_frame, font=('Consolas', 11), height=10)
+
+        self.empty_state_label = ttk.Label(
+            self.projects_list_frame,
+            text='No projects found. Create a new project to begin.',
+            font=('Georgia', 12, 'italic'),
+            foreground='gray',
+        )
+
         self.projects_list.bind('<Double-1>', lambda _event: self.open_selected_project())
 
         self.refresh_projects()
 
     def refresh_projects(self):
         self.projects_list.delete(0, tk.END)
+        has_projects = False
         for entry in self.workspaces_dir.iterdir():
             if entry.is_dir() and (entry / 'config.yaml').exists():
                 self.projects_list.insert(tk.END, entry.name)
+                has_projects = True
+
+        if has_projects:
+            self.empty_state_label.pack_forget()
+            self.projects_list.pack(fill='both', expand=True)
+        else:
+            self.projects_list.pack_forget()
+            self.empty_state_label.pack(pady=40, anchor='center')
 
     def show_create_dialog(self):
         dialog = tk.Toplevel(self.root)
@@ -147,7 +166,7 @@ class DashboardApp:
         confirm = messagebox.askyesno(
             'Xac nhan xoa',
             f"Ban co chac chan muon xoa du an '{name}' khong?\nHanh dong nay khong the hoan tac.",
-            parent=self.root
+            parent=self.root,
         )
 
         if confirm:
@@ -157,7 +176,7 @@ class DashboardApp:
                 messagebox.showinfo('Thanh cong', f"Da xoa du an '{name}'", parent=self.root)
                 self.refresh_projects()
             except Exception as e:
-                messagebox.showerror('Loi', f"Khong the xoa du an:\n{str(e)}", parent=self.root)
+                messagebox.showerror('Loi', f'Khong the xoa du an:\n{str(e)}', parent=self.root)
 
     def open_project(self):
         path = filedialog.askdirectory(initialdir=str(self.workspaces_dir))
