@@ -24,6 +24,8 @@ class TemplateManager:
 
     def create_project(self, template_id: str, dest_dir: Path) -> bool:
         """Creates a new project in dest_dir based on the template_id."""
+        if '/' in template_id or '\\' in template_id or '..' in Path(template_id).parts:
+            raise ValueError(f"Invalid template ID: {template_id}")
         template_path = self.templates_dir / template_id
         if not template_path.exists() or not (template_path / 'config.yaml').exists():
             raise ValueError(f"Invalid template ID: {template_id}")
