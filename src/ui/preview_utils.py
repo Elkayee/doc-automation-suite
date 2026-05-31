@@ -502,7 +502,9 @@ class PreviewUtils:
                 total += int((cls._line_height_px(metrics, 0.92) * row_lines) + 16)
             return total
         if block['type'] == 'image':
-            _display_width, display_height = cls._estimate_image_dimensions_px(block['image'], workspace_dir, md_path, metrics)
+            _display_width, display_height = cls._estimate_image_dimensions_px(
+                block['image'], workspace_dir, md_path, metrics
+            )
             caption_height = int(cls._line_height_px(metrics, 0.9) + 8) if block['image'].caption else 0
             return display_height + caption_height + 24
         return 20
@@ -523,7 +525,9 @@ class PreviewUtils:
             level = min(block.get('level', 2), 6)
             return f'<div class="block heading-block"{anchor_attr}><h{level}>{cls._segments_html(block["segments"])}</h{level}></div>'
         if block['type'] == 'paragraph':
-            return f'<div class="block paragraph-block"{anchor_attr}><p>{cls._segments_html(block["segments"])}</p></div>'
+            return (
+                f'<div class="block paragraph-block"{anchor_attr}><p>{cls._segments_html(block["segments"])}</p></div>'
+            )
         if block['type'] == 'quote':
             return f'<div class="block quote-block"{anchor_attr}><blockquote>{cls._segments_html(block["segments"])}</blockquote></div>'
         if block['type'] == 'list_item':
@@ -552,9 +556,7 @@ class PreviewUtils:
                     f'<p>[Khong tim thay anh: {html_lib.escape(image.path)}]</p></div>'
                 )
             width_style = f'width:{html_lib.escape(image.width or "100%")};'
-            caption_html = (
-                f'<figcaption>{html_lib.escape(image.caption)}</figcaption>' if image.caption else ''
-            )
+            caption_html = f'<figcaption>{html_lib.escape(image.caption)}</figcaption>' if image.caption else ''
             return (
                 f'<figure class="image-block align-{html_lib.escape(image.align or "center")} block"{anchor_attr}>'
                 f'<img src="{html_lib.escape(src)}" alt="{html_lib.escape(image.alt)}" style="{width_style}">'
@@ -596,7 +598,9 @@ class PreviewUtils:
 
         for entry in entries:
             markers = ChapterSettings.get_list_markers_by_level(config, entry.filename)
-            blocks = cls.markdown_to_preview_blocks(entry.content, list_markers_by_level=markers, filename=entry.filename)
+            blocks = cls.markdown_to_preview_blocks(
+                entry.content, list_markers_by_level=markers, filename=entry.filename
+            )
             anchors_by_file[entry.filename] = [
                 {'anchor_id': block['anchor_id'], 'line_number': block['line_number']}
                 for block in blocks
