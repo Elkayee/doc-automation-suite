@@ -147,7 +147,7 @@ class DashboardApp:
         confirm = messagebox.askyesno(
             'Xac nhan xoa',
             f"Ban co chac chan muon xoa du an '{name}' khong?\nHanh dong nay khong the hoan tac.",
-            parent=self.root
+            parent=self.root,
         )
 
         if confirm:
@@ -157,7 +157,7 @@ class DashboardApp:
                 messagebox.showinfo('Thanh cong', f"Da xoa du an '{name}'", parent=self.root)
                 self.refresh_projects()
             except Exception as e:
-                messagebox.showerror('Loi', f"Khong the xoa du an:\n{str(e)}", parent=self.root)
+                messagebox.showerror('Loi', f'Khong the xoa du an:\n{str(e)}', parent=self.root)
 
     def open_project(self):
         path = filedialog.askdirectory(initialdir=str(self.workspaces_dir))
