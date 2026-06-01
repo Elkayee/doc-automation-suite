@@ -178,6 +178,7 @@ class MarkdownUtils:
             content = match.group(1).strip()
             if not content:
                 return match.group(0)
+            # Optimize: use str.split() instead of re.sub() to bypass regex engine overhead
             if cls.SIMPLE_PROSE_CODE_RE.fullmatch(content):
                 prose = ' '.join(content.replace('_', ' ').split())
                 return f'*{prose}*'
@@ -298,6 +299,7 @@ class MarkdownUtils:
             if not paragraph_parts:
                 return
             paragraph = ' '.join(part.strip() for part in paragraph_parts if part.strip())
+            # Optimize: use str.split() instead of re.sub() to bypass regex engine overhead
             paragraph = ' '.join(paragraph.split())
             if paragraph:
                 paragraph = cls.split_report_parenthetical_clauses(paragraph)
@@ -376,6 +378,7 @@ class MarkdownUtils:
                         break
                     text_value = f'{text_value} {continuation}'
                     i += 1
+                # Optimize: use str.split() instead of re.sub() to bypass regex engine overhead
                 text_value = ' '.join(text_value.split())
                 text_value = cls.normalize_report_capitalization(text_value)
                 normalized.append(f'{"  " * indent_level}- {text_value}')
@@ -581,6 +584,7 @@ class MarkdownUtils:
             if not paragraph_parts:
                 return
             paragraph = ' '.join(part.strip() for part in paragraph_parts if part.strip())
+            # Optimize: use str.split() instead of re.sub() to bypass regex engine overhead
             paragraph = ' '.join(paragraph.split())
             if paragraph:
                 paragraph = cls.normalize_inline_special_terms(paragraph)
@@ -594,6 +598,7 @@ class MarkdownUtils:
             if list_prefix is None:
                 return
             item_text = ' '.join(part.strip() for part in list_parts if part.strip())
+            # Optimize: use str.split() instead of re.sub() to bypass regex engine overhead
             item_text = ' '.join(item_text.split())
             item_text = cls.normalize_inline_special_terms(item_text)
             item_text = cls.normalize_report_capitalization(item_text)
