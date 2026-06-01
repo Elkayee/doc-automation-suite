@@ -1,0 +1,3 @@
+## 2025-06-01 - Replace Regex Whitespace Normalization
+**Learning:** In highly executed text processing functions (like parsing loops), replacing regex-based whitespace normalization (`re.sub(r'\s+', ' ', text).strip()`) with Python's native string methods (`' '.join(text.split())`) yields significant performance improvements (often ~6x faster) by completely bypassing the regex engine overhead while safely collapsing all spaces, tabs, and newlines.
+**Action:** Always prefer `' '.join(text.split())` over regular expressions when collapsing all contiguous whitespace, unless explicit retention of specific whitespace characters (like newlines) is functionally required.
