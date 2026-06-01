@@ -1,0 +1,3 @@
+## 2025-06-01 - Python Performance
+**Learning:** Pre-compiled regular expressions using `re.compile()` inside class constants are significantly faster than calling `re.sub()` inline inside loops because they bypass cache lookups and parsing overhead. Python string method `' '.join(text.split())` is an incredibly fast way to collapse consecutive whitespace without using regular expressions.
+**Action:** Replace `re.sub(r'\s+', ' ', text)` with `' '.join(text.split())` in heavily executed text manipulation loops (like `markdown_utils.py`'s formatting methods) where the exact difference between collapsing all whitespace and just newlines/spaces/tabs is negligible or explicitly desired.
