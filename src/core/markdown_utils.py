@@ -246,26 +246,33 @@ class MarkdownUtils:
             return word
         return word.lower()
 
+    SENTENCE_START_NEWLINE_RE = re.compile(r'\n\s*\n\s*$')
+    SENTENCE_START_STRUCTURAL1_RE = re.compile(r'(?:[-*+]\s+|\d+\.\s+)?[*_`~>#\[\]()\s]*')
+    SENTENCE_START_STRUCTURAL2_RE = re.compile(r'(?:[-*+]\s+|\d+\.\s+)?\*\*[^*]+\*\*\s*')
+    SENTENCE_START_COLON_PREFIX_RE = re.compile(r'\b\d+\s+\w+$', re.UNICODE)
+    SENTENCE_START_PUNCT_END_RE = re.compile(r'[.!?]["”’)\]]*$')
+    SENTENCE_START_COLON_END_RE = re.compile(r':\s*[“"\'‘]$')
+
     @staticmethod
     def _sentence_start_kind(text, start):
         prefix = text[:start]
-        if re.search(r'\n\s*\n\s*$', prefix):
+        if MarkdownUtils.SENTENCE_START_NEWLINE_RE.search(prefix):
             return 'punct'
         stripped = prefix.rstrip()
         if not stripped:
             return 'structural'
-        if re.fullmatch(r'(?:[-*+]\s+|\d+\.\s+)?[*_`~>#\[\]()\s]*', stripped):
+        if MarkdownUtils.SENTENCE_START_STRUCTURAL1_RE.fullmatch(stripped):
             return 'structural'
-        if re.fullmatch(r'(?:[-*+]\s+|\d+\.\s+)?\*\*[^*]+\*\*\s*', stripped):
+        if MarkdownUtils.SENTENCE_START_STRUCTURAL2_RE.fullmatch(stripped):
             return 'structural'
         if stripped.endswith(':'):
             prefix_before_colon = stripped[:-1].rstrip()
-            if re.search(r'\b\d+\s+\w+$', prefix_before_colon, re.UNICODE):
+            if MarkdownUtils.SENTENCE_START_COLON_PREFIX_RE.search(prefix_before_colon):
                 return None
             return 'colon'
-        if re.search(r'[.!?]["”’)\]]*$', stripped):
+        if MarkdownUtils.SENTENCE_START_PUNCT_END_RE.search(stripped):
             return 'punct'
-        if re.search(r':\s*[“"\'‘]$', stripped):
+        if MarkdownUtils.SENTENCE_START_COLON_END_RE.search(stripped):
             return 'colon'
         return None
 
