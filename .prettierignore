@@ -1,3 +1,8 @@
 .omc/
 docs/superpowers/plans/2026-05-09-image-insertion-and-paginated-preview.md
 docs/superpowers/plans/2026-05-09-markdown-table-formatting.md
+src/api.py
+src/cli.py
+src/core/config.py
+src/core/logger.py
+tests/test_refactored_cli_api.py
