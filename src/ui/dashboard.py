@@ -47,18 +47,22 @@ class DashboardApp:
         actions_frame = ttk.Frame(main_container)
         actions_frame.pack(anchor='center')
 
-        ttk.Button(actions_frame, text='+ Tao Du An Moi', style='Action.TButton', command=self.show_create_dialog, cursor='hand2').grid(
-            row=0, column=0, padx=10, pady=10
-        )
-        ttk.Button(actions_frame, text='Mo Du An', style='Action.TButton', command=self.open_project, cursor='hand2').grid(
-            row=0, column=1, padx=10, pady=10
-        )
+        ttk.Button(
+            actions_frame,
+            text='+ Tao Du An Moi',
+            style='Action.TButton',
+            command=self.show_create_dialog,
+            cursor='hand2',
+        ).grid(row=0, column=0, padx=10, pady=10)
+        ttk.Button(
+            actions_frame, text='Mo Du An', style='Action.TButton', command=self.open_project, cursor='hand2'
+        ).grid(row=0, column=1, padx=10, pady=10)
         ttk.Button(
             actions_frame,
             text='Cong Cu Cu (Legacy)',
             style='Action.TButton',
             command=self.open_legacy_workflow,
-            cursor='hand2'
+            cursor='hand2',
         ).grid(row=0, column=2, padx=10, pady=10)
 
         recent_header_frame = ttk.Frame(main_container)
@@ -69,12 +73,27 @@ class DashboardApp:
         )
 
         ttk.Button(
-            recent_header_frame, text='Xoa Du An', style='Action.TButton', command=self.delete_selected_project, cursor='hand2'
+            recent_header_frame,
+            text='Xoa Du An',
+            style='Action.TButton',
+            command=self.delete_selected_project,
+            cursor='hand2',
         ).pack(side='right')
 
-        self.projects_list = tk.Listbox(main_container, font=('Consolas', 11), height=10, cursor='hand2')
+        self.projects_container = ttk.Frame(main_container)
+        self.projects_container.pack(fill='both', expand=True)
+
+        self.projects_list = tk.Listbox(self.projects_container, font=('Consolas', 11), height=10, cursor='hand2')
         self.projects_list.pack(fill='both', expand=True)
         self.projects_list.bind('<Double-1>', lambda _event: self.open_selected_project())
+
+        self.empty_label = ttk.Label(
+            self.projects_container,
+            text='No projects available. Create one!',
+            foreground='gray',
+            font=('Consolas', 11),
+            anchor='center',
+        )
 
         self.refresh_projects()
 
@@ -84,12 +103,11 @@ class DashboardApp:
             if entry.is_dir() and (entry / 'config.yaml').exists():
                 self.projects_list.insert(tk.END, entry.name)
         if self.projects_list.size() == 0:
-            self.projects_list.insert(tk.END, 'Chua co du an nao. Hay tao moi!')
-            self.projects_list.itemconfig(0, foreground='gray')
-
-        if self.projects_list.size() == 0:
-            self.projects_list.insert(0, "Chua co du an nao")
-            self.projects_list.itemconfig(0, foreground='gray')
+            self.projects_list.pack_forget()
+            self.empty_label.pack(fill='both', expand=True)
+        else:
+            self.empty_label.pack_forget()
+            self.projects_list.pack(fill='both', expand=True)
 
     def show_create_dialog(self):
         dialog = tk.Toplevel(self.root)
@@ -158,7 +176,7 @@ class DashboardApp:
         confirm = messagebox.askyesno(
             'Xac nhan xoa',
             f"Ban co chac chan muon xoa du an '{name}' khong?\nHanh dong nay khong the hoan tac.",
-            parent=self.root
+            parent=self.root,
         )
 
         if confirm:
@@ -168,7 +186,7 @@ class DashboardApp:
                 messagebox.showinfo('Thanh cong', f"Da xoa du an '{name}'", parent=self.root)
                 self.refresh_projects()
             except Exception as e:
-                messagebox.showerror('Loi', f"Khong the xoa du an:\n{str(e)}", parent=self.root)
+                messagebox.showerror('Loi', f'Khong the xoa du an:\n{str(e)}', parent=self.root)
 
     def open_project(self):
         path = filedialog.askdirectory(initialdir=str(self.workspaces_dir))

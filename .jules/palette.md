@@ -9,3 +9,11 @@ relevant event handlers (like double-click or delete actions) to explicitly chec
 (`listbox.itemcget(idx, 'foreground') == 'gray'`) and return early to prevent invalid actions on the
 placeholder text. Also, ensure interactive elements like buttons and listboxes use `cursor='hand2'`
 to improve visual feedback on hover.
+
+## 2023-10-27 - Properly Handle Empty States in Tkinter Listboxes
+
+**Learning:** Inserting dummy placeholder strings (e.g., "No projects available") directly into a
+`tk.Listbox` pollutes the data model and creates false affordances where users might try to select
+the placeholder text. **Action:** Instead, wrap the Listbox and a dedicated `ttk.Label` inside a
+parent `ttk.Frame`. Then use `pack_forget()` and `pack()` to toggle their visibility based on the
+data length.
