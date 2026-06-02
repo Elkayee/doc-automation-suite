@@ -8,7 +8,7 @@ LOG_FILE = BASE_DIR / 'doc_suite.log'
 
 class CustomFormatter(logging.Formatter):
     """Custom formatter providing professional visual output for console logging."""
-    
+
     # ANSI color codes
     grey = "\x1b[38;20m"
     yellow = "\x1b[33;20m"
@@ -16,7 +16,7 @@ class CustomFormatter(logging.Formatter):
     bold_red = "\x1b[31;1m"
     reset = "\x1b[0m"
     cyan = "\x1b[36;20m"
-    
+
     FORMATS = {
         logging.DEBUG: grey + "[DEBUG] %(message)s" + reset,
         logging.INFO: cyan + "[INFO] %(message)s" + reset,
@@ -33,11 +33,11 @@ class CustomFormatter(logging.Formatter):
 def get_logger(name: str = "doc-suite") -> logging.Logger:
     """Configures and returns a multi-handler standard logger instance."""
     logger = logging.getLogger(name)
-    
+
     # If logger is already configured, return it to prevent duplicate handler output
     if logger.handlers:
         return logger
-        
+
     logger.setLevel(logging.DEBUG)
 
     # 1. Console Handler (Standard Output, Info and above)
