@@ -9,7 +9,7 @@
       3. Fetches and prunes all remote branches.
       4. For each eligible remote branch, performs a dry-test merge (--no-commit --no-ff).
       5. If mergeable  -> commits the merge, deletes remote & local tracking branch.
-      6. If conflict   -> aborts, reports it. If -DeleteConflicted is set, deletes the branch. Otherwise SKIPS it.
+      6. If conflict   -> aborts, reports it. If -AutoDelete is set, deletes the branch. Otherwise SKIPS it.
       7. If up-to-date -> skips silently (already merged).
       8. Pushes accumulated merges to origin.
       9. Prints a structured summary table at the end.
@@ -20,7 +20,7 @@
 .PARAMETER SkipPush
     Merge locally but do not push to origin at the end.
 
-.PARAMETER DeleteConflicted
+.PARAMETER AutoDelete
     If a conflict is detected, delete the remote and local branch instead of skipping it.
 
 .PARAMETER LogFile
@@ -34,7 +34,7 @@
 param (
     [switch]$DryRun,
     [switch]$SkipPush,
-    [switch]$DeleteConflicted,
+    [switch]$AutoDelete,
     [string]$LogFile = ""
 )
 
@@ -178,7 +178,7 @@ foreach ($branch in $remoteBranches) {
         # ── Case B: Conflict ──────────────────────────────────────────────────
         if ($mergeOutput -match "CONFLICT" -or $mergeOutput -match "Automatic merge failed") {
             Invoke-Git @("merge", "--abort") | Out-Null
-            if ($DeleteConflicted) {
+            if ($AutoDelete) {
                 Write-Log "    -> CONFLICT detected. Deleting conflicted branch..." "Red"
                 
                 # Delete remote branch
@@ -250,7 +250,7 @@ foreach ($branch in $remoteBranches) {
             Write-Log "    -> [DRY RUN] Already up to date. Would skip." "DarkGray"
             $skippedBranches.Add($localBranchName)
         } elseif ($mergeOutput -match "CONFLICT" -or $mergeOutput -match "Automatic merge failed") {
-            if ($DeleteConflicted) {
+            if ($AutoDelete) {
                 Write-Log "    -> [DRY RUN] CONFLICT detected. Would delete remote & local branch." "Red"
             } else {
                 Write-Log "    -> [DRY RUN] CONFLICT detected. Would skip (branch NOT deleted)." "Red"
@@ -301,7 +301,7 @@ if ($mergedBranches.Count -gt 0) {
     foreach ($b in $mergedBranches) { Write-Log "    + $b" "Green" }
 }
 if ($conflictBranches.Count -gt 0) {
-    if ($DeleteConflicted) {
+    if ($AutoDelete) {
         Write-Log "  Conflicting branches (deleted):" "Red"
     } else {
         Write-Log "  Conflicting branches (manual resolution needed):" "Red"
