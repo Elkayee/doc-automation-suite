@@ -67,13 +67,22 @@ def list_templates():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+def _secure_resolve(base_path: Path, sub_path: str) -> Path:
+    """Securely resolves a sub_path within base_path to prevent path traversal."""
+    resolved = (base_path / sub_path).resolve()
+    if not resolved.is_relative_to(base_path.resolve()):
+        raise HTTPException(status_code=400, detail="Invalid path: Path traversal detected.")
+    return resolved
+
+
 @app.post("/workspaces/create")
 def create_workspace(req: CreateRequest):
     templates_dir = BASE_DIR / "templates"
     workspaces_dir = BASE_DIR / "workspaces"
 
+    dest_dir = _secure_resolve(workspaces_dir, req.name)
+
     manager = TemplateManager(templates_dir)
-    dest_dir = workspaces_dir / req.name
 
     if dest_dir.exists():
         raise HTTPException(status_code=400, detail=f"Workspace '{req.name}' already exists.")
@@ -94,13 +103,14 @@ def create_workspace(req: CreateRequest):
 @app.post("/workspaces/compile")
 def compile_workspace(req: CompileRequest):
     workspaces_dir = BASE_DIR / "workspaces"
-    workspace_dir = workspaces_dir / req.workspace_name
+
+    try:
+        workspace_dir = _secure_resolve(workspaces_dir, req.workspace_name)
+    except HTTPException:
+        raise HTTPException(status_code=400, detail="Invalid workspace name: Path traversal detected.")
 
     if not workspace_dir.exists() or not workspace_dir.is_dir():
-        # Fallback to direct absolute/relative path if not in standard workspaces
-        workspace_dir = Path(req.workspace_name).resolve()
-        if not workspace_dir.exists():
-            raise HTTPException(status_code=404, detail=f"Workspace path not found: {req.workspace_name}")
+        raise HTTPException(status_code=404, detail=f"Workspace path not found: {req.workspace_name}")
 
     logger.info(f"API: Starting compile pipeline for: {workspace_dir.name}")
 
