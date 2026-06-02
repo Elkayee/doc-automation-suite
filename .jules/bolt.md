@@ -1,8 +1,3 @@
-## 2024-05-28 - Bounded Split for Large Documents
-
-**Learning:** Checking the line state of a large text document by fully splitting the entire string
-(`.split('\n')`) on every keystroke causes O(N) memory allocations, resulting in noticeable UI lag
-for early lines in large files.
-
-**Action:** Use `.split('\n', limit)` to bound the parsing strictly to the required prefix of the
-document. This avoids allocating the rest of the string into thousands of smaller strings.
+## 2024-12-05 - Avoid str.replace().split() memory allocation in Python
+**Learning:** Using `text.replace('\r\n', '\n').replace('\r', '\n').split('\n', limit)` on large strings still allocates the entire modified string in memory before the split happens. This causes O(N) memory allocation on every keystroke in a UI, leading to significant latency.
+**Action:** Use a lazily evaluated regular expression iterator (`re.finditer(r'\r\n|\r|\n', text)`) to slice lines iteratively, preventing full-document memory allocation while correctly identifying lines with multiple line ending formats.

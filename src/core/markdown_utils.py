@@ -4,6 +4,7 @@ from docx.shared import Cm
 
 
 class MarkdownUtils:
+    LINE_END_RE = re.compile(r'\r\n|\r|\n')
     HEADING_RE = re.compile(r'^(#{1,6})\s+.+$')
     BULLET_RE = re.compile(r'^\s*[-*+]\s+')
     ORDERED_RE = re.compile(r'^\s*\d+\.\s+')
@@ -683,21 +684,32 @@ class MarkdownUtils:
             result += '\n'
         return result
 
-    @staticmethod
-    def is_line_inside_fenced_block(text, line_number):
+    @classmethod
+    def is_line_inside_fenced_block(cls, text, line_number):
         safe_line_number = max(1, int(line_number))
-        # PERFORMANCE: Use bounded split (.split('\n', limit)) to prevent O(N) memory
-        # allocations on large documents when we only need to check the first few lines.
-        # This makes the UI significantly more responsive during keystrokes.
-        lines = text.replace('\r\n', '\n').replace('\r', '\n').split('\n', safe_line_number)
+        # PERFORMANCE: Use a lazily evaluated regular expression iterator
+        # to slice lines iteratively, preventing full-document memory allocation.
         in_code_fence = False
+        line_start = 0
+        current_line = 1
 
-        for index, line in enumerate(lines[:safe_line_number], start=1):
+        for match in cls.LINE_END_RE.finditer(text):
+            line = text[line_start:match.start()]
             if line.strip().startswith('```'):
                 in_code_fence = not in_code_fence
-                continue
-            if index == safe_line_number:
+                if current_line == safe_line_number:
+                    return False
+            elif current_line == safe_line_number:
                 return in_code_fence
+
+            line_start = match.end()
+            current_line += 1
+
+        if current_line == safe_line_number:
+            line = text[line_start:]
+            if line.strip().startswith('```'):
+                return False
+            return in_code_fence
 
         return False
 
