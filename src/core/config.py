@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Any
+
 import yaml
 from pydantic import BaseModel, Field, field_validator
 
@@ -48,7 +49,7 @@ class TemplateConfig(BaseModel):
         # Filter empty fields to keep yaml output clean
         if 'chapter_order' in data and not data['chapter_order']:
             data.pop('chapter_order')
-            
+
         with open(config_path, 'w', encoding='utf-8') as f:
             yaml.safe_dump(data, f, allow_unicode=True, sort_keys=False)
 
