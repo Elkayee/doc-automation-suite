@@ -700,6 +700,8 @@ class MarkdownUtils:
 
             if line.strip().startswith('```'):
                 in_code_fence = not in_code_fence
+                if current_line == safe_line_number:
+                    return False
                 current_line += 1
                 continue
 
