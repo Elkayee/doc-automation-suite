@@ -1,12 +1,11 @@
-## 2024-05-12 - Add tk.Listbox Empty State Pattern
+## 2025-05-08 - Tkinter Listbox Empty State UX
 
-**Learning:** Tkinter `tk.Listbox` lacks a built-in empty state. Simply inserting a placeholder text
-and setting its foreground color to gray creates the visual cue, but ALL event handlers bound to
-selection/actions must explicitly check the foreground color
-(`listbox.itemcget(idx, 'foreground') == 'gray'`) and return early to prevent the placeholder from
-being treated as actual user data. Additionally, assigning `cursor='hand2'` explicitly to
-interactive widgets like `tk.Listbox` and `ttk.Button` provides much-needed visual hover feedback
-missing in native Tkinter. **Action:** Always insert a placeholder item with gray text when
-populating an empty Tkinter `Listbox`. Guard all corresponding event handlers to skip over this
-placeholder text by checking its color. Also apply `cursor='hand2'` via ttk styles or explicitly to
-improve interactive UI cues.
+**Learning:** Tkinter listboxes don't have built-in empty state handling, which can cause poor UX
+and potential errors if empty areas are clicked. Adding a visual placeholder string (e.g. 'Chua co
+du an nao. Hay tao moi!') and styling it gray provides clear feedback to the user, but requires
+careful handling in event bindings. **Action:** When inserting placeholder text in a Tkinter
+listbox, visually distinguish it (e.g. `listbox.itemconfig(0, foreground='gray')`), and update ALL
+relevant event handlers (like double-click or delete actions) to explicitly check the item color
+(`listbox.itemcget(idx, 'foreground') == 'gray'`) and return early to prevent invalid actions on the
+placeholder text. Also, ensure interactive elements like buttons and listboxes use `cursor='hand2'`
+to improve visual feedback on hover.

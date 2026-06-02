@@ -20,6 +20,9 @@
 .PARAMETER SkipPush
     Merge locally but do not push to origin at the end.
 
+.PARAMETER DeleteConflicted
+    If a conflict is detected, delete the remote and local branch instead of skipping it.
+
 .PARAMETER LogFile
     Optional path to write a log file. Defaults to no log file.
 
@@ -31,6 +34,7 @@
 param (
     [switch]$DryRun,
     [switch]$SkipPush,
+    [switch]$DeleteConflicted,
     [string]$LogFile = ""
 )
 
@@ -173,8 +177,32 @@ foreach ($branch in $remoteBranches) {
 
         # ── Case B: Conflict ──────────────────────────────────────────────────
         if ($mergeOutput -match "CONFLICT" -or $mergeOutput -match "Automatic merge failed") {
-            Write-Log "    -> CONFLICT detected. Aborting test merge. Branch will NOT be deleted." "Red"
             Invoke-Git @("merge", "--abort") | Out-Null
+            if ($DeleteConflicted) {
+                Write-Log "    -> CONFLICT detected. Deleting conflicted branch..." "Red"
+                
+                # Delete remote branch
+                $delRemote = Invoke-Git @("push", "origin", "--delete", $localBranchName)
+                if ($delRemote.Success) {
+                    Write-Log "    -> Remote branch 'origin/$localBranchName' deleted." "DarkGray"
+                } else {
+                    Write-Log "    -> WARNING: Could not delete remote branch 'origin/$localBranchName'." "Yellow"
+                    Write-Log "       $($delRemote.Output)" "Yellow"
+                }
+
+                # Delete local tracking branch if it exists
+                $localExists = ((& git branch --list $localBranchName) -join '').Trim()
+                if ($localExists -ne "") {
+                    $delLocal = Invoke-Git @("branch", "-D", $localBranchName)
+                    if ($delLocal.Success) {
+                        Write-Log "    -> Local branch '$localBranchName' deleted." "DarkGray"
+                    } else {
+                        Write-Log "    -> WARNING: Could not delete local branch '$localBranchName'." "Yellow"
+                    }
+                }
+            } else {
+                Write-Log "    -> CONFLICT detected. Aborting test merge. Branch will NOT be deleted." "Red"
+            }
             $conflictBranches.Add($localBranchName)
             continue
         }
@@ -222,7 +250,11 @@ foreach ($branch in $remoteBranches) {
             Write-Log "    -> [DRY RUN] Already up to date. Would skip." "DarkGray"
             $skippedBranches.Add($localBranchName)
         } elseif ($mergeOutput -match "CONFLICT" -or $mergeOutput -match "Automatic merge failed") {
-            Write-Log "    -> [DRY RUN] CONFLICT detected. Would skip (branch NOT deleted)." "Red"
+            if ($DeleteConflicted) {
+                Write-Log "    -> [DRY RUN] CONFLICT detected. Would delete remote & local branch." "Red"
+            } else {
+                Write-Log "    -> [DRY RUN] CONFLICT detected. Would skip (branch NOT deleted)." "Red"
+            }
             Invoke-Git @("merge", "--abort") | Out-Null
             $conflictBranches.Add($localBranchName)
         } else {
@@ -269,7 +301,11 @@ if ($mergedBranches.Count -gt 0) {
     foreach ($b in $mergedBranches) { Write-Log "    + $b" "Green" }
 }
 if ($conflictBranches.Count -gt 0) {
-    Write-Log "  Conflicting branches (manual resolution needed):" "Red"
+    if ($DeleteConflicted) {
+        Write-Log "  Conflicting branches (deleted):" "Red"
+    } else {
+        Write-Log "  Conflicting branches (manual resolution needed):" "Red"
+    }
     foreach ($b in $conflictBranches) { Write-Log "    ! $b" "Red" }
 }
 if ($skippedBranches.Count -gt 0) {
