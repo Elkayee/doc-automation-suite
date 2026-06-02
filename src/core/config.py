@@ -1,19 +1,34 @@
-from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
-
 import yaml
+from pydantic import BaseModel, Field, field_validator
 
 
-@dataclass
-class TemplateConfig:
-    name: str
-    description: str
-    type: str  # e.g., "report", "exam"
-    required_files: list[str]
-    docx_template: str
-    settings: dict[str, Any] = field(default_factory=dict)
-    chapter_order: list[str] = field(default_factory=list)
+class TemplateConfig(BaseModel):
+    name: str = "Unknown Template"
+    description: str = ""
+    type: str = "report"
+    required_files: list[str] = Field(default_factory=list)
+    docx_template: str = "template.docx"
+    settings: dict[str, Any] = Field(default_factory=dict)
+    chapter_order: list[str] = Field(default_factory=list)
+
+    @field_validator('required_files')
+    @classmethod
+    def validate_required_files(cls, files: list[str]) -> list[str]:
+        for f in files:
+            p = Path(f)
+            if p.is_absolute() or '..' in p.parts:
+                raise ValueError(f"Invalid path in required_files: {f}")
+        return files
+
+    @field_validator('docx_template')
+    @classmethod
+    def validate_docx_template(cls, docx_template: str) -> str:
+        p = Path(docx_template)
+        if p.is_absolute() or '..' in p.parts:
+            raise ValueError(f"Invalid path in docx_template: {docx_template}")
+        return docx_template
 
     @classmethod
     def load(cls, config_path: Path) -> 'TemplateConfig':
@@ -26,39 +41,14 @@ class TemplateConfig:
         if not isinstance(data, dict):
             raise ValueError(f"Invalid configuration format in {config_path}. Expected a dictionary.")
 
-        required_files = []
-        for f in data.get('required_files', []):
-            p = Path(f)
-            if p.is_absolute() or '..' in p.parts:
-                raise ValueError(f"Invalid path in required_files: {f}")
-            required_files.append(f)
-
-        docx_template = data.get('docx_template', 'template.docx')
-        p_docx = Path(docx_template)
-        if p_docx.is_absolute() or '..' in p_docx.parts:
-            raise ValueError(f"Invalid path in docx_template: {docx_template}")
-
-        return cls(
-            name=data.get('name', 'Unknown Template'),
-            description=data.get('description', ''),
-            type=data.get('type', 'report'),
-            required_files=required_files,
-            docx_template=docx_template,
-            settings=data.get('settings', {}),
-            chapter_order=data.get('chapter_order', []) or [],
-        )
+        return cls.model_validate(data)
 
     def save(self, config_path: Path) -> None:
-        data = {
-            'name': self.name,
-            'description': self.description,
-            'type': self.type,
-            'docx_template': self.docx_template,
-            'required_files': self.required_files,
-            'settings': self.settings,
-        }
-        if self.chapter_order:
-            data['chapter_order'] = self.chapter_order
-
+        data = self.model_dump(exclude_none=True)
+        # Filter empty fields to keep yaml output clean
+        if 'chapter_order' in data and not data['chapter_order']:
+            data.pop('chapter_order')
+            
         with open(config_path, 'w', encoding='utf-8') as f:
             yaml.safe_dump(data, f, allow_unicode=True, sort_keys=False)
+
