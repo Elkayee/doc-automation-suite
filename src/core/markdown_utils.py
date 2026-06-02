@@ -17,7 +17,14 @@ class MarkdownUtils:
     )
     UNICODE_WORD_RE = re.compile(r'\b[^\W\d_]+\b', re.UNICODE)
     PROTECTED_TITLECASE_WORDS = {
-        'Châu', 'Á', 'Âu', 'Mỹ', 'Hà', 'Nội', 'Việt', 'Nam',
+        'Châu',
+        'Á',
+        'Âu',
+        'Mỹ',
+        'Hà',
+        'Nội',
+        'Việt',
+        'Nam',
     }
 
     @staticmethod
@@ -141,12 +148,29 @@ class MarkdownUtils:
 
     @staticmethod
     def normalize_punctuation(text):
+        return MarkdownUtils._apply_outside_inline_code(text, MarkdownUtils._normalize_punctuation_segment)
+
+    @staticmethod
+    def _normalize_punctuation_segment(text):
         text = re.sub(r'([,;:])\s*\.(?=(?:\s|$|[*_`)\]}>"\']))', '.', text)
         text = re.sub(r'\s+([.,;:!?)])', r'\1', text)
         text = re.sub(r'([([{])\s+', r'\1', text)
         text = re.sub(r'\s+([)\]}])', r'\1', text)
         text = re.sub(r'([.,;:!?])([^\s\d.,;:!?)\]}\'"\\`*_])', r'\1 \2', text)
         return text
+
+    @classmethod
+    def _apply_outside_inline_code(cls, text, transform):
+        parts = []
+        last_index = 0
+
+        for match in cls.INLINE_CODE_RE.finditer(text):
+            parts.append(transform(text[last_index : match.start()]))
+            parts.append(match.group(0))
+            last_index = match.end()
+
+        parts.append(transform(text[last_index:]))
+        return ''.join(parts)
 
     @classmethod
     def normalize_inline_special_terms(cls, text):
@@ -184,6 +208,14 @@ class MarkdownUtils:
 
     @classmethod
     def normalize_report_capitalization(cls, text):
+        return cls._apply_outside_inline_code(text, cls._normalize_report_capitalization_segment)
+
+    @classmethod
+    def _normalize_report_capitalization_segment(cls, text):
+        stripped = text.strip()
+        if stripped and re.fullmatch(r'\*\*[^*\n]+\*\*', stripped):
+            return text
+
         result = []
         last_index = 0
 
@@ -455,6 +487,86 @@ class MarkdownUtils:
         return f'{canonical_indent}{marker} {text}'
 
     @classmethod
+    def indent_list_line_preserving_marker(cls, line, delta, list_markers_by_level=None, minimum_level=None):
+        match = cls.LIST_LINE_RE.match(line.rstrip('\n'))
+        if not match:
+            return line
+
+        indent = match.group('indent')
+        marker = match.group('marker')
+        text = match.group('text')
+        markers = list_markers_by_level or ['-', '+', '*']
+        indent_level = len(indent.replace('\t', '    ')) // 2
+        new_level = max(0, indent_level + int(delta))
+        if minimum_level is not None:
+            new_level = max(new_level, int(minimum_level))
+        try:
+            marker_level = markers.index(marker)
+        except ValueError:
+            marker_level = new_level
+        if minimum_level is not None:
+            new_level = max(new_level, marker_level)
+        return f'{"  " * new_level}{marker} {text}'
+
+    @classmethod
+    def list_item_opens_nested_block(cls, line):
+        match = cls.LIST_LINE_RE.match(line.rstrip('\n'))
+        if not match:
+            return False
+
+        text = match.group('text').strip()
+        if not text:
+            return False
+
+        plain_text = cls.strip_md_markup(cls.strip_md_links(text)).strip()
+        return plain_text.endswith(':')
+
+    @classmethod
+    def auto_nest_label_only_list_items(cls, lines, list_markers_by_level=None):
+        markers = list_markers_by_level or ['-', '+', '*']
+        nested_lines = list(lines)
+
+        for index, line in enumerate(nested_lines):
+            if not cls.list_item_opens_nested_block(line):
+                continue
+
+            parent_match = cls.LIST_LINE_RE.match(line.rstrip('\n'))
+            parent_level = len(parent_match.group('indent').replace('\t', '    ')) // 2
+
+            child_index = index + 1
+            nested_any = False
+            while child_index < len(nested_lines):
+                candidate = nested_lines[child_index]
+                stripped = candidate.strip()
+                if not stripped:
+                    break
+
+                candidate_match = cls.LIST_LINE_RE.match(candidate.rstrip('\n'))
+                if not candidate_match:
+                    break
+
+                candidate_level = len(candidate_match.group('indent').replace('\t', '    ')) // 2
+                if candidate_level != parent_level:
+                    break
+
+                if cls.list_item_opens_nested_block(candidate):
+                    break
+
+                nested_lines[child_index] = cls.indent_list_line_preserving_marker(
+                    candidate,
+                    1,
+                    list_markers_by_level=markers,
+                    minimum_level=parent_level + 1,
+                )
+                nested_any = True
+                child_index += 1
+
+            if nested_any:
+                continue
+
+        return nested_lines
+
+    @classmethod
     def reformat_markdown_document(cls, text, list_markers_by_level=None):
         text = text.replace('\r\n', '\n').replace('\r', '\n')
         lines = text.split('\n')
@@ -485,7 +597,9 @@ class MarkdownUtils:
             item_text = re.sub(r'\s+', ' ', item_text).strip()
             item_text = cls.normalize_inline_special_terms(item_text)
             item_text = cls.normalize_report_capitalization(item_text)
-            reformatted.append(f'{list_prefix}{cls.normalize_punctuation(item_text)}' if item_text else list_prefix.rstrip())
+            reformatted.append(
+                f'{list_prefix}{cls.normalize_punctuation(item_text)}' if item_text else list_prefix.rstrip()
+            )
             list_prefix = None
             list_parts = []
 
@@ -520,7 +634,9 @@ class MarkdownUtils:
                     markers = list_markers_by_level or ['-', '+', '*']
                     indent_level = len(list_match.group('indent').replace('\t', '    ')) // 2
                     canonical_indent = '  ' * indent_level
-                    marker = markers[indent_level] if indent_level < len(markers) else markers[-1]
+                    marker = list_match.group('marker')
+                    if indent_level > 0:
+                        marker = markers[indent_level] if indent_level < len(markers) else markers[-1]
                     list_prefix = f'{canonical_indent}{marker} '
                     list_parts = [list_match.group('text').strip()]
                 else:
@@ -559,6 +675,8 @@ class MarkdownUtils:
             else:
                 blank_run = 0
                 compact.append(line)
+
+        compact = cls.auto_nest_label_only_list_items(compact, list_markers_by_level)
 
         result = '\n'.join(compact).strip()
         if result:

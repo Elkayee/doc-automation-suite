@@ -6,6 +6,7 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Cm, Pt, RGBColor
 
 from src.core.docx_helpers import DocxHelpers
+from src.core.markdown_image import parse_markdown_image_line
 from src.core.markdown_utils import MarkdownUtils
 from src.core.media_downloader import MediaDownloader
 
@@ -20,6 +21,7 @@ class DocxBuilder:
 
     def _get_config(self):
         from src.core.config import TemplateConfig
+
         config_path = self.workspace_dir / 'config.yaml'
         if config_path.exists():
             return TemplateConfig.load(config_path)
@@ -47,6 +49,7 @@ class DocxBuilder:
             lines = f.readlines()
 
         paragraph_settings = DocxHelpers.get_paragraph_settings(self.config)
+        markdown_table_settings = DocxHelpers.get_markdown_table_settings(self.config)
         style = self.doc.styles['Normal']
         style.font.name = paragraph_settings.get('font_name', 'Times New Roman')
         style.font.size = Pt(float(paragraph_settings.get('font_size', 14)))
@@ -145,13 +148,17 @@ class DocxBuilder:
                 else:
                     if mermaid_block and mermaid_buf:
                         self.diagram_idx += 1
-                        img_path = MediaDownloader.render_plantuml('\n'.join(mermaid_buf), self.diagram_idx, str(img_cache_dir))
+                        img_path = MediaDownloader.render_plantuml(
+                            '\n'.join(mermaid_buf), self.diagram_idx, str(img_cache_dir)
+                        )
                         if img_path:
                             p = self.doc.add_paragraph()
                             DocxHelpers.configure_media_paragraph(p, space_before=18, space_after=18)
                             run = p.add_run()
                             max_width, max_height = DocxHelpers.get_content_frame_size(self.doc, height_reserve=Cm(3))
-                            DocxHelpers.add_picture_fit(run, img_path, self.doc, max_width=max_width, max_height=max_height)
+                            DocxHelpers.add_picture_fit(
+                                run, img_path, self.doc, max_width=max_width, max_height=max_height
+                            )
                         else:
                             p = self.doc.add_paragraph()
                             r = p.add_run(f'[Bieu do PlantUML {self.diagram_idx} - khong the render]')
@@ -192,20 +199,16 @@ class DocxBuilder:
                 tbl = self.doc.add_table(rows=len(data_rows), cols=max_cols)
                 tbl.style = 'Table Grid'
                 for ri, row in enumerate(data_rows):
+                    if ri == 0:
+                        DocxHelpers.set_table_row_repeat_header(tbl.rows[ri])
                     for ci, cell_text in enumerate(row):
                         cell = tbl.cell(ri, ci)
-                        cell.paragraphs[0].clear()
-                        p = cell.paragraphs[0]
-                        p.alignment = WD_ALIGN_PARAGRAPH.CENTER if ri == 0 else WD_ALIGN_PARAGRAPH.LEFT
-                        p.paragraph_format.space_before = Pt(2)
-                        p.paragraph_format.space_after = Pt(2)
-                        run = p.add_run(
-                            MarkdownUtils.strip_md_markup(MarkdownUtils.normalize_html_breaks(cell_text, '\n'))
+                        DocxHelpers.format_markdown_table_cell(
+                            cell,
+                            MarkdownUtils.strip_md_markup(MarkdownUtils.normalize_html_breaks(cell_text, '\n')),
+                            is_header=ri == 0,
+                            settings=markdown_table_settings,
                         )
-                        run.font.size = Pt(11)
-                        run.font.name = 'Times New Roman'
-                        if ri == 0:
-                            run.bold = True
                 _sp = self.doc.add_paragraph()
                 _sp.paragraph_format.space_before = Pt(0)
                 _sp.paragraph_format.space_after = Pt(6)
@@ -231,9 +234,9 @@ class DocxBuilder:
                 continue
 
             # Markdown image
-            m_image = re.match(r'^\s*!\[.*?\]\(([^)]+)\)\s*$', line)
-            if m_image:
-                DocxHelpers.add_markdown_image(self.doc, self.workspace_dir, md_path, m_image.group(1).strip())
+            parsed_image = parse_markdown_image_line(line)
+            if parsed_image:
+                DocxHelpers.add_markdown_image(self.doc, self.workspace_dir, md_path, parsed_image)
                 i += 1
                 continue
 
@@ -343,7 +346,9 @@ class DocxBuilder:
                         p = self.doc.add_paragraph()
                         DocxHelpers.configure_media_paragraph(p, space_before=6, space_after=6)
                         max_width, max_height = DocxHelpers.get_content_frame_size(self.doc, height_reserve=Cm(4))
-                        DocxHelpers.add_picture_fit(p.add_run(), img_path, self.doc, max_width=max_width, max_height=max_height)
+                        DocxHelpers.add_picture_fit(
+                            p.add_run(), img_path, self.doc, max_width=max_width, max_height=max_height
+                        )
                     else:
                         p = self.doc.add_paragraph()
                         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -362,7 +367,9 @@ class DocxBuilder:
                         p = self.doc.add_paragraph()
                         DocxHelpers.configure_media_paragraph(p, space_before=6, space_after=6)
                         max_width, max_height = DocxHelpers.get_content_frame_size(self.doc, height_reserve=Cm(4))
-                        DocxHelpers.add_picture_fit(p.add_run(), img_path, self.doc, max_width=max_width, max_height=max_height)
+                        DocxHelpers.add_picture_fit(
+                            p.add_run(), img_path, self.doc, max_width=max_width, max_height=max_height
+                        )
                     else:
                         p = self.doc.add_paragraph()
                         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -387,5 +394,5 @@ class DocxBuilder:
             self.doc.save(str(output_path))
         except PermissionError as exc:
             raise RuntimeError(
-                f"Khong the ghi file {output_path.name}. Hay dong file Word cu truoc khi build lai."
+                f'Khong the ghi file {output_path.name}. Hay dong file Word cu truoc khi build lai.'
             ) from exc

@@ -121,6 +121,46 @@ class VisualBuilderSyncTests(unittest.TestCase):
         self.assertIn('**Giảng viên:** ...', content)
         self.assertIn('**Thời gian:** Hà Nội, Tháng .../....', content)
 
+    def test_normalize_image_width_adds_percent_suffix(self):
+        self.assertEqual(VisualBuilderWindow._normalize_image_width('80'), '80%')
+        self.assertEqual(VisualBuilderWindow._normalize_image_width('75%'), '75%')
+        self.assertEqual(VisualBuilderWindow._normalize_image_width(''), '100%')
+
+    def test_normalize_image_align_falls_back_to_center(self):
+        self.assertEqual(VisualBuilderWindow._normalize_image_align('left'), 'left')
+        self.assertEqual(VisualBuilderWindow._normalize_image_align('RIGHT'), 'right')
+        self.assertEqual(VisualBuilderWindow._normalize_image_align('weird'), 'center')
+
+    def test_insert_markdown_block_uses_line_breaks_around_block(self):
+        class FakeEditor:
+            def __init__(self):
+                self.inserted = []
+
+            def index(self, _name):
+                return '1.5'
+
+            def insert(self, index, text):
+                self.inserted.append((index, text))
+
+            def see(self, _index):
+                return None
+
+        window = VisualBuilderWindow.__new__(VisualBuilderWindow)
+        window.editor_text = FakeEditor()
+        window._is_dirty = False
+        window._refresh_title = lambda: None
+        window._schedule_autosave = lambda: None
+        window._schedule_preview_refresh = lambda: None
+        window._schedule_highlight = lambda: None
+
+        window._insert_markdown_block('![Alt](assets/images/a.png){caption="", width=100%, align=center}')
+
+        self.assertEqual(
+            window.editor_text.inserted[0][1],
+            '\n![Alt](assets/images/a.png){caption="", width=100%, align=center}\n\n',
+        )
+        self.assertTrue(window._is_dirty)
+
     def test_ensure_frontmatter_file_creates_toc_once(self):
         workspace = Path('D:/doc-automation-suite/tests/_tmp_visual_frontmatter')
         if workspace.exists():
