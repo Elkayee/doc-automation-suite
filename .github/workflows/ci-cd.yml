@@ -5,6 +5,8 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+    paths:
+      - 'src/**'
   workflow_dispatch:
 
 jobs:
