@@ -9,7 +9,7 @@
       3. Fetches and prunes all remote branches.
       4. For each eligible remote branch, performs a dry-test merge (--no-commit --no-ff).
       5. If mergeable  -> commits the merge, deletes remote & local tracking branch.
-      6. If conflict   -> aborts, SKIPS the branch (does NOT delete it), reports it.
+      6. If conflict   -> aborts, reports it. If -DeleteConflicted is set, deletes the branch. Otherwise SKIPS it.
       7. If up-to-date -> skips silently (already merged).
       8. Pushes accumulated merges to origin.
       9. Prints a structured summary table at the end.
