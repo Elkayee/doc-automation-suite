@@ -1,13 +1,4 @@
-## 2026-05-04 - Path Traversal Vulnerability in Template Configuration
-
-**Vulnerability:** Path traversal vulnerability allowed reading arbitrary files by specifying paths
-like `../../etc/passwd` in `docx_template` and `required_files` inside `config.yaml`. The
-`template_id` in `TemplateManager.create_project` was also vulnerable to path traversal.
-
-**Learning:** When reading files specified in YAML configurations or accepting directory names as
-input (like `template_id`), user inputs must be validated to prevent traversing outside the intended
-directories (`..` or absolute paths).
-
-**Prevention:** Always validate that paths from configurations do not contain `..` and are not
-absolute paths before using them in file operations. Ensure that directory IDs do not contain path
-separators (`/` or `\`).
+## 2025-06-02 - Fix Path Traversal in Workspace API
+**Vulnerability:** The `/workspaces/create` and `/workspaces/compile` FastAPI endpoints accepted unvalidated user input for `workspace_name` and `name`. This allowed attackers to escape the standard `workspaces` directory using directory traversal payloads (e.g., `../../../../etc/passwd`). Additionally, the compile endpoint had a deliberate insecure fallback `Path(req.workspace_name).resolve()` that resolved arbitrary absolute paths directly if the workspace was not found in the standard directory.
+**Learning:** Raw input must be sanitized and validated before being concatenated into file paths or passed to file system operations. Relying on default directory structures without explicit path bounds checking is insufficient.
+**Prevention:** Always validate that incoming path strings do not contain absolute path indicators (`Path().is_absolute()`) or parent directory references (`..` in `Path().parts`) before resolving or using them in file system operations.

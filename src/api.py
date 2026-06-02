@@ -72,6 +72,10 @@ def create_workspace(req: CreateRequest):
     templates_dir = BASE_DIR / "templates"
     workspaces_dir = BASE_DIR / "workspaces"
 
+    req_path = Path(req.name)
+    if req_path.is_absolute() or ".." in req_path.parts:
+        raise HTTPException(status_code=400, detail="Invalid workspace name")
+
     manager = TemplateManager(templates_dir)
     dest_dir = workspaces_dir / req.name
 
@@ -94,13 +98,15 @@ def create_workspace(req: CreateRequest):
 @app.post("/workspaces/compile")
 def compile_workspace(req: CompileRequest):
     workspaces_dir = BASE_DIR / "workspaces"
+
+    req_path = Path(req.workspace_name)
+    if req_path.is_absolute() or ".." in req_path.parts:
+        raise HTTPException(status_code=400, detail="Invalid workspace name")
+
     workspace_dir = workspaces_dir / req.workspace_name
 
     if not workspace_dir.exists() or not workspace_dir.is_dir():
-        # Fallback to direct absolute/relative path if not in standard workspaces
-        workspace_dir = Path(req.workspace_name).resolve()
-        if not workspace_dir.exists():
-            raise HTTPException(status_code=404, detail=f"Workspace path not found: {req.workspace_name}")
+        raise HTTPException(status_code=404, detail=f"Workspace path not found: {req.workspace_name}")
 
     logger.info(f"API: Starting compile pipeline for: {workspace_dir.name}")
 
