@@ -16,6 +16,7 @@ class MarkdownUtils:
         r'[A-Za-z][A-Za-z0-9_]*\(\s*[A-Za-z][A-Za-z0-9_]*(?:\s*,\s*[A-Za-z][A-Za-z0-9_]*)*\s*\)'
     )
     UNICODE_WORD_RE = re.compile(r'\b[^\W\d_]+\b', re.UNICODE)
+    LINE_ENDINGS_RE = re.compile(r'\r\n|\r|\n')
     PROTECTED_TITLECASE_WORDS = {
         'Châu',
         'Á',
@@ -686,17 +687,32 @@ class MarkdownUtils:
     @staticmethod
     def is_line_inside_fenced_block(text, line_number):
         safe_line_number = max(1, int(line_number))
-        # PERFORMANCE: Use bounded split (.split('\n', limit)) to prevent O(N) memory
-        # allocations on large documents when we only need to check the first few lines.
-        # This makes the UI significantly more responsive during keystrokes.
-        lines = text.replace('\r\n', '\n').replace('\r', '\n').split('\n', safe_line_number)
         in_code_fence = False
+        start = 0
+        current_line = 1
 
-        for index, line in enumerate(lines[:safe_line_number], start=1):
+        for match in MarkdownUtils.LINE_ENDINGS_RE.finditer(text):
+            line = text[start:match.start()]
             if line.strip().startswith('```'):
                 in_code_fence = not in_code_fence
+                start = match.end()
+                current_line += 1
                 continue
-            if index == safe_line_number:
+
+            if current_line == safe_line_number:
+                return in_code_fence
+
+            start = match.end()
+            current_line += 1
+
+        if current_line <= safe_line_number:
+            line = text[start:]
+            if line.strip().startswith('```'):
+                in_code_fence = not in_code_fence
+                # The old code skips the 'index == safe_line_number' check and returns False.
+                # So if this is the target line and it's a fence, we return False.
+                return False
+            if current_line == safe_line_number:
                 return in_code_fence
 
         return False
