@@ -1,6 +1,5 @@
 import sys
 from pathlib import Path
-
 import click
 
 # Ensure the root directory of the workspace is in the python path
@@ -8,9 +7,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
+from src.core.logger import logger
 from src.core.assembler import DocumentAssembler
 from src.core.docx_builder import DocxBuilder
-from src.core.logger import logger
 from src.core.template_manager import TemplateManager
 
 

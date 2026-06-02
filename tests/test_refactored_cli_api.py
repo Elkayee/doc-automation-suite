@@ -1,13 +1,12 @@
 from pathlib import Path
-
 import pytest
+from pydantic import ValidationError
 from click.testing import CliRunner
 from fastapi.testclient import TestClient
-from pydantic import ValidationError
 
-from src.api import app
-from src.cli import cli
 from src.core.config import TemplateConfig
+from src.cli import cli
+from src.api import app
 
 
 def test_template_config_pydantic_validation():
