@@ -34,7 +34,7 @@
 param (
     [switch]$DryRun,
     [switch]$SkipPush,
-    [switch]$AutoDelete,
+    [bool]$AutoDelete = $true,
     [string]$LogFile = ""
 )
 
