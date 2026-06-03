@@ -179,10 +179,10 @@ class MarkdownUtils:
             if not content:
                 return match.group(0)
             if cls.SIMPLE_PROSE_CODE_RE.fullmatch(content):
-                prose = re.sub(r'\s+', ' ', content.replace('_', ' ')).strip()
+                prose = ' '.join(content.replace('_', ' ').split())
                 return f'*{prose}*'
             if cls.RELATION_SCHEMA_CODE_RE.fullmatch(content):
-                prose = re.sub(r'\s+', ' ', content).strip()
+                prose = ' '.join(content.split())
                 return f'*{prose}*'
             return match.group(0)
 
@@ -298,7 +298,7 @@ class MarkdownUtils:
             if not paragraph_parts:
                 return
             paragraph = ' '.join(part.strip() for part in paragraph_parts if part.strip())
-            paragraph = re.sub(r'\s+', ' ', paragraph).strip()
+            paragraph = ' '.join(paragraph.split())
             if paragraph:
                 paragraph = cls.split_report_parenthetical_clauses(paragraph)
                 paragraph = cls.normalize_report_capitalization(paragraph)
@@ -376,7 +376,7 @@ class MarkdownUtils:
                         break
                     text_value = f'{text_value} {continuation}'
                     i += 1
-                text_value = re.sub(r'\s+', ' ', text_value).strip()
+                text_value = ' '.join(text_value.split())
                 text_value = cls.normalize_report_capitalization(text_value)
                 normalized.append(f'{"  " * indent_level}- {text_value}')
                 continue
@@ -581,7 +581,7 @@ class MarkdownUtils:
             if not paragraph_parts:
                 return
             paragraph = ' '.join(part.strip() for part in paragraph_parts if part.strip())
-            paragraph = re.sub(r'\s+', ' ', paragraph).strip()
+            paragraph = ' '.join(paragraph.split())
             if paragraph:
                 paragraph = cls.normalize_inline_special_terms(paragraph)
                 paragraph = cls.split_report_parenthetical_clauses(paragraph)
@@ -594,7 +594,7 @@ class MarkdownUtils:
             if list_prefix is None:
                 return
             item_text = ' '.join(part.strip() for part in list_parts if part.strip())
-            item_text = re.sub(r'\s+', ' ', item_text).strip()
+            item_text = ' '.join(item_text.split())
             item_text = cls.normalize_inline_special_terms(item_text)
             item_text = cls.normalize_report_capitalization(item_text)
             reformatted.append(
@@ -686,17 +686,33 @@ class MarkdownUtils:
     @staticmethod
     def is_line_inside_fenced_block(text, line_number):
         safe_line_number = max(1, int(line_number))
-        # PERFORMANCE: Use bounded split (.split('\n', limit)) to prevent O(N) memory
-        # allocations on large documents when we only need to check the first few lines.
-        # This makes the UI significantly more responsive during keystrokes.
-        lines = text.replace('\r\n', '\n').replace('\r', '\n').split('\n', safe_line_number)
         in_code_fence = False
+        last_end = 0
+        current_line = 1
 
-        for index, line in enumerate(lines[:safe_line_number], start=1):
+        for match in re.finditer(r'\n', text):
+            line = text[last_end : match.start()]
+            last_end = match.end()
+
             if line.strip().startswith('```'):
                 in_code_fence = not in_code_fence
+                if current_line == safe_line_number:
+                    return False
+                current_line += 1
                 continue
-            if index == safe_line_number:
+
+            if current_line == safe_line_number:
+                return in_code_fence
+
+            current_line += 1
+
+        if current_line <= safe_line_number:
+            line = text[last_end:]
+            if line.strip().startswith('```'):
+                in_code_fence = not in_code_fence
+                if current_line == safe_line_number:
+                    return False
+            elif current_line == safe_line_number:
                 return in_code_fence
 
         return False
