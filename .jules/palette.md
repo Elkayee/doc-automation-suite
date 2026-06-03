@@ -1,11 +1,8 @@
-## 2025-05-08 - Tkinter Listbox Empty State UX
+## 2024-06-03 - Avoid Data Model Pollution in UI Components
 
-**Learning:** Tkinter listboxes don't have built-in empty state handling, which can cause poor UX
-and potential errors if empty areas are clicked. Adding a visual placeholder string (e.g. 'Chua co
-du an nao. Hay tao moi!') and styling it gray provides clear feedback to the user, but requires
-careful handling in event bindings. **Action:** When inserting placeholder text in a Tkinter
-listbox, visually distinguish it (e.g. `listbox.itemconfig(0, foreground='gray')`), and update ALL
-relevant event handlers (like double-click or delete actions) to explicitly check the item color
-(`listbox.itemcget(idx, 'foreground') == 'gray'`) and return early to prevent invalid actions on the
-placeholder text. Also, ensure interactive elements like buttons and listboxes use `cursor='hand2'`
-to improve visual feedback on hover.
+**Learning:** Storing dummy textual placeholders like "No items found" inside data models (like
+`tk.Listbox`) creates false affordances, requires fragile color-based workarounds to disable clicks,
+and pollutes the underlying data representation. **Action:** When handling empty states, wrap the
+main component and a dedicated placeholder label in a container frame. Toggle their visibility
+(e.g., using `pack()` and `pack_forget()` in Tkinter) rather than inserting fake entries into the
+list.
