@@ -9,3 +9,11 @@ relevant event handlers (like double-click or delete actions) to explicitly chec
 (`listbox.itemcget(idx, 'foreground') == 'gray'`) and return early to prevent invalid actions on the
 placeholder text. Also, ensure interactive elements like buttons and listboxes use `cursor='hand2'`
 to improve visual feedback on hover.
+
+## 2024-05-24 - Handle empty Listbox states with dedicated Labels
+
+**Learning:** Inserting dummy text strings into a `tk.Listbox` to represent an empty state pollutes
+the data model, requires brittle checks (like checking foreground color) in event handlers, and
+creates false affordances. **Action:** Always wrap the `tk.Listbox` and a dedicated `ttk.Label` in a
+`ttk.Frame`, and use `pack()`/`pack_forget()` to toggle their visibility based on the underlying
+data state.
