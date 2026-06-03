@@ -2,7 +2,7 @@ import sys
 from pathlib import Path
 from typing import Optional
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 # Ensure the root of the workspace is in the python path
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -28,10 +28,26 @@ class CompileRequest(BaseModel):
     md_out: Optional[str] = None
     cache_dir: Optional[str] = None
 
+    @field_validator('workspace_name', 'docx_out', 'md_out', 'cache_dir')
+    @classmethod
+    def validate_path(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            p = Path(v)
+            if p.is_absolute() or '..' in p.parts:
+                raise ValueError("Path traversal detected")
+        return v
+
 
 class CreateRequest(BaseModel):
     name: str
     template: str
+
+    @field_validator('name', 'template')
+    @classmethod
+    def validate_name(cls, v: str) -> str:
+        if '/' in v or '\\' in v or '..' in Path(v).parts:
+            raise ValueError("Invalid characters in directory name")
+        return v
 
 
 @app.get("/")
