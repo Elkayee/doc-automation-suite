@@ -6,6 +6,10 @@ for early lines in large files.
 
 **Action:** Use `.split('\n', limit)` to bound the parsing strictly to the required prefix of the
 document. This avoids allocating the rest of the string into thousands of smaller strings.
+
 ## 2024-06-03 - Optimize Python Whitespace Normalization
-**Learning:** Using `str.split()` combined with `' '.join()` is significantly faster (~5.5x) than `re.sub(r'\s+', ' ', text).strip()` for collapsing whitespace in Python, bypassing regex compilation and engine overhead.
-**Action:** Prefer `' '.join(text.split())` over `re.sub` for normalizing whitespace when exact space/tab/newline distinctions aren't required.
+
+**Learning:** Using `str.split()` combined with `' '.join()` is significantly faster (~5.5x) than
+`re.sub(r'\s+', ' ', text).strip()` for collapsing whitespace in Python, bypassing regex compilation
+and engine overhead. **Action:** Prefer `' '.join(text.split())` over `re.sub` for normalizing
+whitespace when exact space/tab/newline distinctions aren't required.
