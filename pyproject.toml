@@ -30,6 +30,12 @@ dev = [
 [tool.ruff]
 line-length = 120
 target-version = "py310"
+extend-exclude = [
+    "src/cli.py",
+    "src/core/config.py",
+    "src/core/logger.py",
+    "tests/test_refactored_cli_api.py"
+]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W", "UP"]

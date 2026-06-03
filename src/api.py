@@ -1,6 +1,6 @@
 import sys
 from pathlib import Path
-from typing import Optional
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, field_validator
 
@@ -9,11 +9,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
-from src.core.logger import logger
 from src.core.assembler import DocumentAssembler
 from src.core.docx_builder import DocxBuilder
+from src.core.logger import logger
 from src.core.template_manager import TemplateManager
-
 
 app = FastAPI(
     title="Doc Automation Suite API",
@@ -24,13 +23,13 @@ app = FastAPI(
 
 class CompileRequest(BaseModel):
     workspace_name: str
-    docx_out: Optional[str] = None
-    md_out: Optional[str] = None
-    cache_dir: Optional[str] = None
+    docx_out: str | None = None
+    md_out: str | None = None
+    cache_dir: str | None = None
 
     @field_validator('workspace_name', 'docx_out', 'md_out', 'cache_dir')
     @classmethod
-    def validate_path(cls, v: Optional[str]) -> Optional[str]:
+    def validate_path(cls, v: str | None) -> str | None:
         if v is not None:
             p = Path(v)
             if p.is_absolute() or '..' in p.parts:
