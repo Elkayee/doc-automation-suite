@@ -88,3 +88,4 @@ build/
 
 # OSX
 .DS_Store
+.jules/palette.md
