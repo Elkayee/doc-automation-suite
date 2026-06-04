@@ -23,4 +23,4 @@ pip install -r requirements.txt
 
 Write-Host "----------------------------------------------------"
 Write-Host "Setup hoan tat! Ban co the chay script:"
-Write-Host "python make.py --ui"
+Write-Host "python main.py"
