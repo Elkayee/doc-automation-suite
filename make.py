@@ -29,7 +29,8 @@ def run_build_pipeline(workspace_dir: Path, md_out: Path, docx_out: Path, img_ca
 
     kb = len(final_md.encode('utf-8')) // 1024
     print(f'\n  => {md_out}')
-    print(f'     {len(final_md.splitlines())} dong | {kb} KB | {len(chapter_files)} chapters\n')
+    lines_count = final_md.count('\n') + (1 if not final_md.endswith('\n') else 0) if final_md else 0
+    print(f'     {lines_count} dong | {kb} KB | {len(chapter_files)} chapters\n')
 
     print('=' * 55)
     print('BUOC 2: Convert MD -> DOCX')
