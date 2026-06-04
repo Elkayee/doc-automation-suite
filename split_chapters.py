@@ -51,7 +51,8 @@ def write_chapter_files(source_path: str | Path, output_dir: str | Path) -> list
         filename = destination / f'Ch{index:02d}_{sanitize_title(title)[:40]}.md'
         filename.write_text(content, encoding='utf-8')
         written_files.append(filename)
-        print(f'  [{index:02d}] {filename.name}  ({len(content.splitlines())} dong)')
+        lines_count = content.count('\n') + (1 if not content.endswith('\n') else 0) if content else 0
+        print(f'  [{index:02d}] {filename.name}  ({lines_count} dong)')
 
     print(f'\n[OK] Da tao {len(written_files)} file chapter trong thu muc {destination}/')
     return written_files

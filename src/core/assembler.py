@@ -80,7 +80,7 @@ class DocumentAssembler:
             if not content:
                 continue
 
-            line_count = len(content.splitlines())
+            line_count = content.count('\n') + (1 if not content.endswith('\n') else 0)
             start_line = current_line
             end_line = start_line + line_count - 1
             entries.append(
