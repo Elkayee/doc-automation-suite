@@ -141,6 +141,9 @@ class VisualBuilderWindow(tk.Toplevel):
             exportselection=False,
         )
         self.chapter_listbox.pack(side='left', fill='both', expand=True)
+
+        self.chapter_empty_label = ttk.Label(list_wrapper, text='No chapters found. Please add one.', font=('Consolas', 10), foreground='gray')
+
         scrollbar = ttk.Scrollbar(list_wrapper, orient='vertical', command=self.chapter_listbox.yview)
         scrollbar.pack(side='right', fill='y')
         self.chapter_listbox.configure(yscrollcommand=scrollbar.set)
@@ -167,8 +170,14 @@ class VisualBuilderWindow(tk.Toplevel):
         ttk.Button(action_row, text='Search', command=self.run_advanced_search).pack(side='left')
         ttk.Button(action_row, text='Clear', command=self.clear_search).pack(side='left', padx=(6, 0))
 
-        self.search_results_listbox = tk.Listbox(search_frame, font=('Consolas', 9), height=10, activestyle='none')
-        self.search_results_listbox.pack(fill='both', expand=True)
+        search_list_wrapper = ttk.Frame(search_frame)
+        search_list_wrapper.pack(fill='both', expand=True)
+
+        self.search_results_listbox = tk.Listbox(search_list_wrapper, font=('Consolas', 9), height=10, activestyle='none')
+
+        self.search_empty_label = ttk.Label(search_list_wrapper, text='No results', font=('Consolas', 9), foreground='gray')
+        self.search_empty_label.pack(expand=True, fill='both')
+
         self.search_results_listbox.bind('<Double-1>', self._open_selected_search_result)
 
         ttk.Button(self.nav_frame, text='Reload Chapters', command=self._load_chapter_list).pack(
@@ -265,9 +274,14 @@ class VisualBuilderWindow(tk.Toplevel):
                 self._known_mtimes[file_path] = file_path.stat().st_mtime
 
         if not self.chapter_filenames:
+            self.chapter_listbox.pack_forget()
+            self.chapter_empty_label.pack(expand=True, fill='both')
             self.current_path_var.set('No chapters found')
             self.refresh_preview()
             return
+        else:
+            self.chapter_empty_label.pack_forget()
+            self.chapter_listbox.pack(side='left', fill='both', expand=True)
 
         selected_index = 0
         if current_name and current_name in self.chapter_filenames:
@@ -1600,8 +1614,12 @@ class VisualBuilderWindow(tk.Toplevel):
                 break
 
         if self.search_results:
+            self.search_empty_label.pack_forget()
+            self.search_results_listbox.pack(fill='both', expand=True)
             self._set_status(f'Found {len(self.search_results)} search matches')
         else:
+            self.search_results_listbox.pack_forget()
+            self.search_empty_label.pack(expand=True, fill='both')
             self._set_status('No matches found')
 
     def _append_search_result(self, filename: str, line_number: int | None, label: str):
@@ -1612,6 +1630,8 @@ class VisualBuilderWindow(tk.Toplevel):
         self.search_query_var.set('')
         self.search_results = []
         self.search_results_listbox.delete(0, tk.END)
+        self.search_results_listbox.pack_forget()
+        self.search_empty_label.pack(expand=True, fill='both')
         self._clear_search_highlight()
         self._set_status('Search cleared')
 
