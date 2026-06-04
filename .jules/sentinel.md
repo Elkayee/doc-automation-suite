@@ -21,3 +21,10 @@ base directory without verification. **Learning:** `Path.resolve()` combined wit
 strictly within an expected base directory in Python. Wait, I should also remember to never commit
 dummy exploit files. **Prevention:** Always validate and normalize external path inputs against the
 expected base directory boundaries before using them in file operations.
+
+## 2025-02-28 - [Path Traversal in Output Paths]
+
+**Vulnerability:** Path traversal in workspace compilation output paths via REST API **Learning:**
+The `req.md_out`, `req.docx_out`, and `req.cache_dir` variables were directly parsed to `Path`
+objects, allowing absolute path or directory traversal to overwrite any file on the system.
+**Prevention:** Always use `_secure_resolve` utility to bound resolving paths to the safe directory.
