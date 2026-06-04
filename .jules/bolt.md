@@ -17,4 +17,6 @@ whitespace when exact space/tab/newline distinctions aren't required.
 ## 2024-06-04 - Fast Line Counting
 
 **Learning:** `len(text.splitlines())` eagerly allocates a full list of all lines in memory.
-**Action:** Use `text.count('\n') + (1 if not text.endswith('\n') else 0)` when needing only the line count of a string. It is significantly faster and avoids allocating an intermediate list of all lines.
+**Action:** Use `text.count('\n') + (1 if not text.endswith('\n') else 0)` when needing only the
+line count of a string. It is significantly faster and avoids allocating an intermediate list of all
+lines.
