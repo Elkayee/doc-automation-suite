@@ -132,7 +132,10 @@ def assemble_markdown(chapter_dir, output_path):
     for file_path in processed_files:
         with open(file_path, encoding='utf-8') as handle:
             content = handle.read().strip()
-        print(f'  [OK] {os.path.basename(file_path)}  ({len(content.splitlines())} dong)')
+        # Performance optimization: using count('\n') instead of len(content.splitlines())
+        # avoids allocating an intermediate list of all lines in memory.
+        lines_count = content.count('\n') + (1 if content and not content.endswith('\n') else 0)
+        print(f'  [OK] {os.path.basename(file_path)}  ({lines_count} dong)')
 
     return final, processed_files
 
@@ -145,8 +148,10 @@ def step_assemble():
     final, chapter_files = assemble_markdown(CH_DIR, MD_OUT)
 
     kb = len(final.encode('utf-8')) // 1024
+    # Performance optimization: using count('\n') avoids allocating a list of all lines.
+    lines_count = final.count('\n') + (1 if final and not final.endswith('\n') else 0)
     print(f'\n  => {MD_OUT}')
-    print(f'     {len(final.splitlines())} dong | {kb} KB | {len(chapter_files)} chapters\n')
+    print(f'     {lines_count} dong | {kb} KB | {len(chapter_files)} chapters\n')
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -197,8 +202,10 @@ def run_build_pipeline(chapters_dir=CH_DIR, md_out=MD_OUT, docx_out=DOCX_OUT, im
     print('=' * 55)
     final, chapter_files = assemble_markdown(chapters_dir, md_out)
     kb = len(final.encode('utf-8')) // 1024
+    # Performance optimization: using count('\n') avoids allocating a list of all lines.
+    lines_count = final.count('\n') + (1 if final and not final.endswith('\n') else 0)
     print(f'\n  => {md_out}')
-    print(f'     {len(final.splitlines())} dong | {kb} KB | {len(chapter_files)} chapters\n')
+    print(f'     {lines_count} dong | {kb} KB | {len(chapter_files)} chapters\n')
     saved_path = step_convert(md_out=md_out, docx_out=docx_out, img_cache=img_cache)
     return Path(saved_path)
 
