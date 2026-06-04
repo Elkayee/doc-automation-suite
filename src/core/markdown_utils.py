@@ -10,6 +10,7 @@ class MarkdownUtils:
     RULE_RE = re.compile(r'^\s*(---+|\*\*\*+|___+)\s*$')
     LIST_LINE_RE = re.compile(r'^(?P<indent>\s*)(?P<marker>[-*+])(?P<spacing>\s+)(?P<text>.*)$')
     UNICODE_BULLET_RE = re.compile(r'^(?P<indent>\s*)(?P<marker>[▪•●◦✓✔])\s*(?P<text>.+)$')
+    LINE_ENDING_RE = re.compile(r'\r\n|\r|\n')
     INLINE_CODE_RE = re.compile(r'`([^`\n]+)`')
     SIMPLE_PROSE_CODE_RE = re.compile(r'[A-Za-z][A-Za-z0-9_]*(?:\s+[A-Za-z0-9_]+)*')
     RELATION_SCHEMA_CODE_RE = re.compile(
@@ -683,21 +684,38 @@ class MarkdownUtils:
             result += '\n'
         return result
 
-    @staticmethod
-    def is_line_inside_fenced_block(text, line_number):
+    @classmethod
+    def is_line_inside_fenced_block(cls, text, line_number):
         safe_line_number = max(1, int(line_number))
-        # PERFORMANCE: Use bounded split (.split('\n', limit)) to prevent O(N) memory
-        # allocations on large documents when we only need to check the first few lines.
+        # PERFORMANCE: Use lazily evaluated finditer to prevent O(N) memory
+        # allocations on large documents while correctly handling \r and \n endings.
         # This makes the UI significantly more responsive during keystrokes.
-        lines = text.replace('\r\n', '\n').replace('\r', '\n').split('\n', safe_line_number)
         in_code_fence = False
+        last_end = 0
+        current_line = 1
 
-        for index, line in enumerate(lines[:safe_line_number], start=1):
+        for match in cls.LINE_ENDING_RE.finditer(text):
+            line = text[last_end:match.start()]
+            last_end = match.end()
+
             if line.strip().startswith('```'):
                 in_code_fence = not in_code_fence
+                if current_line == safe_line_number:
+                    return False
+                current_line += 1
                 continue
-            if index == safe_line_number:
+
+            if current_line == safe_line_number:
                 return in_code_fence
+
+            current_line += 1
+
+        if current_line == safe_line_number:
+            line = text[last_end:]
+            if line.strip().startswith('```'):
+                in_code_fence = not in_code_fence
+                return False
+            return in_code_fence
 
         return False
 
