@@ -6,5 +6,7 @@ the empty state selectable and pollutes the data model. **Action:** Wrap the Lis
 the data state.
 
 ## 2026-06-04 - Improve Tkinter dialog keyboard accessibility
-**Learning:** By default, Tkinter dialogs and lists lack keyboard support for primary actions. Users expect Enter to submit forms and open selected items.
-**Action:** Bind `<Return>` to primary actions and set initial focus on the first input field (`.focus_set()`) to improve keyboard navigation.
+
+**Learning:** By default, Tkinter dialogs and lists lack keyboard support for primary actions. Users
+expect Enter to submit forms and open selected items. **Action:** Bind `<Return>` to primary actions
+and set initial focus on the first input field (`.focus_set()`) to improve keyboard navigation.
