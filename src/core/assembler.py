@@ -51,11 +51,7 @@ class DocumentAssembler:
                 ordered.append(filename)
                 seen.add(filename)
 
-        extras = sorted(
-            path.name
-            for path in self.chapters_dir.glob('*.md')
-            if path.name not in seen
-        )
+        extras = sorted(path.name for path in self.chapters_dir.glob('*.md') if path.name not in seen)
         ordered.extend(extras)
         return ordered
 
@@ -80,7 +76,8 @@ class DocumentAssembler:
             if not content:
                 continue
 
-            line_count = len(content.splitlines())
+            # ⚡ Bolt: Fast line counting. Avoids O(N) memory allocation of .splitlines()
+            line_count = content.count('\n') + (1 if content and not content.endswith('\n') else 0)
             start_line = current_line
             end_line = start_line + line_count - 1
             entries.append(
