@@ -68,19 +68,28 @@ class DashboardApp:
             side='left'
         )
 
-        ttk.Button(
+        self.delete_btn = ttk.Button(
             recent_header_frame, text='Xoa Du An', style='Action.TButton', command=self.delete_selected_project, cursor='hand2'
-        ).pack(side='right')
+        )
+        self.delete_btn.pack(side='right')
+        self.delete_btn.state(['disabled'])
 
         self.list_container = ttk.Frame(main_container)
         self.list_container.pack(fill='both', expand=True)
 
         self.projects_list = tk.Listbox(self.list_container, font=('Consolas', 11), height=10, cursor='hand2')
         self.projects_list.bind('<Double-1>', lambda _event: self.open_selected_project())
+        self.projects_list.bind('<<ListboxSelect>>', self._on_project_select)
 
         self.empty_label = ttk.Label(self.list_container, text='Chua co du an nao. Hay tao moi!', font=('Consolas', 11), foreground='gray')
 
         self.refresh_projects()
+
+    def _on_project_select(self, event=None):
+        if self.projects_list.curselection():
+            self.delete_btn.state(['!disabled'])
+        else:
+            self.delete_btn.state(['disabled'])
 
     def refresh_projects(self):
         self.projects_list.delete(0, tk.END)
@@ -88,6 +97,7 @@ class DashboardApp:
             if entry.is_dir() and (entry / 'config.yaml').exists():
                 self.projects_list.insert(tk.END, entry.name)
 
+        self._on_project_select()
         if self.projects_list.size() == 0:
             self.projects_list.pack_forget()
             self.empty_label.pack(expand=True)
