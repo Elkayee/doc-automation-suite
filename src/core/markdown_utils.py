@@ -251,7 +251,9 @@ class MarkdownUtils:
 
     @staticmethod
     def _sentence_start_kind(text, start):
-        prefix = text[:start]
+        # ⚡ Bolt: Bound the lookbehind prefix to prevent O(N^2) memory allocations
+        # when processing large strings inside the regex finditer loop.
+        prefix = text[max(0, start - 200) : start]
         if re.search(r'\n\s*\n\s*$', prefix):
             return 'punct'
         stripped = prefix.rstrip()
@@ -701,7 +703,7 @@ class MarkdownUtils:
         current_line = 1
 
         for match in cls.LINE_ENDING_RE.finditer(text):
-            line = text[last_end:match.start()]
+            line = text[last_end : match.start()]
             last_end = match.end()
 
             if line.strip().startswith('```'):
