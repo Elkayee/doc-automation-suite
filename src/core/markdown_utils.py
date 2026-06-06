@@ -17,6 +17,12 @@ class MarkdownUtils:
         r'[A-Za-z][A-Za-z0-9_]*\(\s*[A-Za-z][A-Za-z0-9_]*(?:\s*,\s*[A-Za-z][A-Za-z0-9_]*)*\s*\)'
     )
     UNICODE_WORD_RE = re.compile(r'\b[^\W\d_]+\b', re.UNICODE)
+    SENTENCE_START_NEWLINE_RE = re.compile(r'\n\s*\n\s*$')
+    SENTENCE_START_STRUCTURAL_RE1 = re.compile(r'(?:[-*+]\s+|\d+\.\s+)?[*_`~>#\[\]()\s]*')
+    SENTENCE_START_STRUCTURAL_RE2 = re.compile(r'(?:[-*+]\s+|\d+\.\s+)?\*\*[^*]+\*\*\s*')
+    SENTENCE_START_COLON_IGNORE_RE = re.compile(r'\b\d+\s+\w+$', re.UNICODE)
+    SENTENCE_START_PUNCT_RE = re.compile(r'[.!?]["”’)\]]*$')
+    SENTENCE_START_COLON_RE = re.compile(r':\s*[“"\'‘]$')
     PROTECTED_TITLECASE_WORDS = {
         'Châu',
         'Á',
@@ -249,26 +255,26 @@ class MarkdownUtils:
             return word
         return word.lower()
 
-    @staticmethod
-    def _sentence_start_kind(text, start):
-        prefix = text[:start]
-        if re.search(r'\n\s*\n\s*$', prefix):
+    @classmethod
+    def _sentence_start_kind(cls, text, start):
+        prefix = text[max(0, start - 200) : start]
+        if cls.SENTENCE_START_NEWLINE_RE.search(prefix):
             return 'punct'
         stripped = prefix.rstrip()
         if not stripped:
             return 'structural'
-        if re.fullmatch(r'(?:[-*+]\s+|\d+\.\s+)?[*_`~>#\[\]()\s]*', stripped):
+        if cls.SENTENCE_START_STRUCTURAL_RE1.fullmatch(stripped):
             return 'structural'
-        if re.fullmatch(r'(?:[-*+]\s+|\d+\.\s+)?\*\*[^*]+\*\*\s*', stripped):
+        if cls.SENTENCE_START_STRUCTURAL_RE2.fullmatch(stripped):
             return 'structural'
         if stripped.endswith(':'):
             prefix_before_colon = stripped[:-1].rstrip()
-            if re.search(r'\b\d+\s+\w+$', prefix_before_colon, re.UNICODE):
+            if cls.SENTENCE_START_COLON_IGNORE_RE.search(prefix_before_colon):
                 return None
             return 'colon'
-        if re.search(r'[.!?]["”’)\]]*$', stripped):
+        if cls.SENTENCE_START_PUNCT_RE.search(stripped):
             return 'punct'
-        if re.search(r':\s*[“"\'‘]$', stripped):
+        if cls.SENTENCE_START_COLON_RE.search(stripped):
             return 'colon'
         return None
 
@@ -701,7 +707,7 @@ class MarkdownUtils:
         current_line = 1
 
         for match in cls.LINE_ENDING_RE.finditer(text):
-            line = text[last_end:match.start()]
+            line = text[last_end : match.start()]
             last_end = match.end()
 
             if line.strip().startswith('```'):
