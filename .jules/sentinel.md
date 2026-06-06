@@ -21,3 +21,16 @@ base directory without verification. **Learning:** `Path.resolve()` combined wit
 strictly within an expected base directory in Python. Wait, I should also remember to never commit
 dummy exploit files. **Prevention:** Always validate and normalize external path inputs against the
 expected base directory boundaries before using them in file operations.
+
+## 2025-06-06 - Path Traversal in File Output Endpoints
+
+**Vulnerability:** The `/workspaces/compile` endpoint in `src/api.py` allowed path traversal via
+`md_out`, `docx_out`, and `cache_dir` parameters. While `workspace_name` was validated using
+`_secure_resolve`, the output paths were directly cast to `Path()` and used to write files, allowing
+attackers to overwrite arbitrary files on the system (e.g. `../../../../tmp/pwned.md`).
+**Learning:** Security controls like `_secure_resolve` must be applied symmetrically to all file
+path inputs. Only protecting the input workspace directory while leaving the output destination
+paths unprotected bypasses the defense-in-depth strategy. **Prevention:** Always validate all path
+inputs provided by the user using a secure resolution function before utilizing them in file system
+operations. Output paths should either be strictly relative to a safe base directory or forbidden
+from being passed explicitly if not necessary.
