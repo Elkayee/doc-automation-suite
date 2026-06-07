@@ -249,8 +249,8 @@ class MarkdownUtils:
             return word
         return word.lower()
 
-    @staticmethod
-    def _sentence_start_kind(text, start):
+    @classmethod
+    def _sentence_start_kind_original(cls, text, start):
         prefix = text[:start]
         if re.search(r'\n\s*\n\s*$', prefix):
             return 'punct'
@@ -270,6 +270,44 @@ class MarkdownUtils:
             return 'punct'
         if re.search(r':\s*[“"\'‘]$', stripped):
             return 'colon'
+        return None
+
+    @classmethod
+    def _sentence_start_kind(cls, text, start):
+        # PERFORMANCE: Bounding the slice to a 256-character window prevents
+        # O(N^2) execution time by avoiding unbounded slicing on every word.
+        window_start = max(0, start - 256)
+        prefix_window = text[window_start:start]
+
+        if re.search(r'\n\s*\n\s*$', prefix_window):
+            return 'punct'
+
+        stripped_window = prefix_window.rstrip()
+
+        if not stripped_window:
+            if window_start == 0:
+                return 'structural'
+            return cls._sentence_start_kind_original(text, start)
+
+        if re.fullmatch(r'(?:[-*+]\s+|\d+\.\s+)?[*_`~>#\[\]()\s]*', stripped_window) or re.fullmatch(
+            r'(?:[-*+]\s+|\d+\.\s+)?\*\*[^*]+\*\*\s*', stripped_window
+        ):
+            if window_start == 0:
+                return 'structural'
+            return cls._sentence_start_kind_original(text, start)
+
+        if stripped_window.endswith(':'):
+            prefix_before_colon = stripped_window[:-1].rstrip()
+            if re.search(r'\b\d+\s+\w+$', prefix_before_colon, re.UNICODE):
+                return None
+            return 'colon'
+
+        if re.search(r'[.!?]["”’)\]]*$', stripped_window):
+            return 'punct'
+
+        if re.search(r':\s*[“"\'‘]$', stripped_window):
+            return 'colon'
+
         return None
 
     @classmethod
@@ -701,7 +739,7 @@ class MarkdownUtils:
         current_line = 1
 
         for match in cls.LINE_ENDING_RE.finditer(text):
-            line = text[last_end:match.start()]
+            line = text[last_end : match.start()]
             last_end = match.end()
 
             if line.strip().startswith('```'):
