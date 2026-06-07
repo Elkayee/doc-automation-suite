@@ -13,3 +13,10 @@ document. This avoids allocating the rest of the string into thousands of smalle
 `re.sub(r'\s+', ' ', text).strip()` for collapsing whitespace in Python, bypassing regex compilation
 and engine overhead. **Action:** Prefer `' '.join(text.split())` over `re.sub` for normalizing
 whitespace when exact space/tab/newline distinctions aren't required.
+
+## 2024-06-07 - O(N^2) Penalty in Iterative String Slicing
+
+**Learning:** Slicing an unbounded prefix `text[:index]` iteratively over all words in a large
+document causes O(N^2) memory allocations and massive performance degradation (e.g., capitalization
+checking). **Action:** Use a bounded local window `text[max(0, index - 256):index]` when identifying
+contextual structural boundaries to achieve O(N) linear time processing.
