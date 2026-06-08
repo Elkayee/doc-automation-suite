@@ -13,3 +13,10 @@ document. This avoids allocating the rest of the string into thousands of smalle
 `re.sub(r'\s+', ' ', text).strip()` for collapsing whitespace in Python, bypassing regex compilation
 and engine overhead. **Action:** Prefer `' '.join(text.split())` over `re.sub` for normalizing
 whitespace when exact space/tab/newline distinctions aren't required.
+
+## 2024-03-24 - Avoid Memory Allocation on Line Count
+
+**Learning:** `splitlines()` eagerly allocates a full list of lines, which can use significant
+memory on large documents. **Action:** Use
+`text.count('\n') + (1 if text and not text.endswith('\n') else 0)` when only the count of lines is
+needed.
