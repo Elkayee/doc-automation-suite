@@ -1,6 +1,7 @@
-## 2024-05-24 - Handle empty Listbox states with proper UI elements
+## 2025-02-23 - Keyboard Accessibility in Tkinter UIs
 
-**Learning:** Inserting placeholder strings into a `tk.Listbox` creates false affordances by making
-the empty state selectable and pollutes the data model. **Action:** Wrap the Listbox and a dedicated
-`ttk.Label` in a `ttk.Frame`, and use `pack()`/`pack_forget()` to toggle their visibility based on
-the data state.
+**Learning:** Tkinter `Toplevel` dialogs and `Listbox` components lack built-in keyboard navigation
+affordances (e.g., auto-focus, submission via Return key). **Action:** Explicitly call
+`.focus_set()` on primary inputs upon dialog open, and bind the `<Return>` event to primary action
+methods (remembering to accept `event=None` in the callback) to ensure a seamless, mouse-free user
+experience.
