@@ -13,3 +13,11 @@ document. This avoids allocating the rest of the string into thousands of smalle
 `re.sub(r'\s+', ' ', text).strip()` for collapsing whitespace in Python, bypassing regex compilation
 and engine overhead. **Action:** Prefer `' '.join(text.split())` over `re.sub` for normalizing
 whitespace when exact space/tab/newline distinctions aren't required.
+
+## 2024-06-08 - Bounded Prefix Slicing in Loops
+
+**Learning:** Slicing the entire prefix of a large string (`text[:start]`) inside a regex `finditer`
+loop causes O(N) memory allocations per iteration, resulting in O(N^2) execution time. Parsing a
+large document takes over 6 seconds for 5000 words. **Action:** Restrict the slice to a fixed
+bounded window (e.g., `text[max(0, start - 200):start]`) when only local context is needed. This
+reduces the time to ~0.1 seconds.
