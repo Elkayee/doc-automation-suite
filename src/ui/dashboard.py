@@ -47,18 +47,22 @@ class DashboardApp:
         actions_frame = ttk.Frame(main_container)
         actions_frame.pack(anchor='center')
 
-        ttk.Button(actions_frame, text='+ Tao Du An Moi', style='Action.TButton', command=self.show_create_dialog, cursor='hand2').grid(
-            row=0, column=0, padx=10, pady=10
-        )
-        ttk.Button(actions_frame, text='Mo Du An', style='Action.TButton', command=self.open_project, cursor='hand2').grid(
-            row=0, column=1, padx=10, pady=10
-        )
+        ttk.Button(
+            actions_frame,
+            text='+ Tao Du An Moi',
+            style='Action.TButton',
+            command=self.show_create_dialog,
+            cursor='hand2',
+        ).grid(row=0, column=0, padx=10, pady=10)
+        ttk.Button(
+            actions_frame, text='Mo Du An', style='Action.TButton', command=self.open_project, cursor='hand2'
+        ).grid(row=0, column=1, padx=10, pady=10)
         ttk.Button(
             actions_frame,
             text='Cong Cu Cu (Legacy)',
             style='Action.TButton',
             command=self.open_legacy_workflow,
-            cursor='hand2'
+            cursor='hand2',
         ).grid(row=0, column=2, padx=10, pady=10)
 
         recent_header_frame = ttk.Frame(main_container)
@@ -69,7 +73,11 @@ class DashboardApp:
         )
 
         ttk.Button(
-            recent_header_frame, text='Xoa Du An', style='Action.TButton', command=self.delete_selected_project, cursor='hand2'
+            recent_header_frame,
+            text='Xoa Du An',
+            style='Action.TButton',
+            command=self.delete_selected_project,
+            cursor='hand2',
         ).pack(side='right')
 
         self.list_container = ttk.Frame(main_container)
@@ -77,8 +85,12 @@ class DashboardApp:
 
         self.projects_list = tk.Listbox(self.list_container, font=('Consolas', 11), height=10, cursor='hand2')
         self.projects_list.bind('<Double-1>', lambda _event: self.open_selected_project())
+        self.projects_list.bind('<Return>', lambda _event: self.open_selected_project())
+        self.projects_list.bind('<Delete>', lambda _event: self.delete_selected_project())
 
-        self.empty_label = ttk.Label(self.list_container, text='Chua co du an nao. Hay tao moi!', font=('Consolas', 11), foreground='gray')
+        self.empty_label = ttk.Label(
+            self.list_container, text='Chua co du an nao. Hay tao moi!', font=('Consolas', 11), foreground='gray'
+        )
 
         self.refresh_projects()
 
@@ -103,7 +115,9 @@ class DashboardApp:
 
         ttk.Label(dialog, text='Ten du an:').pack(pady=(20, 5))
         name_var = tk.StringVar()
-        ttk.Entry(dialog, textvariable=name_var, width=40).pack()
+        name_entry = ttk.Entry(dialog, textvariable=name_var, width=40)
+        name_entry.pack()
+        name_entry.focus_set()
 
         ttk.Label(dialog, text='Chon Template:').pack(pady=(20, 5))
         templates = self.template_manager.list_templates()
@@ -121,7 +135,7 @@ class DashboardApp:
         else:
             ttk.Label(dialog, text='Khong tim thay template nao.').pack()
 
-        def do_create():
+        def do_create(event=None):
             name = name_var.get().strip()
             tmpl = template_var.get()
             if not name:
@@ -148,6 +162,7 @@ class DashboardApp:
             self._launch_workspace(dest)
 
         ttk.Button(dialog, text='Tao Moi', command=do_create, cursor='hand2').pack(pady=30)
+        dialog.bind('<Return>', do_create)
 
     def delete_selected_project(self):
         if not self.projects_list.curselection():
@@ -160,7 +175,7 @@ class DashboardApp:
         confirm = messagebox.askyesno(
             'Xac nhan xoa',
             f"Ban co chac chan muon xoa du an '{name}' khong?\nHanh dong nay khong the hoan tac.",
-            parent=self.root
+            parent=self.root,
         )
 
         if confirm:
@@ -170,7 +185,7 @@ class DashboardApp:
                 messagebox.showinfo('Thanh cong', f"Da xoa du an '{name}'", parent=self.root)
                 self.refresh_projects()
             except Exception as e:
-                messagebox.showerror('Loi', f"Khong the xoa du an:\n{str(e)}", parent=self.root)
+                messagebox.showerror('Loi', f'Khong the xoa du an:\n{str(e)}', parent=self.root)
 
     def open_project(self):
         path = filedialog.askdirectory(initialdir=str(self.workspaces_dir))
