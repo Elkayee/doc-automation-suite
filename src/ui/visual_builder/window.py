@@ -94,8 +94,12 @@ class VisualBuilderWindow(tk.Toplevel):
         ttk.Button(toolbar, text='Paragraph', command=self.open_paragraph_settings).pack(side='left', padx=(16, 0))
         ttk.Button(toolbar, text='Margins', command=self.open_page_settings).pack(side='left', padx=(8, 0))
         ttk.Button(toolbar, text='List Markers', command=self.open_list_marker_settings).pack(side='left', padx=(8, 0))
-        ttk.Button(toolbar, text='Move Up', command=lambda: self.move_selected_chapter(-1)).pack(side='left', padx=(16, 0))
-        ttk.Button(toolbar, text='Move Down', command=lambda: self.move_selected_chapter(1)).pack(side='left', padx=(8, 0))
+        ttk.Button(toolbar, text='Move Up', command=lambda: self.move_selected_chapter(-1)).pack(
+            side='left', padx=(16, 0)
+        )
+        ttk.Button(toolbar, text='Move Down', command=lambda: self.move_selected_chapter(1)).pack(
+            side='left', padx=(8, 0)
+        )
         ttk.Button(toolbar, text='Clear Cache', command=self.clear_diagram_cache).pack(side='left', padx=(16, 0))
         ttk.Button(toolbar, text='Build DOCX', command=self.build_docx).pack(side='right')
 
@@ -160,7 +164,9 @@ class VisualBuilderWindow(tk.Toplevel):
         ttk.Checkbutton(options_row, text='Filename', variable=self.search_in_name_var).pack(side='left')
         ttk.Checkbutton(options_row, text='Content', variable=self.search_in_content_var).pack(side='left', padx=(8, 0))
         ttk.Checkbutton(options_row, text='Case', variable=self.search_case_var).pack(side='left', padx=(8, 0))
-        ttk.Checkbutton(options_row, text='Whole Word', variable=self.search_whole_word_var).pack(side='left', padx=(8, 0))
+        ttk.Checkbutton(options_row, text='Whole Word', variable=self.search_whole_word_var).pack(
+            side='left', padx=(8, 0)
+        )
 
         action_row = ttk.Frame(search_frame)
         action_row.pack(fill='x', pady=(0, 6))
@@ -674,7 +680,9 @@ class VisualBuilderWindow(tk.Toplevel):
         self._schedule_highlight()
         self._set_status('Updated image properties')
 
-    def _prompt_image_metadata(self, *, title: str, initial_alt: str, initial_caption: str, initial_width: str, initial_align: str):
+    def _prompt_image_metadata(
+        self, *, title: str, initial_alt: str, initial_caption: str, initial_width: str, initial_align: str
+    ):
         alt_text = simpledialog.askstring(title, 'Alternative text:', parent=self, initialvalue=initial_alt)
         if alt_text is None:
             return None
@@ -1278,7 +1286,9 @@ class VisualBuilderWindow(tk.Toplevel):
         body.pack(fill='both', expand=True)
 
         alignment_var = tk.StringVar(value=str(settings.get('alignment', 'justify')).capitalize())
-        special_indent_var = tk.StringVar(value=self._special_indent_label(settings.get('special_indent', 'first_line')))
+        special_indent_var = tk.StringVar(
+            value=self._special_indent_label(settings.get('special_indent', 'first_line'))
+        )
         line_spacing_var = tk.StringVar(value=self._line_spacing_label(settings.get('line_spacing_mode', 'multiple')))
 
         font_name_var = tk.StringVar(value=str(settings.get('font_name', 'Times New Roman')))
@@ -1290,26 +1300,49 @@ class VisualBuilderWindow(tk.Toplevel):
         after_var = tk.StringVar(value=str(settings.get('space_after_pt', 6.0)))
         line_value_var = tk.StringVar(value=str(settings.get('line_spacing_value', 1.5)))
 
-        self._settings_row(body, 'Font', ttk.Combobox(
+        self._settings_row(
             body,
-            textvariable=font_name_var,
-            values=['Times New Roman', 'Arial', 'Calibri', 'Cambria', 'Georgia'],
-        ), 0)
+            'Font',
+            ttk.Combobox(
+                body,
+                textvariable=font_name_var,
+                values=['Times New Roman', 'Arial', 'Calibri', 'Cambria', 'Georgia'],
+            ),
+            0,
+        )
         self._settings_row(body, 'Size', ttk.Entry(body, textvariable=font_size_var), 1)
-        self._settings_row(body, 'Alignment', ttk.Combobox(
-            body, textvariable=alignment_var, state='readonly', values=['Left', 'Center', 'Right', 'Justify']
-        ), 2)
+        self._settings_row(
+            body,
+            'Alignment',
+            ttk.Combobox(
+                body, textvariable=alignment_var, state='readonly', values=['Left', 'Center', 'Right', 'Justify']
+            ),
+            2,
+        )
         self._settings_row(body, 'Left (cm)', ttk.Entry(body, textvariable=left_var), 3)
         self._settings_row(body, 'Right (cm)', ttk.Entry(body, textvariable=right_var), 4)
-        self._settings_row(body, 'Special', ttk.Combobox(
-            body, textvariable=special_indent_var, state='readonly', values=['None', 'First line', 'Hanging']
-        ), 5)
+        self._settings_row(
+            body,
+            'Special',
+            ttk.Combobox(
+                body, textvariable=special_indent_var, state='readonly', values=['None', 'First line', 'Hanging']
+            ),
+            5,
+        )
         self._settings_row(body, 'By (cm)', ttk.Entry(body, textvariable=special_by_var), 6)
         self._settings_row(body, 'Before (pt)', ttk.Entry(body, textvariable=before_var), 7)
         self._settings_row(body, 'After (pt)', ttk.Entry(body, textvariable=after_var), 8)
-        self._settings_row(body, 'Line spacing', ttk.Combobox(
-            body, textvariable=line_spacing_var, state='readonly', values=['Single', '1.5 lines', 'Double', 'Exactly']
-        ), 9)
+        self._settings_row(
+            body,
+            'Line spacing',
+            ttk.Combobox(
+                body,
+                textvariable=line_spacing_var,
+                state='readonly',
+                values=['Single', '1.5 lines', 'Double', 'Exactly'],
+            ),
+            9,
+        )
         self._settings_row(body, 'At', ttk.Entry(body, textvariable=line_value_var), 10)
 
         def save_settings():
@@ -1422,9 +1455,12 @@ class VisualBuilderWindow(tk.Toplevel):
         self._settings_row(body, 'Gutter (cm)', ttk.Entry(body, textvariable=gutter_var), 4)
         self._settings_row(body, 'Page Width (cm)', ttk.Entry(body, textvariable=width_var), 5)
         self._settings_row(body, 'Page Height (cm)', ttk.Entry(body, textvariable=height_var), 6)
-        self._settings_row(body, 'Orientation', ttk.Combobox(
-            body, textvariable=orientation_var, state='readonly', values=['Portrait', 'Landscape']
-        ), 7)
+        self._settings_row(
+            body,
+            'Orientation',
+            ttk.Combobox(body, textvariable=orientation_var, state='readonly', values=['Portrait', 'Landscape']),
+            7,
+        )
 
         def save_settings():
             try:
@@ -1509,7 +1545,11 @@ class VisualBuilderWindow(tk.Toplevel):
         remaining = filenames[:start] + filenames[end:]
 
         if delta < 0:
-            previous_starts = [idx for idx, name in enumerate(remaining) if self.TOP_LEVEL_RE.match(name) or self.FRONTMATTER_RE.match(name)]
+            previous_starts = [
+                idx
+                for idx, name in enumerate(remaining)
+                if self.TOP_LEVEL_RE.match(name) or self.FRONTMATTER_RE.match(name)
+            ]
             insert_at = 0
             for idx in previous_starts:
                 if idx < start:
@@ -1589,13 +1629,14 @@ class VisualBuilderWindow(tk.Toplevel):
             if not file_path.exists():
                 continue
 
-            for line_number, line in enumerate(file_path.read_text(encoding='utf-8').splitlines(), start=1):
-                if not pattern.search(line):
-                    continue
-                excerpt = line.strip() or '[blank line]'
-                self._append_search_result(filename, line_number, f'{filename}:{line_number} - {excerpt[:90]}')
-                if len(self.search_results) >= 100:
-                    break
+            with file_path.open(encoding='utf-8') as f:
+                for line_number, line in enumerate(f, start=1):
+                    if not pattern.search(line):
+                        continue
+                    excerpt = line.strip() or '[blank line]'
+                    self._append_search_result(filename, line_number, f'{filename}:{line_number} - {excerpt[:90]}')
+                    if len(self.search_results) >= 100:
+                        break
             if len(self.search_results) >= 100:
                 break
 
@@ -1753,7 +1794,9 @@ class VisualBuilderWindow(tk.Toplevel):
             img_cache_dir.mkdir(parents=True, exist_ok=True)
 
             self._set_status(f'Cleared {file_count} cached diagram(s)')
-            messagebox.showinfo('Clear Cache', f'Successfully cleared {file_count} cached diagram file(s).', parent=self)
+            messagebox.showinfo(
+                'Clear Cache', f'Successfully cleared {file_count} cached diagram file(s).', parent=self
+            )
         except Exception as exc:
             messagebox.showerror('Clear Cache', f'Failed to clear cache:\n{exc}', parent=self)
             self._set_status(f'Cache clear failed: {exc}')
