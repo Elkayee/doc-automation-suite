@@ -13,3 +13,13 @@ document. This avoids allocating the rest of the string into thousands of smalle
 `re.sub(r'\s+', ' ', text).strip()` for collapsing whitespace in Python, bypassing regex compilation
 and engine overhead. **Action:** Prefer `' '.join(text.split())` over `re.sub` for normalizing
 whitespace when exact space/tab/newline distinctions aren't required.
+
+## 2024-06-10 - File Streaming vs. String regex iterators
+
+**Learning:** Replacing `str.splitlines()` on an entire file contents string with a regex iterator
+like `re.finditer` is a severe anti-optimization due to regex overhead. For memory-efficient, lazy
+line iteration of large files, stream the file directly (e.g.,
+`with open(filepath) as f: for line in f:`) instead of reading the whole text into memory.
+
+**Action:** Prefer `with open() as f: for line in f:` when reading lines lazily from a file, rather
+than loading the text and iterating with regex.
