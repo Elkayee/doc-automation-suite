@@ -21,3 +21,11 @@ base directory without verification. **Learning:** `Path.resolve()` combined wit
 strictly within an expected base directory in Python. Wait, I should also remember to never commit
 dummy exploit files. **Prevention:** Always validate and normalize external path inputs against the
 expected base directory boundaries before using them in file operations.
+
+## 2024-05-18 - [Fix Path Traversal in Document Compile Paths]
+
+**Vulnerability:** Path Traversal via absolute path in `Path()` bypassing base directory checks.
+**Learning:** `Path()` in Python ignores relative base path bounds if an absolute path string is
+given (e.g. `Path("/etc/passwd")`). **Prevention:** Always validate against relative base
+resolution, e.g. using `Path.is_relative_to()`, specifically when paths are derived from user
+parameters.
