@@ -124,7 +124,6 @@ def ensure_output_docx_closed(docx_out):
         ) from exc
 
 
-
 def assemble_markdown(chapter_dir, output_path):
     assembler = DocumentAssembler(Path(chapter_dir).parent)
     final, processed_files = assembler.save_assembled_for_export(Path(output_path))
@@ -132,7 +131,9 @@ def assemble_markdown(chapter_dir, output_path):
     for file_path in processed_files:
         with open(file_path, encoding='utf-8') as handle:
             content = handle.read().strip()
-        print(f'  [OK] {os.path.basename(file_path)}  ({len(content.splitlines())} dong)')
+        # ⚡ Bolt: Fast line counting avoiding O(N) memory allocations from splitlines()
+        line_count = content.count('\n') + (1 if content and not content.endswith('\n') else 0)
+        print(f'  [OK] {os.path.basename(file_path)}  ({line_count} dong)')
 
     return final, processed_files
 
@@ -145,8 +146,10 @@ def step_assemble():
     final, chapter_files = assemble_markdown(CH_DIR, MD_OUT)
 
     kb = len(final.encode('utf-8')) // 1024
+    # ⚡ Bolt: Fast line counting avoiding O(N) memory allocations from splitlines()
+    line_count = final.count('\n') + (1 if final and not final.endswith('\n') else 0)
     print(f'\n  => {MD_OUT}')
-    print(f'     {len(final.splitlines())} dong | {kb} KB | {len(chapter_files)} chapters\n')
+    print(f'     {line_count} dong | {kb} KB | {len(chapter_files)} chapters\n')
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -163,6 +166,7 @@ def step_assemble():
 # ── Parser MD → DOCX ─────────────────────────────────────────────────────────
 # Removed duplicate parsing logic, now using src.core.docx_builder
 
+
 def step_convert(md_out=MD_OUT, docx_out=DOCX_OUT, img_cache=IMG_CACHE):
     print('=' * 55)
     print('BƯỚC 2: Convert MD → DOCX')
@@ -171,7 +175,7 @@ def step_convert(md_out=MD_OUT, docx_out=DOCX_OUT, img_cache=IMG_CACHE):
     print(f'  Output: {docx_out}')
     print()
 
-    builder = DocxBuilder(BASE) # BASE is the original workspace
+    builder = DocxBuilder(BASE)  # BASE is the original workspace
     builder.build_from_markdown(str(md_out), Path(img_cache))
 
     out = docx_out
@@ -197,8 +201,10 @@ def run_build_pipeline(chapters_dir=CH_DIR, md_out=MD_OUT, docx_out=DOCX_OUT, im
     print('=' * 55)
     final, chapter_files = assemble_markdown(chapters_dir, md_out)
     kb = len(final.encode('utf-8')) // 1024
+    # ⚡ Bolt: Fast line counting avoiding O(N) memory allocations from splitlines()
+    line_count = final.count('\n') + (1 if final and not final.endswith('\n') else 0)
     print(f'\n  => {md_out}')
-    print(f'     {len(final.splitlines())} dong | {kb} KB | {len(chapter_files)} chapters\n')
+    print(f'     {line_count} dong | {kb} KB | {len(chapter_files)} chapters\n')
     saved_path = step_convert(md_out=md_out, docx_out=docx_out, img_cache=img_cache)
     return Path(saved_path)
 
