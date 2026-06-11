@@ -13,3 +13,12 @@ document. This avoids allocating the rest of the string into thousands of smalle
 `re.sub(r'\s+', ' ', text).strip()` for collapsing whitespace in Python, bypassing regex compilation
 and engine overhead. **Action:** Prefer `' '.join(text.split())` over `re.sub` for normalizing
 whitespace when exact space/tab/newline distinctions aren't required.
+
+## 2024-06-11 - Optimize string prefix slicing inside regex finditer loops
+
+**Learning:** Unbounded string prefix slicing (e.g., `text[:start]`) inside a `re.finditer` loop
+causes O(N) memory allocations per iteration, leading to O(N^2) execution time on large documents.
+**Action:** Restrict the string slice to a fixed bounded window (e.g.,
+`text[max(0, start - 256):start]`) when only local context is needed, ensuring any `re.fullmatch`
+structure checks explicitly handle when the bounding window cuts off the actual start of the
+document.
