@@ -13,3 +13,10 @@ document. This avoids allocating the rest of the string into thousands of smalle
 `re.sub(r'\s+', ' ', text).strip()` for collapsing whitespace in Python, bypassing regex compilation
 and engine overhead. **Action:** Prefer `' '.join(text.split())` over `re.sub` for normalizing
 whitespace when exact space/tab/newline distinctions aren't required.
+
+## 2024-06-12 - Bound Slices in Loop Prefix Lookups
+
+**Learning:** Slicing the entire prefix of a large string inside a repeated loop/finditer (e.g.,
+`text[:start]`) causes O(N^2) time complexity due to O(N) memory allocations per iteration.
+**Action:** Restrict the slice to a fixed bounded window (e.g., `text[max(0, start - 200):start]`)
+and guard operations like `re.fullmatch` that depend on the entire prefix matching exactly.
