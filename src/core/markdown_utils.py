@@ -251,16 +251,18 @@ class MarkdownUtils:
 
     @staticmethod
     def _sentence_start_kind(text, start):
-        prefix = text[:start]
+        # ⚡ Bolt: Use bounded slice to prevent O(N^2) performance degradation on large documents
+        prefix = text[max(0, start - 200) : start]
         if re.search(r'\n\s*\n\s*$', prefix):
             return 'punct'
         stripped = prefix.rstrip()
-        if not stripped:
+        if not stripped and start <= 200:
             return 'structural'
-        if re.fullmatch(r'(?:[-*+]\s+|\d+\.\s+)?[*_`~>#\[\]()\s]*', stripped):
-            return 'structural'
-        if re.fullmatch(r'(?:[-*+]\s+|\d+\.\s+)?\*\*[^*]+\*\*\s*', stripped):
-            return 'structural'
+        if start <= 200:
+            if re.fullmatch(r'(?:[-*+]\s+|\d+\.\s+)?[*_`~>#\[\]()\s]*', stripped):
+                return 'structural'
+            if re.fullmatch(r'(?:[-*+]\s+|\d+\.\s+)?\*\*[^*]+\*\*\s*', stripped):
+                return 'structural'
         if stripped.endswith(':'):
             prefix_before_colon = stripped[:-1].rstrip()
             if re.search(r'\b\d+\s+\w+$', prefix_before_colon, re.UNICODE):
@@ -701,7 +703,7 @@ class MarkdownUtils:
         current_line = 1
 
         for match in cls.LINE_ENDING_RE.finditer(text):
-            line = text[last_end:match.start()]
+            line = text[last_end : match.start()]
             last_end = match.end()
 
             if line.strip().startswith('```'):
