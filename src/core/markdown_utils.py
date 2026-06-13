@@ -251,16 +251,19 @@ class MarkdownUtils:
 
     @staticmethod
     def _sentence_start_kind(text, start):
-        prefix = text[:start]
+        # ⚡ Bolt: Prevent O(N^2) memory allocations by bounding the slice
+        prefix = text[max(0, start - 200):start]
         if re.search(r'\n\s*\n\s*$', prefix):
             return 'punct'
         stripped = prefix.rstrip()
         if not stripped:
-            return 'structural'
-        if re.fullmatch(r'(?:[-*+]\s+|\d+\.\s+)?[*_`~>#\[\]()\s]*', stripped):
-            return 'structural'
-        if re.fullmatch(r'(?:[-*+]\s+|\d+\.\s+)?\*\*[^*]+\*\*\s*', stripped):
-            return 'structural'
+            if start <= 200:
+                return 'structural'
+        if start <= 200:
+            if re.fullmatch(r'(?:[-*+]\s+|\d+\.\s+)?[*_`~>#\[\]()\s]*', stripped):
+                return 'structural'
+            if re.fullmatch(r'(?:[-*+]\s+|\d+\.\s+)?\*\*[^*]+\*\*\s*', stripped):
+                return 'structural'
         if stripped.endswith(':'):
             prefix_before_colon = stripped[:-1].rstrip()
             if re.search(r'\b\d+\s+\w+$', prefix_before_colon, re.UNICODE):

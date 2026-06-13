@@ -13,3 +13,7 @@ document. This avoids allocating the rest of the string into thousands of smalle
 `re.sub(r'\s+', ' ', text).strip()` for collapsing whitespace in Python, bypassing regex compilation
 and engine overhead. **Action:** Prefer `' '.join(text.split())` over `re.sub` for normalizing
 whitespace when exact space/tab/newline distinctions aren't required.
+
+## 2024-06-13 - Bounding Context Slices in Regex Loops
+**Learning:** Slicing the entire prefix of a large document (`text[:start]`) repeatedly inside a regex search loop (`re.finditer`) forces Python to allocate massive intermediate strings every iteration, resulting in severe O(N^2) performance degradation on large inputs.
+**Action:** Always bound string slicing to a fixed context window (e.g., `text[max(0, start - 200):start]`) when only local backward context is required for parsing decisions. Ensure fullmatch bounds are logically gated (`if start <= 200:`) to preserve functionality.
