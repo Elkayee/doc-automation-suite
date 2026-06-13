@@ -80,7 +80,8 @@ class DocumentAssembler:
             if not content:
                 continue
 
-            line_count = len(content.splitlines())
+            # ⚡ Bolt: Fast line count without allocating a list for all lines
+            line_count = content.count('\n') + (1 if content and not content.endswith('\n') else 0)
             start_line = current_line
             end_line = start_line + line_count - 1
             entries.append(
