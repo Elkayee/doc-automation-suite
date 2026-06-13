@@ -693,6 +693,11 @@ class MarkdownUtils:
     @classmethod
     def is_line_inside_fenced_block(cls, text, line_number):
         safe_line_number = max(1, int(line_number))
+
+        # ⚡ Bolt: Fast path substring check prevents iterating large non-code documents
+        if '```' not in text:
+            return False
+
         # PERFORMANCE: Use lazily evaluated finditer to prevent O(N) memory
         # allocations on large documents while correctly handling \r and \n endings.
         # This makes the UI significantly more responsive during keystrokes.
