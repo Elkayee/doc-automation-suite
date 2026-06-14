@@ -21,3 +21,8 @@ base directory without verification. **Learning:** `Path.resolve()` combined wit
 strictly within an expected base directory in Python. Wait, I should also remember to never commit
 dummy exploit files. **Prevention:** Always validate and normalize external path inputs against the
 expected base directory boundaries before using them in file operations.
+
+## 2024-06-14 - Path Traversal Vulnerability in API Compile Outputs
+**Vulnerability:** The `/workspaces/compile` API endpoint permitted directory traversal by instantiating `Path` objects directly from user-provided input strings (`req.md_out`, `req.docx_out`, and `req.cache_dir`) without validation, allowing attackers to write arbitrary output files to the filesystem.
+**Learning:** Any user-controlled input used as an output path destination must be bounded within an expected base directory (e.g., a build directory) to prevent arbitrary file writes.
+**Prevention:** Always validate and normalize external path inputs against the expected base directory boundaries using `_secure_resolve` (or `Path.resolve()` with `Path.is_relative_to()`) before writing files.
