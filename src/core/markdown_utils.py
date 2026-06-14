@@ -12,6 +12,8 @@ class MarkdownUtils:
     UNICODE_BULLET_RE = re.compile(r'^(?P<indent>\s*)(?P<marker>[▪•●◦✓✔])\s*(?P<text>.+)$')
     LINE_ENDING_RE = re.compile(r'\r\n|\r|\n')
     INLINE_CODE_RE = re.compile(r'`([^`\n]+)`')
+    STRUCTURAL_RE_1 = re.compile(r'(?:[-*+]\s+|\d+\.\s+)?[*_`~>#\[\]()\s]*')
+    STRUCTURAL_RE_2 = re.compile(r'(?:[-*+]\s+|\d+\.\s+)?\*\*[^*]+\*\*\s*')
     SIMPLE_PROSE_CODE_RE = re.compile(r'[A-Za-z][A-Za-z0-9_]*(?:\s+[A-Za-z0-9_]+)*')
     RELATION_SCHEMA_CODE_RE = re.compile(
         r'[A-Za-z][A-Za-z0-9_]*\(\s*[A-Za-z][A-Za-z0-9_]*(?:\s*,\s*[A-Za-z][A-Za-z0-9_]*)*\s*\)'
@@ -249,28 +251,52 @@ class MarkdownUtils:
             return word
         return word.lower()
 
-    @staticmethod
-    def _sentence_start_kind(text, start):
-        # ⚡ Bolt: Fixed O(N) string slice allocation in loop by bounding context window to 200 chars
-        prefix = text[max(0, start - 200):start]
-        if re.search(r'\n\s*\n\s*$', prefix):
+    @classmethod
+    def _sentence_start_kind(cls, text, start):
+        # ⚡ Bolt: Avoid O(N) memory allocation by bypassing full prefix slice using bounded windows
+        # and compiling regexes at module level. Re-implemented paragraph check by walking backward to preserve logic.
+        stripped_end = start
+        while stripped_end > 0 and text[stripped_end - 1].isspace():
+            stripped_end -= 1
+
+        newline_count = 0
+        idx = start - 1
+        while idx >= 0:
+            c = text[idx]
+            if not c.isspace():
+                break
+            if c == '\n':
+                newline_count += 1
+                if newline_count >= 2:
+                    break
+            idx -= 1
+
+        if newline_count >= 2:
             return 'punct'
-        stripped = prefix.rstrip()
-        if not stripped:
+
+        if stripped_end == 0:
             return 'structural'
-        if start <= 200 and re.fullmatch(r'(?:[-*+]\s+|\d+\.\s+)?[*_`~>#\[\]()\s]*', stripped):
+
+        if cls.STRUCTURAL_RE_1.fullmatch(text, 0, stripped_end):
             return 'structural'
-        if start <= 200 and re.fullmatch(r'(?:[-*+]\s+|\d+\.\s+)?\*\*[^*]+\*\*\s*', stripped):
+
+        if cls.STRUCTURAL_RE_2.fullmatch(text, 0, stripped_end):
             return 'structural'
-        if stripped.endswith(':'):
-            prefix_before_colon = stripped[:-1].rstrip()
+
+        local_prefix = text[max(0, stripped_end - 200):stripped_end]
+
+        if local_prefix.endswith(':'):
+            prefix_before_colon = local_prefix[:-1].rstrip()
             if re.search(r'\b\d+\s+\w+$', prefix_before_colon, re.UNICODE):
                 return None
             return 'colon'
-        if re.search(r'[.!?]["”’)\]]*$', stripped):
+
+        if re.search(r'[.!?]["”’)\]]*$', local_prefix):
             return 'punct'
-        if re.search(r':\s*[“"\'‘]$', stripped):
+
+        if re.search(r':\s*[“"\'‘]$', local_prefix):
             return 'colon'
+
         return None
 
     @classmethod

@@ -14,6 +14,13 @@ document. This avoids allocating the rest of the string into thousands of smalle
 and engine overhead. **Action:** Prefer `' '.join(text.split())` over `re.sub` for normalizing
 whitespace when exact space/tab/newline distinctions aren't required.
 
-## 2025-05-18 - Avoid O(N^2) Execution in Python Regex Find Iterators
-**Learning:** Slicing the entire string prefix (e.g., `text[:start]`) inside a `re.finditer` loop causes O(N) memory allocations per iteration, resulting in O(N^2) overall time complexity.
-**Action:** Restrict the string slice to a fixed bounded window (e.g., `text[max(0, start - 200):start]`) and explicitly bound logic dependent on the start index when full prefix checks are not required.
+## 2026-06-14 - Optimize Prefix Checking Using Boundaries
+
+**Learning:** Re-slicing long prefixes dynamically (e.g., `text[:start]`) inside heavily repeated
+code causes massive O(N) memory churn. Replacing it naively with a bounded slice
+`text[max(0, start - N):start]` can cause functional regressions if the original checks relied on
+evaluating the full string's properties (like counting newlines in trailing whitespace or fully
+matching a structural regex). **Action:** Use a backwards character loop for localized trailing
+space checks (like counting newlines), and use the `pattern.fullmatch(string, 0, endpos)` method on
+pre-compiled regexes to evaluate patterns over long prefixes without allocating intermediate
+strings.
