@@ -13,3 +13,7 @@ document. This avoids allocating the rest of the string into thousands of smalle
 `re.sub(r'\s+', ' ', text).strip()` for collapsing whitespace in Python, bypassing regex compilation
 and engine overhead. **Action:** Prefer `' '.join(text.split())` over `re.sub` for normalizing
 whitespace when exact space/tab/newline distinctions aren't required.
+
+## 2025-05-18 - Avoid O(N^2) Execution in Python Regex Find Iterators
+**Learning:** Slicing the entire string prefix (e.g., `text[:start]`) inside a `re.finditer` loop causes O(N) memory allocations per iteration, resulting in O(N^2) overall time complexity.
+**Action:** Restrict the string slice to a fixed bounded window (e.g., `text[max(0, start - 200):start]`) and explicitly bound logic dependent on the start index when full prefix checks are not required.
