@@ -7,5 +7,9 @@ the data state.
 
 ## 2026-06-14 - Keyboard Accessibility in Tkinter Dialogs
 
-**Learning:** Tkinter `Toplevel` dialogs and forms do not automatically receive keyboard focus or map the `<Return>` key to default actions, which creates friction for keyboard navigation.
-**Action:** When creating a dialog, explicitly capture the primary input field into a variable and call `.focus_set()` on it so the user can type immediately. Additionally, update the primary action function (e.g., `do_create(event=None)`) to accept an event and bind `<Return>` on the dialog to that function (`dialog.bind('<Return>', do_create)`).
+**Learning:** Tkinter `Toplevel` dialogs and forms do not automatically receive keyboard focus or
+map the `<Return>` key to default actions, which creates friction for keyboard navigation.
+**Action:** When creating a dialog, explicitly capture the primary input field into a variable and
+call `.focus_set()` on it so the user can type immediately. Additionally, update the primary action
+function (e.g., `do_create(event=None)`) to accept an event and bind `<Return>` on the dialog to
+that function (`dialog.bind('<Return>', do_create)`).
