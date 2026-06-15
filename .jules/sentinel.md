@@ -21,3 +21,16 @@ base directory without verification. **Learning:** `Path.resolve()` combined wit
 strictly within an expected base directory in Python. Wait, I should also remember to never commit
 dummy exploit files. **Prevention:** Always validate and normalize external path inputs against the
 expected base directory boundaries before using them in file operations.
+
+## 2024-06-02 - Fix Arbitrary File Write in API compilation
+
+**Vulnerability:** The API endpoint `/workspaces/compile` allowed an arbitrary file write via path
+traversal. User-provided paths for `md_out`, `docx_out`, and `cache_dir` were directly passed to
+`Path` without validation, allowing an attacker to write compiled documents or create cache
+directories in arbitrary locations on the host system (e.g., `/tmp` or `/etc/`). **Learning:** Even
+when reading configuration or writing outputs in endpoints, all user-provided file paths must be
+strictly bounded to the intended base directories. `Path` objects in Python will resolve to absolute
+paths directly if the user provides an absolute path string, completely ignoring the base directory
+concatenation. **Prevention:** Always use internal path resolution and validation methods like
+`_secure_resolve` to confirm that all dynamically generated paths from user input reside strictly
+within safe workspace boundaries before executing any file I/O operations.
