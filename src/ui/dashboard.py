@@ -103,7 +103,9 @@ class DashboardApp:
 
         ttk.Label(dialog, text='Ten du an:').pack(pady=(20, 5))
         name_var = tk.StringVar()
-        ttk.Entry(dialog, textvariable=name_var, width=40).pack()
+        name_entry = ttk.Entry(dialog, textvariable=name_var, width=40)
+        name_entry.pack()
+        name_entry.focus_set()
 
         ttk.Label(dialog, text='Chon Template:').pack(pady=(20, 5))
         templates = self.template_manager.list_templates()
@@ -121,7 +123,7 @@ class DashboardApp:
         else:
             ttk.Label(dialog, text='Khong tim thay template nao.').pack()
 
-        def do_create():
+        def do_create(event=None):
             name = name_var.get().strip()
             tmpl = template_var.get()
             if not name:
@@ -147,6 +149,7 @@ class DashboardApp:
             self.refresh_projects()
             self._launch_workspace(dest)
 
+        dialog.bind('<Return>', do_create)
         ttk.Button(dialog, text='Tao Moi', command=do_create, cursor='hand2').pack(pady=30)
 
     def delete_selected_project(self):
