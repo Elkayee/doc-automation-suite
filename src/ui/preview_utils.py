@@ -65,12 +65,9 @@ class PreviewTextExtractor(HTMLParser):
     def get_text(self):
         text = ''.join(self.parts)
         text = text.replace('\n| ', ' | ')
-        text = re.sub(r'\n{3,}', '\n\n', text)
-        text = re.sub(r'[ \t]+\n', '\n', text)
-        text = re.sub(r'\n[ \t]+', '\n', text)
+        # ⚡ Bolt: Fast whitespace normalization replacing redundant multi-pass regex substitutions
         lines = [line.strip() for line in text.splitlines()]
-        lines = [line for line in lines if line]
-        return '\n'.join(lines)
+        return '\n'.join(line for line in lines if line)
 
 
 class PreviewUtils:

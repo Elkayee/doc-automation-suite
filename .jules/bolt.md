@@ -13,3 +13,10 @@ document. This avoids allocating the rest of the string into thousands of smalle
 `re.sub(r'\s+', ' ', text).strip()` for collapsing whitespace in Python, bypassing regex compilation
 and engine overhead. **Action:** Prefer `' '.join(text.split())` over `re.sub` for normalizing
 whitespace when exact space/tab/newline distinctions aren't required.
+
+## 2024-05-28 - Regex Redundancy in Line Processing
+
+**Learning:** Performing multiple `re.sub()` passes to clean up whitespace and blank lines before
+splitting a string into lines is redundant and slow. **Action:** Let `str.splitlines()`,
+`str.strip()`, and a list comprehension natively filter out whitespace and empty lines, completely
+bypassing the regex engine overhead.
