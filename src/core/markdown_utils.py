@@ -696,30 +696,34 @@ class MarkdownUtils:
         # PERFORMANCE: Use lazily evaluated finditer to prevent O(N) memory
         # allocations on large documents while correctly handling \r and \n endings.
         # This makes the UI significantly more responsive during keystrokes.
+
+        # ⚡ Bolt: Fast path to avoid regex evaluation if no code fences exist in document.
+        # This eliminates overhead for standard documents during keystrokes.
+        if '```' not in text:
+            return False
+
         in_code_fence = False
         last_end = 0
         current_line = 1
 
         for match in cls.LINE_ENDING_RE.finditer(text):
-            line = text[last_end:match.start()]
-            last_end = match.end()
-
-            if line.strip().startswith('```'):
-                in_code_fence = not in_code_fence
-                if current_line == safe_line_number:
-                    return False
-                current_line += 1
-                continue
-
+            # ⚡ Bolt: Early break when target line is reached to avoid processing the remainder of the document
             if current_line == safe_line_number:
+                line = text[last_end:match.start()]
+                if '```' in line and line.strip().startswith('```'):
+                    return False
                 return in_code_fence
 
+            line = text[last_end:match.start()]
+            if '```' in line and line.strip().startswith('```'):
+                in_code_fence = not in_code_fence
+
+            last_end = match.end()
             current_line += 1
 
         if current_line == safe_line_number:
             line = text[last_end:]
-            if line.strip().startswith('```'):
-                in_code_fence = not in_code_fence
+            if '```' in line and line.strip().startswith('```'):
                 return False
             return in_code_fence
 

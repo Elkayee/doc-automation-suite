@@ -13,3 +13,13 @@ document. This avoids allocating the rest of the string into thousands of smalle
 `re.sub(r'\s+', ' ', text).strip()` for collapsing whitespace in Python, bypassing regex compilation
 and engine overhead. **Action:** Prefer `' '.join(text.split())` over `re.sub` for normalizing
 whitespace when exact space/tab/newline distinctions aren't required.
+
+## 2024-06-16 - Fast paths and early breaks in regex iteration
+
+**Learning:** Using `re.finditer` over a large document is lazy, but still evaluates the entire text
+if the loop processes every line. For line-specific queries (like checking state at `line_number`),
+evaluating past the target line is a massive waste of resources. Additionally, string inclusion
+(`'```' in text`) is an extremely fast C-level operation that can completely bypass regex evaluation
+when the feature (code fences) is unused. **Action:** Always add fast path string inclusion checks
+before regex loops if the pattern requires a specific static string, and aggressively early-break
+from `finditer` loops once the required target state (like reaching `line_number`) is achieved.
