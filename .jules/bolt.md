@@ -13,3 +13,11 @@ document. This avoids allocating the rest of the string into thousands of smalle
 `re.sub(r'\s+', ' ', text).strip()` for collapsing whitespace in Python, bypassing regex compilation
 and engine overhead. **Action:** Prefer `' '.join(text.split())` over `re.sub` for normalizing
 whitespace when exact space/tab/newline distinctions aren't required.
+
+## 2024-06-16 - Fast Line Counting
+
+**Learning:** When needing only the line count of a string, `len(text.splitlines())` eagerly
+allocates a list of all lines in memory, causing unnecessary overhead.
+
+**Action:** Use `text.count('\n') + (1 if text and not text.endswith('\n') else 0)` which is
+significantly faster and avoids allocating an intermediate list.
