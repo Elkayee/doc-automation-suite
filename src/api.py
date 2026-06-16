@@ -116,9 +116,10 @@ def compile_workspace(req: CompileRequest):
     build_dir = workspace_dir / "build"
     build_dir.mkdir(exist_ok=True)
 
-    final_md_out = Path(req.md_out) if req.md_out else build_dir / "assembled.md"
-    final_docx_out = Path(req.docx_out) if req.docx_out else build_dir / f"{workspace_dir.name}.docx"
-    final_cache_dir = Path(req.cache_dir) if req.cache_dir else build_dir / "img_cache"
+    # 🛡️ Sentinel: Securely resolve output paths to prevent path traversal outside build directory
+    final_md_out = _secure_resolve(build_dir, req.md_out) if req.md_out else build_dir / "assembled.md"
+    final_docx_out = _secure_resolve(build_dir, req.docx_out) if req.docx_out else build_dir / f"{workspace_dir.name}.docx"
+    final_cache_dir = _secure_resolve(build_dir, req.cache_dir) if req.cache_dir else build_dir / "img_cache"
 
     final_cache_dir.mkdir(exist_ok=True)
 
