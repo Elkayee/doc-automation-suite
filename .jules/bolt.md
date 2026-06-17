@@ -13,3 +13,13 @@ document. This avoids allocating the rest of the string into thousands of smalle
 `re.sub(r'\s+', ' ', text).strip()` for collapsing whitespace in Python, bypassing regex compilation
 and engine overhead. **Action:** Prefer `' '.join(text.split())` over `re.sub` for normalizing
 whitespace when exact space/tab/newline distinctions aren't required.
+
+## 2024-06-13 - Safe Zero-Allocation Regex Slicing
+
+**Learning:** Bounding the length of a string slice (`text[max(0, start-200):start]`) prevents
+O(N^2) memory leaks but causes destructive context loss if whitespace exceeds the bounds.
+Furthermore, Python's `re.search` with `$` and `\Z` anchors ignores the `endpos` parameter, making
+bounded regex suffix checks fail. **Action:** Achieve zero-allocation O(1) performance safely by
+manually walking backwards over unbounded whitespace arrays to locate the true end of the string,
+and only extracting a small trailing context window slice once the exact alphanumeric text boundary
+is located.

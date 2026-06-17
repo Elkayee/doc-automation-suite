@@ -249,27 +249,57 @@ class MarkdownUtils:
             return word
         return word.lower()
 
-    @staticmethod
-    def _sentence_start_kind(text, start):
-        prefix = text[:start]
-        if re.search(r'\n\s*\n\s*$', prefix):
+    STRUCTURAL_RE_1 = re.compile(r'(?:[-*+]\s+|\d+\.\s+)?[*_`~>#\[\]()\s]*')
+    STRUCTURAL_RE_2 = re.compile(r'(?:[-*+]\s+|\d+\.\s+)?\*\*[^*]+\*\*\s*')
+    COLON_EXCLUDE_RE = re.compile(r'\b\d+\s+\w+$', re.UNICODE)
+    PUNCT_SUFFIX_RE = re.compile(r'[.!?]["”’)\]]*$')
+    COLON_SUFFIX_RE = re.compile(r':\s*[“"\'‘]$')
+
+    @classmethod
+    def _sentence_start_kind(cls, text, start):
+        # ⚡ Bolt: Prevent O(N^2) memory allocations by avoiding `text[:start]` string copying.
+        # We manually skip unbounded trailing whitespace to avoid regex `$` anchoring bugs with `endpos`,
+        # completely solving "loss of context" issues for large document gaps. We then safely slice
+        # only the 200 character suffix of the actual stripped words for O(1) punctuation validation.
+        stripped_end = start
+        has_double_newline = False
+        consecutive_newlines = 0
+
+        i = start - 1
+        while i >= 0 and text[i].isspace():
+            if text[i] == '\n':
+                consecutive_newlines += 1
+                if consecutive_newlines >= 2:
+                    has_double_newline = True
+            i -= 1
+
+        stripped_end = i + 1
+
+        if has_double_newline:
             return 'punct'
-        stripped = prefix.rstrip()
-        if not stripped:
+
+        if stripped_end == 0:
             return 'structural'
-        if re.fullmatch(r'(?:[-*+]\s+|\d+\.\s+)?[*_`~>#\[\]()\s]*', stripped):
+
+        if cls.STRUCTURAL_RE_1.fullmatch(text, 0, stripped_end):
             return 'structural'
-        if re.fullmatch(r'(?:[-*+]\s+|\d+\.\s+)?\*\*[^*]+\*\*\s*', stripped):
+        if cls.STRUCTURAL_RE_2.fullmatch(text, 0, stripped_end):
             return 'structural'
-        if stripped.endswith(':'):
-            prefix_before_colon = stripped[:-1].rstrip()
-            if re.search(r'\b\d+\s+\w+$', prefix_before_colon, re.UNICODE):
+
+        suffix = text[max(0, stripped_end - 200):stripped_end]
+
+        if suffix.endswith(':'):
+            prefix_before_colon = suffix[:-1].rstrip()
+            if cls.COLON_EXCLUDE_RE.search(prefix_before_colon):
                 return None
             return 'colon'
-        if re.search(r'[.!?]["”’)\]]*$', stripped):
+
+        if cls.PUNCT_SUFFIX_RE.search(suffix):
             return 'punct'
-        if re.search(r':\s*[“"\'‘]$', stripped):
+
+        if cls.COLON_SUFFIX_RE.search(suffix):
             return 'colon'
+
         return None
 
     @classmethod
