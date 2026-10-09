@@ -11,6 +11,7 @@
     "lint": "prettier --check \"**/*.{json,md}\""
   },
   "prettier": {
+    "endOfLine": "auto",
     "printWidth": 100,
     "proseWrap": "always",
     "singleQuote": true,
