@@ -29,6 +29,39 @@ class MarkdownUtils:
     }
 
     @staticmethod
+    def split_table_row(line):
+        text = line.strip()
+        if text.startswith('|'):
+            text = text[1:]
+        cells, current = [], []
+        code = 0
+        i = 0
+        while i < len(text):
+            char = text[i]
+            if char == '\\' and i + 1 < len(text) and text[i + 1] == '|':
+                current.append('|')
+                i += 2
+                continue
+            if char == '`':
+                end = i + 1
+                while end < len(text) and text[end] == '`':
+                    end += 1
+                run = end - i
+                code = run if not code else (0 if code == run else code)
+                current.append(text[i:end])
+                i = end
+                continue
+            if char == '|' and not code:
+                cells.append(''.join(current).strip())
+                current = []
+            else:
+                current.append(char)
+            i += 1
+        if current or not text.endswith('|'):
+            cells.append(''.join(current).strip())
+        return cells
+
+    @staticmethod
     def strip_md_links(text):
         return re.sub(r'\[([^\]]+)\]\([^)]*\)', r'\1', text)
 

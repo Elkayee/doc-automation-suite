@@ -4,44 +4,27 @@ Doc Automation Suite - CLI entrypoint.
 
 import argparse
 import importlib.util
-import os
 import subprocess
 import sys
 from pathlib import Path
 
 sys.stdout.reconfigure(encoding='utf-8')
 
-from src.core.assembler import DocumentAssembler
-from src.core.docx_builder import DocxBuilder
+from src.core.export import compile_document
 
 BASE = Path(__file__).resolve().parent
 
 
-def run_build_pipeline(workspace_dir: Path, md_out: Path, docx_out: Path, img_cache: Path):
-    os.makedirs(img_cache, exist_ok=True)
-
-    print('=' * 55)
-    print(f'BUOC 1: Ghep chapters -> MD tai {workspace_dir.name}')
-    print('=' * 55)
-
-    assembler = DocumentAssembler(workspace_dir)
-    final_md, chapter_files = assembler.save_assembled_for_export(md_out)
-
-    kb = len(final_md.encode('utf-8')) // 1024
-    print(f'\n  => {md_out}')
-    print(f'     {len(final_md.splitlines())} dong | {kb} KB | {len(chapter_files)} chapters\n')
-
-    print('=' * 55)
-    print('BUOC 2: Convert MD -> DOCX')
-    print('=' * 55)
-
-    builder = DocxBuilder(workspace_dir)
-    builder.build_from_markdown(str(md_out), img_cache)
-    builder.save(docx_out)
-
-    size = os.path.getsize(docx_out) // 1024
-    print(f'\n[DONE] {docx_out}  ({size} KB)')
-    return docx_out
+def run_build_pipeline(workspace_dir: Path, md_out: Path, docx_out: Path, img_cache: Path,
+                       formats=('docx',), mode='draft', engine='auto'):
+    result = compile_document(workspace_dir, md_out=md_out, docx_out=docx_out,
+                              cache_dir=img_cache, formats=formats, mode=mode, engine=engine)
+    print(f'[DONE] {result.compiled_docx}')
+    if result.compiled_pdf:
+        print(f'[PDF] {result.compiled_pdf}')
+    for warning in result.warnings:
+        print(f'[WARN] {warning}')
+    return Path(result.compiled_docx)
 
 
 def run_test_suite():
@@ -62,6 +45,9 @@ def parse_args(argv=None):
     build_parser.add_argument('--md-out', help='File output Markdown')
     build_parser.add_argument('--docx-out', help='File output DOCX')
     build_parser.add_argument('--img-cache', help='Thu muc cache anh')
+    build_parser.add_argument('--format', dest='formats', action='append', choices=['docx', 'pdf'])
+    build_parser.add_argument('--final', action='store_true')
+    build_parser.add_argument('--engine', choices=['auto', 'builtin', 'academic'], default='auto')
 
     subparsers.add_parser('test', help='Run automated test suite')
 
@@ -83,7 +69,8 @@ def main(argv=None):
     docx = Path(args.docx_out) if args.docx_out else ws / f'{ws.name}.docx'
     cache = Path(args.img_cache) if args.img_cache else ws / '.diagram_cache'
 
-    run_build_pipeline(ws, md, docx, cache)
+    run_build_pipeline(ws, md, docx, cache, formats=args.formats or ('docx',),
+                       mode='final' if args.final else 'draft', engine=args.engine)
     return 0
 
 

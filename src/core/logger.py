@@ -1,10 +1,12 @@
 import logging
 import sys
 from pathlib import Path
+from src.core.runtime import data_root
 
 # Setup base directory for log files
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
-LOG_FILE = BASE_DIR / 'doc_suite.log'
+LOG_FILE = data_root(BASE_DIR) / 'doc_suite.log'
+LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
 
 class CustomFormatter(logging.Formatter):
     """Custom formatter providing professional visual output for console logging."""
@@ -40,8 +42,8 @@ def get_logger(name: str = "doc-suite") -> logging.Logger:
 
     logger.setLevel(logging.DEBUG)
 
-    # 1. Console Handler (Standard Output, Info and above)
-    console_handler = logging.StreamHandler(sys.stdout)
+    # Keep stdout available for machine-readable CLI results.
+    console_handler = logging.StreamHandler(sys.stderr)
     console_handler.setLevel(logging.INFO)
     console_handler.setFormatter(CustomFormatter())
     logger.addHandler(console_handler)

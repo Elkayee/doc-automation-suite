@@ -1,16 +1,19 @@
 import re
 import unicodedata
+from itertools import chain
 from pathlib import Path
 
 from docx.enum.section import WD_ORIENTATION
 from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT, WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK
-from docx.oxml import OxmlElement
+from docx.opc.oxml import serialize_part_xml
+from docx.oxml import OxmlElement, parse_xml
 from docx.oxml.ns import qn
 from docx.shared import Cm, Emu, Inches, Pt, RGBColor
 
 from src.core.markdown_image import MarkdownImage
 from src.core.media_downloader import MediaDownloader
+from src.core.report_fields import add_caption
 
 # ── MÀUSẮC ───────────────────────────────────────────────────────────────────
 COLOR_H1 = RGBColor(0x1A, 0x3A, 0x5C)
@@ -20,6 +23,28 @@ COLOR_H4 = RGBColor(0x44, 0x9D, 0xD1)
 
 
 class DocxHelpers:
+    @staticmethod
+    def use_black_text(doc):
+        for part in doc.part.package.parts:
+            name = str(part.partname)
+            if not name.startswith('/word/') or not name.endswith('.xml'):
+                continue
+            root = getattr(part, 'element', None)
+            raw_part = root is None
+            if raw_part:
+                root = parse_xml(part.blob)
+            for parent in chain(root.iter(qn('w:r')), root.iter(qn('w:style'))):
+                parent.get_or_add_rPr()
+            changed = False
+            for properties in root.iter(qn('w:rPr')):
+                color = properties.get_or_add_color()
+                color.set(qn('w:val'), '000000')
+                for attribute in ['themeColor', 'themeTint', 'themeShade']:
+                    color.attrib.pop(qn('w:' + attribute), None)
+                changed = True
+            if raw_part and changed:
+                part._blob = serialize_part_xml(root)
+
     EXAM_COVER_LEGACY_TEXT_MAP = {
         'HOC VIEN CONG NGHE BUU CHINH VIEN THONG': 'HỌC VIỆN CÔNG NGHỆ BƯU CHÍNH VIỄN THÔNG',
         'KHOA CONG NGHE THONG TIN 1': 'KHOA CÔNG NGHỆ THÔNG TIN 1',
@@ -212,7 +237,10 @@ class DocxHelpers:
 
     @staticmethod
     def apply_page_settings(doc, settings):
-        sec = doc.sections[0]
+        DocxHelpers.apply_section_settings(doc.sections[0], settings)
+
+    @staticmethod
+    def apply_section_settings(sec, settings):
         width_cm = float(settings.get('page_width_cm', 21.0))
         height_cm = float(settings.get('page_height_cm', 29.7))
         orientation = str(settings.get('orientation', 'portrait')).lower()
@@ -233,7 +261,7 @@ class DocxHelpers:
 
     @staticmethod
     def get_content_frame_size(doc, height_reserve=Cm(1.5)):
-        sec = doc.sections[0]
+        sec = doc.sections[-1]
         # python-docx trả về int thô (EMU) khi trừ 2 Length objects.
         # Cần bọc lại bằng Emu() để có .inches attribute cho tính toán scale.
         max_width = Emu(sec.page_width - sec.left_margin - sec.right_margin)
@@ -565,7 +593,7 @@ class DocxHelpers:
         return (Path(base_dir) / Path(fallback_text)).resolve()
 
     @staticmethod
-    def add_markdown_image(doc, base_dir, md_path, image):
+    def add_markdown_image(doc, base_dir, md_path, image, caption_index=None):
         if isinstance(image, MarkdownImage):
             image_ref = image.path
             caption = image.caption
@@ -593,7 +621,12 @@ class DocxHelpers:
         max_width = Emu(int(max_width * width_fraction))
         DocxHelpers.add_picture_fit(run, image_path, doc, max_width=max_width, max_height=max_height)
         if caption:
-            caption_paragraph = doc.add_paragraph()
+            p.paragraph_format.keep_with_next = True
+            p.paragraph_format.keep_together = True
+            if caption_index is not None:
+                caption_paragraph = add_caption(doc, 'Hình', caption, caption_index, image.identifier)
+            else:
+                caption_paragraph = doc.add_paragraph()
             caption_paragraph.alignment = alignment
             caption_paragraph.paragraph_format.left_indent = Cm(0)
             caption_paragraph.paragraph_format.right_indent = Cm(0)
@@ -601,10 +634,11 @@ class DocxHelpers:
             caption_paragraph.paragraph_format.space_before = Pt(0)
             caption_paragraph.paragraph_format.space_after = Pt(8)
             caption_paragraph.paragraph_format.line_spacing = 1.0
-            run = caption_paragraph.add_run(caption)
-            run.font.name = 'Times New Roman'
-            run.font.size = Pt(12)
-            run.italic = True
+            if caption_index is None:
+                run = caption_paragraph.add_run(caption)
+                run.font.name = 'Times New Roman'
+                run.font.size = Pt(12)
+                run.italic = True
 
     @staticmethod
     def add_page_break(doc):

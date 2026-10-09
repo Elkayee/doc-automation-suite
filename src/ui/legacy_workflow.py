@@ -16,12 +16,14 @@ import split_chapters
 from convert_docx_to_md import convert_docx_to_markdown
 from src.core.assembler import DocumentAssembler
 from src.core.docx_builder import DocxBuilder
+from src.core.runtime import data_root
 from src.ui.preview_utils import PreviewUtils
 
-sys.stdout.reconfigure(encoding='utf-8')
+if sys.stdout is not None:
+    sys.stdout.reconfigure(encoding='utf-8')
 
 # ── CONFIG ───────────────────────────────────────────────────────────────────
-BASE = Path(__file__).resolve().parent
+BASE = data_root(Path(__file__).resolve().parent)
 CH_DIR = str(BASE / 'chapters')
 MD_OUT = str(BASE / 'Bao_Cao_Tieu_Luan_NMCNPM.md')
 DOCX_OUT = str(BASE / 'Bao_Cao_Tieu_Luan_NMCNPM.docx')
@@ -124,7 +126,6 @@ def ensure_output_docx_closed(docx_out):
         ) from exc
 
 
-
 def assemble_markdown(chapter_dir, output_path):
     assembler = DocumentAssembler(Path(chapter_dir).parent)
     final, processed_files = assembler.save_assembled_for_export(Path(output_path))
@@ -163,6 +164,7 @@ def step_assemble():
 # ── Parser MD → DOCX ─────────────────────────────────────────────────────────
 # Removed duplicate parsing logic, now using src.core.docx_builder
 
+
 def step_convert(md_out=MD_OUT, docx_out=DOCX_OUT, img_cache=IMG_CACHE):
     print('=' * 55)
     print('BƯỚC 2: Convert MD → DOCX')
@@ -171,7 +173,7 @@ def step_convert(md_out=MD_OUT, docx_out=DOCX_OUT, img_cache=IMG_CACHE):
     print(f'  Output: {docx_out}')
     print()
 
-    builder = DocxBuilder(BASE) # BASE is the original workspace
+    builder = DocxBuilder(BASE)  # BASE is the original workspace
     builder.build_from_markdown(str(md_out), Path(img_cache))
 
     out = docx_out
@@ -189,9 +191,13 @@ def step_convert(md_out=MD_OUT, docx_out=DOCX_OUT, img_cache=IMG_CACHE):
 
 
 def run_build_pipeline(chapters_dir=CH_DIR, md_out=MD_OUT, docx_out=DOCX_OUT, img_cache=IMG_CACHE):
+    workspace = Path(chapters_dir).resolve().parent
+    if (workspace / 'config.yaml').is_file():
+        from src.core.export import compile_document
+
+        result = compile_document(workspace, md_out=Path(md_out), docx_out=Path(docx_out), cache_dir=Path(img_cache))
+        return Path(result.compiled_docx)
     os.makedirs(img_cache, exist_ok=True)
-    print('  [INFO] Dang xoa cache anh cu de lay du lieu render/API moi...')
-    clear_image_cache(img_cache)
     print('=' * 55)
     print('BƯỚC 1: Ghép chapters → MD')
     print('=' * 55)
@@ -203,28 +209,25 @@ def run_build_pipeline(chapters_dir=CH_DIR, md_out=MD_OUT, docx_out=DOCX_OUT, im
     return Path(saved_path)
 
 
-def launch_workflow_ui():
+def launch_workflow_ui(parent=None):
     import tkinter as tk
     from tkinter import filedialog, messagebox, ttk
 
-    root = tk.Tk()
-    root.title('NMCNPM Workflow')
+    root = tk.Toplevel(parent) if parent is not None else tk.Tk()
+    root.title('Công cụ chuyển đổi — Doc Automation Suite')
     root.geometry('1400x720')  # Rộng hơn để chứa live preview panel
     root.configure(bg='#f3efe5')
 
-    style = ttk.Style()
-    style.theme_use('clam')
-    style.configure('TFrame', background='#f3efe5')
-    style.configure('TLabel', background='#f3efe5', foreground='#2b241b', font=('Georgia', 11))
-    style.configure('Header.TLabel', background='#f3efe5', foreground='#1f3f5b', font=('Georgia', 18, 'bold'))
-    style.configure('TButton', font=('Georgia', 10, 'bold'))
-    style.configure('TNotebook', background='#f3efe5', borderwidth=0)
-    style.configure('TNotebook.Tab', font=('Georgia', 10, 'bold'))
+    from src.ui.theme import BACKGROUND, apply_theme
+
+    root.configure(bg=BACKGROUND)
+    if parent is None:
+        apply_theme(root)
 
     container = ttk.Frame(root, padding=18)
     container.pack(fill='both', expand=True)
 
-    ttk.Label(container, text='NMCNPM Report Workflow', style='Header.TLabel').pack(anchor='w')
+    ttk.Label(container, text='Chuyển đổi và ghép tài liệu', style='Title.TLabel').pack(anchor='w')
     ttk.Label(
         container,
         text='Thiết lập đường dẫn và chạy các bước build, split, convert ngay trong một UI cục bộ.',
@@ -569,11 +572,9 @@ img { max-width: 100%; }
         ),
     ).pack(anchor='w', pady=(14, 0))
 
-    messagebox.showinfo(
-        'NMCNPM Workflow',
-        'UI đã sẵn sàng. Bạn có thể thiết lập đường dẫn file/folder và chạy từng bước ngay tại đây.',
-    )
-    root.mainloop()
+    if parent is None:
+        root.mainloop()
+    return root
 
 
 def run_ui_action(root, log, action, success_message):

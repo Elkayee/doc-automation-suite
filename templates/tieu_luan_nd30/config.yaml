@@ -1,5 +1,5 @@
-name: "Tiểu Luận (Chuẩn Nghị định 30)"
-description: "Mẫu báo cáo tiểu luận chuẩn font Times New Roman, dãn dòng 1.5, thụt lề 1.27cm."
+name: "Tiểu luận (mẫu cơ bản)"
+description: "Mẫu tiểu luận Times New Roman, dãn dòng 1.5, thụt lề 1.27cm; chỉnh theo yêu cầu của đơn vị."
 type: "report"
 docx_template: "template.docx"
 required_files:

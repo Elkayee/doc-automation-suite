@@ -1,0 +1,17 @@
+name: 'Biên bản'
+description: 'Khung biên bản cuộc họp hoặc làm việc, không áp đặt quy định của từng đơn vị.'
+type: office
+docx_template: template.docx
+required_files: [Ch01_Bien_Ban.md]
+metadata_fields:
+  title: Tên biên bản
+  organization: Đơn vị
+  author: Người lập
+  date: Ngày lập
+required_metadata: [title, author]
+chapter_outline: [Thành phần, Nội dung, Kết luận, Xác nhận]
+settings:
+  font_name: Times New Roman
+  font_size: 13
+  report_fields: true
+  numbered_captions: true

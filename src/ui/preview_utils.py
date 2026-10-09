@@ -256,13 +256,13 @@ class PreviewUtils:
             return None
         cells = [
             MarkdownUtils.strip_md_markup(MarkdownUtils.normalize_html_breaks(cell.strip(), ' '))
-            for cell in line.strip().strip('|').split('|')
+            for cell in MarkdownUtils.split_table_row(line)
         ]
         return cells
 
     @staticmethod
     def is_markdown_table_separator(line):
-        cells = [cell.strip() for cell in line.strip().strip('|').split('|')]
+        cells = MarkdownUtils.split_table_row(line)
         return bool(cells) and all(cell and set(cell) <= {'-', ':'} for cell in cells)
 
     @staticmethod
@@ -288,13 +288,38 @@ class PreviewUtils:
                 i += 1
                 continue
 
+            if stripped.startswith('```'):
+                code = []
+                i += 1
+                while i < len(lines) and not lines[i].strip().startswith('```'):
+                    code.append(lines[i])
+                    i += 1
+                i += 1
+                blocks.append({'type': 'code', 'text': '\n'.join(code),
+                               'anchor_id': cls._anchor_id(filename, start_line) if filename else None,
+                               'line_number': start_line})
+                continue
+
+            field_names = {'[[COVER]]': 'cover', '[[TOC]]': 'toc', '[[REFERENCES]]': 'references',
+                           '[[FIGURES]]': 'figures', '[[TABLES]]': 'tables', '[[BODY]]': 'page_break',
+                           '[[PAGEBREAK]]': 'page_break', '[[LANDSCAPE]]': 'page_break', '[[PORTRAIT]]': 'page_break'}
+            caption = re.match(r'^\[\[TABLE:\s*([A-Za-z][A-Za-z0-9_]*)\s*\|\s*(.+?)\]\]$', stripped)
+            if stripped in field_names or caption:
+                blocks.append({'type': 'document_field', 'field': field_names.get(stripped, 'table_caption'),
+                               'text': caption.group(2) if caption else '',
+                               'identifier': caption.group(1) if caption else '',
+                               'anchor_id': cls._anchor_id(filename, start_line) if filename else None,
+                               'line_number': start_line})
+                i += 1
+                continue
+
             heading = re.match(r'^(#{1,6})\s+(.*)', stripped)
             if heading:
                 blocks.append(
                     {
                         'type': 'heading',
                         'level': len(heading.group(1)),
-                        'segments': cls.inline_segments_to_preview_spans(heading.group(2).strip()),
+                        'segments': cls.inline_segments_to_preview_spans(re.sub(r'\s+\{#[^}]+\}$', '', heading.group(2).strip())),
                         'anchor_id': cls._anchor_id(filename, start_line) if filename else None,
                         'line_number': start_line,
                     }
@@ -519,11 +544,30 @@ class PreviewUtils:
     @classmethod
     def _render_block_html(cls, block, workspace_dir: Path, md_path: Path, metrics):
         anchor_attr = f' id="{block["anchor_id"]}"' if block.get('anchor_id') else ''
+        if block['type'] == 'code':
+            return f'<pre{anchor_attr}><code>{html_lib.escape(block["text"])}</code></pre>'
+        if block['type'] == 'document_field':
+            field = block['field']
+            if field == 'cover':
+                metadata = metrics.get('metadata', {})
+                title = html_lib.escape(metadata.get('title') or 'Chưa nhập tên báo cáo')
+                organization = html_lib.escape(metadata.get('organization') or '')
+                author = html_lib.escape(metadata.get('author') or '')
+                return f'<div class="block"{anchor_attr}><p>{organization}</p><h1>{title}</h1><p>{author}</p></div>'
+            labels = {'toc': 'Mục lục được cập nhật trong bản PDF hoặc bản nộp.',
+                      'references': 'Tài liệu tham khảo được tạo từ các nguồn đã trích dẫn.',
+                      'figures': 'Danh mục hình được cập nhật khi xuất.', 'tables': 'Danh mục bảng được cập nhật khi xuất.',
+                      'page_break': 'Ngắt trang / chuyển phần', 'table_caption': 'Bảng: ' + block.get('text', '')}
+            return f'<div class="block"{anchor_attr}><p><i>{html_lib.escape(labels[field])}</i></p></div>'
         if block['type'] == 'heading':
             level = min(block.get('level', 2), 6)
             return f'<div class="block heading-block"{anchor_attr}><h{level}>{cls._segments_html(block["segments"])}</h{level}></div>'
         if block['type'] == 'paragraph':
-            return f'<div class="block paragraph-block"{anchor_attr}><p>{cls._segments_html(block["segments"])}</p></div>'
+            content = cls._segments_html(block['segments'])
+            content = re.sub(r'\[\[REF:\s*([A-Za-z][A-Za-z0-9_]*)\s*\]\]',
+                             lambda match: html_lib.escape(metrics.get('references', {}).get(match.group(1),
+                                                          'Chưa tìm thấy tham chiếu: ' + match.group(1))), content)
+            return f'<div class="block paragraph-block"{anchor_attr}><p>{content}</p></div>'
         if block['type'] == 'quote':
             return f'<div class="block quote-block"{anchor_attr}><blockquote>{cls._segments_html(block["segments"])}</blockquote></div>'
         if block['type'] == 'list_item':
@@ -577,6 +621,18 @@ class PreviewUtils:
     @classmethod
     def render_paginated_html_document(cls, entries, workspace_dir: Path, config, css_text=''):
         metrics = cls._page_metrics(config)
+        metrics['metadata'] = getattr(config, 'metadata', {}) if config else {}
+        metrics['references'] = {}
+        image_count = table_count = 0
+        for entry in entries:
+            for block in cls.markdown_to_preview_blocks(entry.content, filename=entry.filename):
+                if block['type'] == 'image' and block['image'].caption:
+                    image_count += 1
+                    if block['image'].identifier:
+                        metrics['references'][block['image'].identifier] = f'Hình {image_count}'
+                if block['type'] == 'document_field' and block['field'] == 'table_caption':
+                    table_count += 1
+                    metrics['references'][block['identifier']] = f'Bảng {table_count}'
         anchors_by_file = {}
         page_sections = []
         current_blocks = []
@@ -626,9 +682,18 @@ class PreviewUtils:
             f'--body-font-size:{metrics["font_size"]}px;'
             '}'
         )
+        # Tkhtml supports CSS 2.1; these literal rules avoid reliance on CSS variables.
+        dynamic_css += (
+            'body{background:#f3f4f6;color:#26384a;font-family:"Times New Roman",serif;font-size:14px;}'
+            '.document-shell{padding:10px;}.page{background:white;padding:18px;margin-bottom:14px;}'
+            'h1{font-size:21px;color:#27486d;}h2{font-size:18px;color:#27486d;}h3{font-size:16px;}'
+            'p{margin-top:6px;margin-bottom:10px;line-height:1.45;}'
+            'table{width:100%;border-collapse:collapse;}td,th{border:1px solid #b9c3ce;padding:6px;}'
+            'th{background:#e6eef5;}figcaption{font-size:12px;color:#405970;}'
+        )
         html = (
             '<!DOCTYPE html><html><head><meta charset="utf-8">'
-            f'<style>{dynamic_css}{css_text}</style></head><body><div class="document-shell">'
+            f'<style>{css_text}{dynamic_css}</style></head><body><div class="document-shell">'
             + ''.join(page_sections)
             + '</div></body></html>'
         )

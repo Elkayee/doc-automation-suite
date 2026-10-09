@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+from typing import Literal
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -9,15 +10,20 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
-from src.core.assembler import DocumentAssembler
-from src.core.docx_builder import DocxBuilder
+from src.core.batch import run_batch
+from src.core.export import ExportValidationError, compile_document
 from src.core.logger import logger
 from src.core.template_manager import TemplateManager
+from src.core.project_paths import workspace_path
+from src.core.renderers import renderer_status
+from src.core.runtime import VERSION, data_root, resource_root
+
+BASE_DIR = resource_root()
 
 app = FastAPI(
     title='Doc Automation Suite API',
     description='REST API interface for document assembly and automated rendering pipelines.',
-    version='0.1.0',
+    version=VERSION,
 )
 
 
@@ -26,6 +32,15 @@ class CompileRequest(BaseModel):
     docx_out: str | None = None
     md_out: str | None = None
     cache_dir: str | None = None
+    pdf_out: str | None = None
+    formats: list[Literal['docx', 'pdf']] = ['docx']
+    mode: Literal['draft', 'final'] = 'draft'
+    engine: Literal['auto', 'builtin', 'academic'] = 'auto'
+    metadata: dict | None = None
+
+
+class BatchRequest(BaseModel):
+    jobs: list[CompileRequest]
 
 
 class CreateRequest(BaseModel):
@@ -35,7 +50,13 @@ class CreateRequest(BaseModel):
 
 @app.get('/')
 def read_root():
-    return {'status': 'online', 'service': 'Doc Automation Suite API', 'version': '0.1.0', 'documentation': '/docs'}
+    return {'status': 'online', 'service': 'Doc Automation Suite API', 'version': VERSION, 'documentation': '/docs'}
+
+
+@app.get('/capabilities')
+def capabilities():
+    return {'formats': ['docx', 'pdf'], 'engines': ['auto', 'builtin', 'academic'],
+            'renderers': {name: path is not None for name, path in renderer_status().items()}}
 
 
 @app.get('/templates')
@@ -72,9 +93,12 @@ def _secure_resolve(base_path: Path, sub_path: str) -> Path:
 @app.post('/workspaces/create')
 def create_workspace(req: CreateRequest):
     templates_dir = BASE_DIR / 'templates'
-    workspaces_dir = BASE_DIR / 'workspaces'
+    workspaces_dir = data_root(BASE_DIR) / 'workspaces'
 
-    dest_dir = _secure_resolve(workspaces_dir, req.name)
+    try:
+        dest_dir = workspace_path(workspaces_dir, req.name)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     manager = TemplateManager(templates_dir)
 
@@ -92,7 +116,7 @@ def create_workspace(req: CreateRequest):
 
 @app.post('/workspaces/compile')
 def compile_workspace(req: CompileRequest):
-    workspaces_dir = BASE_DIR / 'workspaces'
+    workspaces_dir = data_root(BASE_DIR) / 'workspaces'
 
     try:
         workspace_dir = _secure_resolve(workspaces_dir, req.workspace_name)
@@ -102,36 +126,42 @@ def compile_workspace(req: CompileRequest):
     if not workspace_dir.exists() or not workspace_dir.is_dir():
         raise HTTPException(status_code=404, detail=f'Workspace path not found: {req.workspace_name}')
 
-    logger.info(f'API: Starting compile pipeline for: {workspace_dir.name}')
-
-    build_dir = workspace_dir / 'build'
-    build_dir.mkdir(exist_ok=True)
-
-    final_md_out = _secure_resolve(workspace_dir, req.md_out) if req.md_out else build_dir / 'assembled.md'
-    final_docx_out = (
-        _secure_resolve(workspace_dir, req.docx_out) if req.docx_out else build_dir / f'{workspace_dir.name}.docx'
-    )
-    final_cache_dir = _secure_resolve(workspace_dir, req.cache_dir) if req.cache_dir else build_dir / 'img_cache'
-
-    final_cache_dir.mkdir(exist_ok=True)
-
     try:
-        # Assemble
-        assembler = DocumentAssembler(workspace_dir)
-        final_md, chapter_files = assembler.save_assembled_for_export(final_md_out)
-
-        # Render
-        builder = DocxBuilder(workspace_dir)
-        builder.build_from_markdown(str(final_md_out), final_cache_dir)
-        builder.save(final_docx_out)
-
-        return {
-            'success': True,
-            'message': 'Compilation successful',
-            'assembled_markdown': str(final_md_out),
-            'compiled_docx': str(final_docx_out),
-            'chapters_processed': len(chapter_files),
-        }
+        result = compile_document(workspace_dir, **_compile_options(req, workspace_dir))
+        return {'message': 'Compilation successful', **result.to_dict()}
+    except HTTPException:
+        raise
+    except ExportValidationError as exc:
+        raise HTTPException(status_code=422, detail=exc.errors) from exc
+    except (ValueError, FileNotFoundError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except PermissionError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
     except Exception as e:
         logger.error(f'API: Compile failed for {workspace_dir.name}: {e}', exc_info=True)
         raise HTTPException(status_code=500, detail=f'Compile failed: {e}')
+
+
+def _compile_options(req, workspace_dir):
+    options = {'formats': req.formats, 'mode': req.mode, 'engine': req.engine, 'metadata': req.metadata}
+    for request_name, core_name in [('docx_out', 'docx_out'), ('md_out', 'md_out'),
+                                   ('pdf_out', 'pdf_out'), ('cache_dir', 'cache_dir')]:
+        path = getattr(req, request_name)
+        if path:
+            options[core_name] = _secure_resolve(workspace_dir, path)
+    return options
+
+
+@app.post('/workspaces/batch')
+def batch_workspaces(req: BatchRequest):
+    base = data_root(BASE_DIR) / 'workspaces'
+    jobs = []
+    for request in req.jobs:
+        try:
+            workspace = _secure_resolve(base, request.workspace_name)
+            jobs.append({'workspace': str(workspace), **_compile_options(request, workspace)})
+        except HTTPException as exc:
+            jobs.append({'workspace': request.workspace_name, '_error': exc.detail})
+    return run_batch(jobs, base_dir=base)

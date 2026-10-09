@@ -9,6 +9,7 @@ class MarkdownImage:
     caption: str = ''
     width: str = '100%'
     align: str = 'center'
+    identifier: str = ''
 
 
 IMAGE_LINE_RE = re.compile(
@@ -31,7 +32,7 @@ def parse_markdown_image_line(line: str) -> MarkdownImage | None:
 
     alt = match.group('alt').strip()
     path = match.group('path').strip()
-    meta = {'caption': '', 'width': '100%', 'align': 'center'}
+    meta = {'caption': '', 'width': '100%', 'align': 'center', 'id': ''}
     meta_text = match.group('meta') or ''
     for key, raw_value in META_TOKEN_RE.findall(meta_text):
         key_lower = key.strip().lower()
@@ -44,9 +45,11 @@ def parse_markdown_image_line(line: str) -> MarkdownImage | None:
         caption=meta['caption'],
         width=meta['width'] or '100%',
         align=(meta['align'] or 'center').lower(),
+        identifier=meta['id'],
     )
 
 
-def build_markdown_image(path: str, *, alt: str = '', caption: str = '', width: str = '100%', align: str = 'center') -> str:
+def build_markdown_image(path: str, *, alt: str = '', caption: str = '', width: str = '100%', align: str = 'center', identifier: str = '') -> str:
     safe_caption = caption.replace('"', '\\"')
-    return f'![{alt}]({path}){{caption="{safe_caption}", width={width}, align={align}}}'
+    identifier_token = f', id={identifier}' if identifier else ''
+    return f'![{alt}]({path}){{caption="{safe_caption}", width={width}, align={align}{identifier_token}}}'
