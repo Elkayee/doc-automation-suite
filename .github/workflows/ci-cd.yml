@@ -7,6 +7,14 @@ on:
     branches: [main]
     paths:
       - 'src/**'
+      - 'tests/**'
+      - 'templates/**'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - 'requirements.txt'
+      - 'make.py'
+      - 'main.py'
+      - '.github/workflows/**'
   workflow_dispatch:
 
 concurrency:
@@ -16,7 +24,10 @@ concurrency:
 jobs:
   ci-cd:
     if: ${{ !contains(github.actor, '[bot]') && github.actor != 'dependabot[bot]' }}
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -43,7 +54,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          uv sync
+          uv sync --locked
           npm ci
 
       - name: Lint Python

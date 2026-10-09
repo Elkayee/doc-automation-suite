@@ -1,3 +1,4 @@
+import hashlib
 import os
 import struct
 import time
@@ -6,6 +7,7 @@ from urllib.parse import quote
 
 import requests
 
+from src.core.file_io import atomic_write
 from src.core.logger import logger
 
 
@@ -82,16 +84,16 @@ class MediaDownloader:
     def render_plantuml(cls, code, idx, img_cache):
         cache_dir = Path(img_cache)
         cache_dir.mkdir(parents=True, exist_ok=True)
-        cache_file = cache_dir / f'diagram_{idx:03d}.png'
+        url = cls.plantuml_png_url(code)
+        cache_file = cache_dir / f'diagram_{hashlib.sha256(url.encode()).hexdigest()}.png'
         if cache_file.exists():
             logger.info(f'Using cached PlantUML diagram_{idx:03d}.png')
             return str(cache_file)
         try:
             logger.info(f'Rendering PlantUML diagram {idx}...')
-            url = cls.plantuml_png_url(code)
             response = requests.get(url, timeout=30)
             if response.status_code == 200 and response.headers.get('content-type', '').startswith('image'):
-                cache_file.write_bytes(response.content)
+                atomic_write(cache_file, response.content)
                 logger.info(f'Successfully rendered and saved diagram {idx} to {cache_file}')
                 time.sleep(0.5)
                 return str(cache_file)
@@ -105,17 +107,17 @@ class MediaDownloader:
     def render_latex(latex_code, idx, img_cache):
         cache_dir = Path(img_cache)
         cache_dir.mkdir(parents=True, exist_ok=True)
-        cache_file = cache_dir / f'math_{idx:03d}.png'
+        encoded = quote(latex_code, safe='')
+        url = f'https://latex.codecogs.com/png.image?\\dpi{{150}}{encoded}'
+        cache_file = cache_dir / f'math_{hashlib.sha256(url.encode()).hexdigest()}.png'
         if cache_file.exists():
             logger.info(f'Using cached LaTeX formula math_{idx:03d}.png')
             return str(cache_file)
         try:
             logger.info(f'Rendering LaTeX math formula {idx}...')
-            encoded = quote(latex_code, safe='')
-            url = f'https://latex.codecogs.com/png.image?\\dpi{{150}}{encoded}'
             response = requests.get(url, timeout=15)
             if response.status_code == 200 and response.headers.get('content-type', '').startswith('image'):
-                cache_file.write_bytes(response.content)
+                atomic_write(cache_file, response.content)
                 logger.info(f'Successfully rendered and saved LaTeX formula math_{idx:03d}.png')
                 return str(cache_file)
             logger.warning(f'Codecogs LaTeX API returned status {response.status_code} for formula {idx}')

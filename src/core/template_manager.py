@@ -30,6 +30,9 @@ class TemplateManager:
         if not template_path.exists() or not (template_path / 'config.yaml').exists():
             raise ValueError(f"Invalid template ID: {template_id}")
 
+        if dest_dir.exists() and (not dest_dir.is_dir() or any(dest_dir.iterdir())):
+            raise FileExistsError(f'Dự án đã có dữ liệu: {dest_dir.name}')
+
         # Create destination directory
         dest_dir.mkdir(parents=True, exist_ok=True)
 

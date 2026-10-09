@@ -44,7 +44,6 @@ skills/**/*.dot
 skills/**/*.js
 chapters/
 image/
-AGENTS.md
 CLAUDE.md
 GEMINI.md
 workspaces/
@@ -89,3 +88,6 @@ build/
 # OSX
 .DS_Store
 .jules/palette.md
+
+# Local Windows release verification
+artifacts/windows-acceptance/

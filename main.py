@@ -1,25 +1,37 @@
-import sys
+import ctypes
+import logging
 import tkinter as tk
-from pathlib import Path
+from tkinter import messagebox
+
+from src.core.runtime import data_root, resource_root
 
 
 def main():
-    # Install dependencies if needed
-    try:
-        import docx  # noqa: F401
-        import yaml  # noqa: F401
-    except ImportError as e:
-        missing_module = str(e).split("'")[1] if "'" in str(e) else "a required module"
-        print(f"Missing {missing_module}. Please run: pip install -r requirements.txt")
-        sys.exit(1)
-
-    # Start Dashboard
-    from src.ui.dashboard import DashboardApp
-
+    if hasattr(ctypes, 'windll'):
+        ctypes.windll.shcore.SetProcessDpiAwareness(1)
+    logs = data_root() / 'logs'
+    logs.mkdir(parents=True, exist_ok=True)
+    logging.basicConfig(filename=logs / 'application.log', encoding='utf-8', level=logging.INFO)
     root = tk.Tk()
-    _app = DashboardApp(root, Path(__file__).resolve().parent)
+    root.withdraw()
+
+    def report_error(exc_type, exc_value, traceback):
+        logging.error('Application error', exc_info=(exc_type, exc_value, traceback))
+        messagebox.showerror('Không thực hiện được', f'{exc_value}\n\nNhật ký: {logs / "application.log"}', parent=root)
+
+    root.report_callback_exception = report_error
+    try:
+        from src.ui.dashboard import DashboardApp
+
+        DashboardApp(root, resource_root())
+    except Exception as exc:
+        logging.exception('Startup failed')
+        messagebox.showerror('Không mở được ứng dụng', f'{exc}\n\nNhật ký: {logs / "application.log"}', parent=root)
+        root.destroy()
+        return
+    root.deiconify()
     root.mainloop()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

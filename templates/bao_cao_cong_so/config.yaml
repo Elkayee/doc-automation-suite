@@ -1,0 +1,22 @@
+name: 'Báo cáo công sở'
+description: 'Báo cáo kết quả, số liệu, vấn đề và đề xuất; có thể chỉnh theo mẫu của đơn vị.'
+type: office
+docx_template: template.docx
+required_files: [F00_header.md, F01_toc.md, Ch01_Tom_Tat.md, Ch02_Ket_Qua.md, Ch03_De_Xuat.md]
+metadata_fields:
+  title: Tên báo cáo
+  organization: Đơn vị
+  department: Bộ phận
+  author: Người lập
+  recipient: Người nhận
+  period: Kỳ báo cáo
+  date: Ngày báo cáo
+required_metadata: [title, author, organization]
+chapter_outline: [Mục tiêu, Kết quả thực hiện, Số liệu và minh chứng, Vấn đề, Đề xuất]
+settings:
+  font_name: Times New Roman
+  font_size: 13
+  line_spacing_mode: multiple
+  line_spacing_value: 1.3
+  numbered_captions: true
+  report_fields: true

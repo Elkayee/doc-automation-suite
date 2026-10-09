@@ -11,6 +11,7 @@ from docx.shared import Cm, Emu, Inches, Pt, RGBColor
 
 from src.core.markdown_image import MarkdownImage
 from src.core.media_downloader import MediaDownloader
+from src.core.report_fields import add_caption
 
 # ── MÀUSẮC ───────────────────────────────────────────────────────────────────
 COLOR_H1 = RGBColor(0x1A, 0x3A, 0x5C)
@@ -212,7 +213,10 @@ class DocxHelpers:
 
     @staticmethod
     def apply_page_settings(doc, settings):
-        sec = doc.sections[0]
+        DocxHelpers.apply_section_settings(doc.sections[0], settings)
+
+    @staticmethod
+    def apply_section_settings(sec, settings):
         width_cm = float(settings.get('page_width_cm', 21.0))
         height_cm = float(settings.get('page_height_cm', 29.7))
         orientation = str(settings.get('orientation', 'portrait')).lower()
@@ -233,7 +237,7 @@ class DocxHelpers:
 
     @staticmethod
     def get_content_frame_size(doc, height_reserve=Cm(1.5)):
-        sec = doc.sections[0]
+        sec = doc.sections[-1]
         # python-docx trả về int thô (EMU) khi trừ 2 Length objects.
         # Cần bọc lại bằng Emu() để có .inches attribute cho tính toán scale.
         max_width = Emu(sec.page_width - sec.left_margin - sec.right_margin)
@@ -565,7 +569,7 @@ class DocxHelpers:
         return (Path(base_dir) / Path(fallback_text)).resolve()
 
     @staticmethod
-    def add_markdown_image(doc, base_dir, md_path, image):
+    def add_markdown_image(doc, base_dir, md_path, image, caption_index=None):
         if isinstance(image, MarkdownImage):
             image_ref = image.path
             caption = image.caption
@@ -593,7 +597,12 @@ class DocxHelpers:
         max_width = Emu(int(max_width * width_fraction))
         DocxHelpers.add_picture_fit(run, image_path, doc, max_width=max_width, max_height=max_height)
         if caption:
-            caption_paragraph = doc.add_paragraph()
+            p.paragraph_format.keep_with_next = True
+            p.paragraph_format.keep_together = True
+            if caption_index is not None:
+                caption_paragraph = add_caption(doc, 'Hình', caption, caption_index, image.identifier)
+            else:
+                caption_paragraph = doc.add_paragraph()
             caption_paragraph.alignment = alignment
             caption_paragraph.paragraph_format.left_indent = Cm(0)
             caption_paragraph.paragraph_format.right_indent = Cm(0)
@@ -601,10 +610,11 @@ class DocxHelpers:
             caption_paragraph.paragraph_format.space_before = Pt(0)
             caption_paragraph.paragraph_format.space_after = Pt(8)
             caption_paragraph.paragraph_format.line_spacing = 1.0
-            run = caption_paragraph.add_run(caption)
-            run.font.name = 'Times New Roman'
-            run.font.size = Pt(12)
-            run.italic = True
+            if caption_index is None:
+                run = caption_paragraph.add_run(caption)
+                run.font.name = 'Times New Roman'
+                run.font.size = Pt(12)
+                run.italic = True
 
     @staticmethod
     def add_page_break(doc):

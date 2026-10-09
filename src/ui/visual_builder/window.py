@@ -1,16 +1,25 @@
+import hashlib
+import json
+import os
+import queue
 import re
+import subprocess
 import sys
+import threading
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, simpledialog, ttk
 
 from src.core.assembler import DocumentAssembler
 from src.core.chapter_settings import ChapterSettings
-from src.core.docx_builder import DocxBuilder
+from src.core.docx_helpers import DocxHelpers
+from src.core.export import compile_document, project_issues
+from src.core.file_io import ExternalEditError, atomic_write, save_chapter
 from src.core.image_assets import ProjectImageAssetService
 from src.core.markdown_image import build_markdown_image, parse_markdown_image_line
 from src.core.markdown_utils import MarkdownUtils
 from src.ui.preview_utils import PreviewUtils
+from src.ui.theme import BACKGROUND, INK
 
 
 class VisualBuilderWindow(tk.Toplevel):
@@ -38,6 +47,14 @@ class VisualBuilderWindow(tk.Toplevel):
         self._preview_sync_after_id = None
         self._watch_after_id = None
         self._known_mtimes: dict[Path, float] = {}
+        self._known_hashes = {}
+        self._export_queue = queue.Queue()
+        self._export_running = False
+        self._export_poll_id = None
+        self._edit_revision = 0
+        self._latest_pdf = None
+        self._pdf_is_stale = False
+        self._last_paned_width = 0
         self._suspend_change_events = False
         self._html_preview_error = None
         self._has_html_preview = False
@@ -46,16 +63,25 @@ class VisualBuilderWindow(tk.Toplevel):
         self._forced_preview_fraction: float | None = None
         self._preview_anchors_by_file: dict[str, list[dict]] = {}
 
-        self.title(f'Visual Builder - {self.project_path.name}')
-        self.geometry('1560x900')
-        self.minsize(1240, 760)
-        self.configure(bg='#f3efe5')
+        self.title(f'{self.project_path.name} — Doc Automation Suite')
+        self.geometry('1280x820')
+        self.minsize(960, 640)
+        self.configure(bg=BACKGROUND)
         self.protocol('WM_DELETE_WINDOW', self._on_close)
 
         self._load_preview_capability()
         self._build_ui()
         self._load_chapter_list()
         self._start_file_watch()
+        self.after_idle(self._layout_panes)
+
+    def _layout_panes(self):
+        width = self.paned.winfo_width()
+        if width < 640 or width == self._last_paned_width:
+            return
+        self._last_paned_width = width
+        self.paned.sashpos(0, max(220, int(width * 0.22)))
+        self.paned.sashpos(1, int(width * 0.60))
 
     def _load_preview_capability(self):
         try:
@@ -68,48 +94,106 @@ class VisualBuilderWindow(tk.Toplevel):
             self._html_preview_error = str(exc)
 
     def _build_ui(self):
-        self.status_var = tk.StringVar(value='Ready')
-        self.current_path_var = tk.StringVar(value='No chapter selected')
+        self.status_var = tk.StringVar(value='Sẵn sàng')
+        self.current_path_var = tk.StringVar(value='Chưa chọn chương')
+        self.final_export_var = tk.BooleanVar(value=False)
         self.search_query_var = tk.StringVar()
         self.search_in_name_var = tk.BooleanVar(value=True)
         self.search_in_content_var = tk.BooleanVar(value=True)
         self.search_case_var = tk.BooleanVar(value=False)
         self.search_whole_word_var = tk.BooleanVar(value=False)
 
-        toolbar = ttk.Frame(self, padding=(12, 10))
+        title_row = ttk.Frame(self, padding=(18, 12, 18, 4))
+        title_row.pack(fill='x')
+        ttk.Label(title_row, text=self.project_path.name, font=('Segoe UI', 16, 'bold')).pack(side='left')
+        ttk.Button(title_row, text='Thông tin báo cáo', command=self.open_report_metadata).pack(side='right')
+
+        toolbar = ttk.Frame(self, padding=(18, 8))
         toolbar.pack(fill='x')
 
-        ttk.Button(toolbar, text='Save', command=self.save_current_file).pack(side='left')
-        ttk.Button(toolbar, text='Refresh', command=self.refresh_preview).pack(side='left', padx=(8, 0))
-        ttk.Button(toolbar, text='New Chapter', command=self.create_chapter).pack(side='left', padx=(16, 0))
-        ttk.Button(toolbar, text='New Subchapter', command=self.create_subchapter).pack(side='left', padx=(8, 0))
-        ttk.Button(toolbar, text='Add Cover', command=self.create_cover_page).pack(side='left', padx=(8, 0))
-        ttk.Button(toolbar, text='Add TOC', command=self.create_table_of_contents).pack(side='left', padx=(8, 0))
-        ttk.Button(toolbar, text='Rename', command=self.rename_chapter).pack(side='left', padx=(8, 0))
-        ttk.Button(toolbar, text='Delete', command=self.delete_chapter).pack(side='left', padx=(8, 0))
-        ttk.Button(toolbar, text='Reformat', command=self.reformat_current_chapter).pack(side='left', padx=(8, 0))
-        ttk.Button(toolbar, text='Insert Image', command=self.insert_image).pack(side='left', padx=(8, 0))
-        ttk.Button(toolbar, text='Project Images', command=self.insert_existing_image).pack(side='left', padx=(8, 0))
-        ttk.Button(toolbar, text='Image Props', command=self.edit_image_at_cursor).pack(side='left', padx=(8, 0))
-        ttk.Button(toolbar, text='Paragraph', command=self.open_paragraph_settings).pack(side='left', padx=(16, 0))
-        ttk.Button(toolbar, text='Margins', command=self.open_page_settings).pack(side='left', padx=(8, 0))
-        ttk.Button(toolbar, text='List Markers', command=self.open_list_marker_settings).pack(side='left', padx=(8, 0))
-        ttk.Button(toolbar, text='Move Up', command=lambda: self.move_selected_chapter(-1)).pack(
-            side='left', padx=(16, 0)
+        ttk.Button(toolbar, text='Lưu', command=self.save_current_file).pack(side='left', padx=(0, 8))
+        groups = [
+            (
+                'Văn bản',
+                [
+                    ('Thông tin báo cáo', self.open_report_metadata),
+                    ('Thêm chương', self.create_chapter),
+                    ('Thêm mục con', self.create_subchapter),
+                    ('Đổi tên', self.rename_chapter),
+                    ('Xóa chương', self.delete_chapter),
+                    ('Đưa lên', lambda: self.move_selected_chapter(-1)),
+                    ('Đưa xuống', lambda: self.move_selected_chapter(1)),
+                    ('Phục hồi bản soạn', self.recover_draft),
+                ],
+            ),
+            (
+                'Chèn',
+                [
+                    ('Tiêu đề', self.insert_heading),
+                    ('In đậm', lambda: self.wrap_selection('**')),
+                    ('In nghiêng', lambda: self.wrap_selection('*')),
+                    ('Bảng', self.insert_table),
+                    ('Hình ảnh', self.insert_image),
+                    ('Ảnh trong dự án', self.insert_existing_image),
+                    ('Thuộc tính ảnh', self.edit_image_at_cursor),
+                    ('Tham chiếu', self.insert_reference),
+                    ('Nguồn trích dẫn', self.add_citation),
+                    ('Công thức Word', self.insert_equation),
+                    ('Trang bìa', self.create_cover_page),
+                    ('Mục lục', self.create_table_of_contents),
+                    ('Danh mục hình', lambda: self._insert_markdown_block('[[FIGURES]]')),
+                    ('Danh mục bảng', lambda: self._insert_markdown_block('[[TABLES]]')),
+                ],
+            ),
+            (
+                'Bố cục',
+                [
+                    ('Đoạn văn', self.open_paragraph_settings),
+                    ('Lề và khổ giấy', self.open_page_settings),
+                    ('Dấu đầu dòng', self.open_list_marker_settings),
+                    ('Định dạng lại chương', self.reformat_current_chapter),
+                    ('Trang ngang', lambda: self._insert_markdown_block('[[LANDSCAPE]]')),
+                    ('Trang dọc', lambda: self._insert_markdown_block('[[PORTRAIT]]')),
+                    ('Làm mới xem trước', self.refresh_preview),
+                    ('Xóa cache', self.clear_diagram_cache),
+                ],
+            ),
+        ]
+        for label, commands in groups:
+            button = ttk.Menubutton(toolbar, text=label)
+            menu = tk.Menu(button, tearoff=False)
+            for title, command in commands:
+                menu.add_command(label=title, command=command)
+            button.configure(menu=menu)
+            button.pack(side='left', padx=4)
+        ttk.Button(toolbar, text='Kiểm tra', command=self.check_document).pack(side='left', padx=8)
+        ttk.Checkbutton(toolbar, text='Bản nộp', variable=self.final_export_var).pack(side='left', padx=4)
+        export_bar = ttk.Frame(self, padding=(18, 0, 18, 10))
+        export_bar.pack(fill='x')
+        ttk.Label(export_bar, text='Xuất tài liệu', style='Section.TLabel').pack(side='left')
+        self.pdf_view_button = ttk.Button(
+            export_bar, text='Xem PDF đã xuất', command=self.open_exported_pdf, state='disabled'
         )
-        ttk.Button(toolbar, text='Move Down', command=lambda: self.move_selected_chapter(1)).pack(
-            side='left', padx=(8, 0)
+        self.pdf_view_button.pack(side='right', padx=4)
+        self.pdf_export_button = ttk.Button(
+            export_bar,
+            text='Xuất Word + PDF',
+            style='Primary.TButton',
+            command=lambda: self.start_export(('docx', 'pdf')),
         )
-        ttk.Button(toolbar, text='Clear Cache', command=self.clear_diagram_cache).pack(side='left', padx=(16, 0))
-        ttk.Button(toolbar, text='Build DOCX', command=self.build_docx).pack(side='right')
+        self.pdf_export_button.pack(side='right', padx=4)
+        self.docx_export_button = ttk.Button(export_bar, text='Xuất Word', command=self.build_docx)
+        self.docx_export_button.pack(side='right', padx=4)
 
         header = ttk.Frame(self, padding=(12, 0, 12, 8))
         header.pack(fill='x')
         ttk.Label(header, textvariable=self.current_path_var).pack(side='left')
         ttk.Label(header, textvariable=self.status_var).pack(side='right')
+        self.export_progress = ttk.Progressbar(header, mode='indeterminate', length=90)
 
         self.paned = ttk.PanedWindow(self, orient=tk.HORIZONTAL)
         self.paned.pack(fill='both', expand=True, padx=12, pady=(0, 12))
+        self.paned.bind('<Configure>', lambda _event: self._layout_panes())
 
         self.nav_frame = ttk.Frame(self.paned, width=320)
         self.editor_frame = ttk.Frame(self.paned, width=560)
@@ -124,25 +208,29 @@ class VisualBuilderWindow(tk.Toplevel):
         self._build_preview()
 
     def _build_navigator(self):
-        ttk.Label(self.nav_frame, text='Project Outline').pack(anchor='w', padx=8, pady=(8, 4))
+        ttk.Label(self.nav_frame, text='CHƯƠNG VÀ MỤC', style='Section.TLabel').pack(anchor='w', padx=8, pady=(8, 10))
 
         button_row = ttk.Frame(self.nav_frame)
         button_row.pack(fill='x', padx=8, pady=(0, 6))
-        ttk.Button(button_row, text='Add', command=self.create_chapter).pack(side='left')
-        ttk.Button(button_row, text='Add Child', command=self.create_subchapter).pack(side='left', padx=(6, 0))
-        ttk.Button(button_row, text='Add Cover', command=self.create_cover_page).pack(side='left', padx=(6, 0))
-        ttk.Button(button_row, text='Add TOC', command=self.create_table_of_contents).pack(side='left', padx=(6, 0))
-        ttk.Button(button_row, text='Rename', command=self.rename_chapter).pack(side='left', padx=(6, 0))
-        ttk.Button(button_row, text='Delete', command=self.delete_chapter).pack(side='left', padx=(6, 0))
+        ttk.Button(button_row, text='Thêm chương', command=self.create_chapter).pack(side='left')
+        ttk.Button(button_row, text='Thêm mục', command=self.create_subchapter).pack(side='left', padx=(6, 0))
 
         list_wrapper = ttk.Frame(self.nav_frame)
         list_wrapper.pack(fill='both', expand=True, padx=8, pady=(0, 10))
 
         self.chapter_listbox = tk.Listbox(
             list_wrapper,
-            font=('Consolas', 10),
+            font=('Segoe UI', 10),
             activestyle='none',
             exportselection=False,
+            background='white',
+            foreground=INK,
+            selectbackground='#e1eaff',
+            selectforeground=INK,
+            relief='flat',
+            highlightthickness=1,
+            highlightbackground='#dce2eb',
+            highlightcolor='#2457d6',
         )
         self.chapter_listbox.pack(side='left', fill='both', expand=True)
         scrollbar = ttk.Scrollbar(list_wrapper, orient='vertical', command=self.chapter_listbox.yview)
@@ -150,7 +238,7 @@ class VisualBuilderWindow(tk.Toplevel):
         self.chapter_listbox.configure(yscrollcommand=scrollbar.set)
         self.chapter_listbox.bind('<<ListboxSelect>>', self._on_chapter_selected)
 
-        search_frame = ttk.LabelFrame(self.nav_frame, text='Advanced Search', padding=8)
+        search_frame = ttk.LabelFrame(self.nav_frame, text='Tìm kiếm', padding=8)
         search_frame.pack(fill='both', expand=False, padx=8, pady=(0, 8))
 
         entry_row = ttk.Frame(search_frame)
@@ -161,17 +249,22 @@ class VisualBuilderWindow(tk.Toplevel):
 
         options_row = ttk.Frame(search_frame)
         options_row.pack(fill='x', pady=(8, 6))
-        ttk.Checkbutton(options_row, text='Filename', variable=self.search_in_name_var).pack(side='left')
-        ttk.Checkbutton(options_row, text='Content', variable=self.search_in_content_var).pack(side='left', padx=(8, 0))
-        ttk.Checkbutton(options_row, text='Case', variable=self.search_case_var).pack(side='left', padx=(8, 0))
-        ttk.Checkbutton(options_row, text='Whole Word', variable=self.search_whole_word_var).pack(
-            side='left', padx=(8, 0)
-        )
+        for index, (label, variable) in enumerate(
+            [
+                ('Tên tệp', self.search_in_name_var),
+                ('Nội dung', self.search_in_content_var),
+                ('Phân biệt HOA', self.search_case_var),
+                ('Từ nguyên', self.search_whole_word_var),
+            ]
+        ):
+            ttk.Checkbutton(options_row, text=label, variable=variable).grid(
+                row=index // 2, column=index % 2, sticky='w'
+            )
 
         action_row = ttk.Frame(search_frame)
         action_row.pack(fill='x', pady=(0, 6))
-        ttk.Button(action_row, text='Search', command=self.run_advanced_search).pack(side='left')
-        ttk.Button(action_row, text='Clear', command=self.clear_search).pack(side='left', padx=(6, 0))
+        ttk.Button(action_row, text='Tìm', command=self.run_advanced_search).pack(side='left')
+        ttk.Button(action_row, text='Xóa tìm kiếm', command=self.clear_search).pack(side='left', padx=(6, 0))
 
         self.search_results_container = ttk.Frame(search_frame)
         self.search_results_container.pack(fill='both', expand=True)
@@ -186,25 +279,47 @@ class VisualBuilderWindow(tk.Toplevel):
         )
         self.search_empty_label.pack(expand=True)
 
-        ttk.Button(self.nav_frame, text='Reload Chapters', command=self._load_chapter_list).pack(
+        ttk.Button(self.nav_frame, text='Nạp lại cây chương', command=self._load_chapter_list).pack(
             fill='x', padx=8, pady=(0, 8)
         )
 
     def _build_editor(self):
-        ttk.Label(self.editor_frame, text='Markdown').pack(anchor='w', padx=8, pady=(8, 4))
+        ttk.Label(self.editor_frame, text='SOẠN NỘI DUNG', style='Section.TLabel').pack(
+            anchor='w', padx=8, pady=(8, 10)
+        )
 
         helper_text = (
-            'Scholar-style draft flow: research question, argument, evidence, analysis, conclusion. '
-            'Use subchapters to break claims into smaller units.'
+            'Soạn theo cây chương. Dùng menu Chèn cho bảng, hình, trích dẫn và công thức; '
+            'xem PDF đã xuất trước khi nộp hoặc in.'
         )
-        ttk.Label(self.editor_frame, text=helper_text, foreground='#666', wraplength=520, justify='left').pack(
-            anchor='w', padx=8, pady=(0, 6)
+        self.editor_help = ttk.Label(
+            self.editor_frame, text=helper_text, foreground='#555', wraplength=380, justify='left'
+        )
+        self.editor_help.pack(anchor='w', padx=8, pady=(0, 6))
+        self.editor_frame.bind(
+            '<Configure>', lambda event: self.editor_help.configure(wraplength=max(160, event.width - 20))
         )
 
         text_wrapper = ttk.Frame(self.editor_frame)
         text_wrapper.pack(fill='both', expand=True, padx=8, pady=(0, 8))
 
-        self.editor_text = tk.Text(text_wrapper, font=('Consolas', 11), wrap='word', undo=True)
+        self.editor_text = tk.Text(
+            text_wrapper,
+            font=('Segoe UI', 11),
+            wrap='word',
+            undo=True,
+            background='white',
+            foreground=INK,
+            insertbackground=INK,
+            padx=16,
+            pady=14,
+            spacing1=3,
+            spacing3=5,
+            relief='flat',
+            highlightthickness=1,
+            highlightbackground='#dce2eb',
+            highlightcolor='#2457d6',
+        )
         self.editor_text.pack(side='left', fill='both', expand=True)
         scrollbar = ttk.Scrollbar(text_wrapper, orient='vertical', command=self.editor_text.yview)
         scrollbar.pack(side='right', fill='y')
@@ -223,9 +338,230 @@ class VisualBuilderWindow(tk.Toplevel):
         self.editor_text.bind('<ButtonRelease-1>', self._schedule_preview_sync)
         self.editor_text.bind('<MouseWheel>', self._schedule_preview_sync)
         self.editor_text.bind('<Configure>', self._schedule_preview_sync)
+        self.editor_text.bind('<Control-s>', lambda _event: (self.save_current_file(), 'break')[-1])
+        self.editor_text.bind('<Control-b>', lambda _event: (self.wrap_selection('**'), 'break')[-1])
+        self.editor_text.bind('<Control-i>', lambda _event: (self.wrap_selection('*'), 'break')[-1])
+
+    def _show_form(self, title, fields, values, submit, button_text='Lưu'):
+        dialog = tk.Toplevel(self)
+        dialog.title(title)
+        dialog.transient(self)
+        frame = ttk.Frame(dialog, padding=16)
+        frame.pack(fill='both', expand=True)
+        variables = {}
+        for row, (key, label) in enumerate(fields.items()):
+            ttk.Label(frame, text=label).grid(row=row, column=0, sticky='w', pady=5, padx=(0, 12))
+            variable = tk.StringVar(value=values.get(key) or '')
+            variables[key] = variable
+            ttk.Entry(frame, textvariable=variable, width=44).grid(row=row, column=1, sticky='ew', pady=5)
+
+        def save():
+            try:
+                submit({key: variable.get().strip() for key, variable in variables.items()})
+            except (ValueError, OSError, json.JSONDecodeError) as exc:
+                messagebox.showerror(title, str(exc), parent=dialog)
+                return
+            dialog.destroy()
+
+        ttk.Button(frame, text=button_text, command=save).grid(row=len(fields), column=1, sticky='e', pady=(14, 0))
+        frame.columnconfigure(1, weight=1)
+        dialog.bind('<Escape>', lambda _event: dialog.destroy())
+        dialog._form_variables = variables
+        return dialog
+
+    def open_report_metadata(self):
+        config = self._get_workspace_config()
+        if not config:
+            return
+        fields = config.metadata_fields or {
+            'title': 'Tên báo cáo',
+            'organization': 'Đơn vị',
+            'author': 'Người lập',
+            'date': 'Ngày báo cáo',
+        }
+        labels = {key: label + (' *' if key in config.required_metadata else '') for key, label in fields.items()}
+
+        def save(values):
+            config.metadata.update({key: value or None for key, value in values.items()})
+            config.save(self.project_path / 'config.yaml')
+            self._edit_revision += 1
+            self._pdf_is_stale = True
+            self.refresh_preview()
+            self._set_status('Đã lưu thông tin báo cáo; dấu * là thông tin cần có cho bản nộp')
+
+        return self._show_form('Thông tin báo cáo', labels, config.metadata, save)
+
+    def wrap_selection(self, marker):
+        if not self.current_file:
+            return
+        try:
+            start, end = self.editor_text.index('sel.first'), self.editor_text.index('sel.last')
+        except tk.TclError:
+            start = end = self.editor_text.index('insert')
+        text = self.editor_text.get(start, end)
+        self.editor_text.delete(start, end)
+        self.editor_text.insert(start, marker + text + marker)
+        self.editor_text.focus_set()
+
+    def insert_heading(self):
+        level = simpledialog.askinteger('Tiêu đề', 'Cấp tiêu đề (1–6):', minvalue=1, maxvalue=6, parent=self)
+        if level is None or not self.current_file:
+            return
+        line = self.editor_text.index('insert linestart')
+        end = self.editor_text.index('insert lineend')
+        text = re.sub(r'^#{1,6}\s+', '', self.editor_text.get(line, end))
+        self.editor_text.delete(line, end)
+        self.editor_text.insert(line, '#' * level + ' ' + text)
+
+    def insert_table(self):
+        if not self.current_file:
+            return
+
+        def insert(values):
+            headers = [item.strip() for item in values['columns'].split(';')]
+            rows = int(values['rows'])
+            if not all(headers) or rows < 1 or rows > 100:
+                raise ValueError('Nhập tên các cột và số hàng từ 1 đến 100')
+            identifier, caption = values['id'], values['caption']
+            if caption and not re.fullmatch(r'[A-Za-z][A-Za-z0-9_]{0,39}', identifier):
+                raise ValueError('Mã bảng bắt đầu bằng chữ, chỉ dùng chữ/số/dấu gạch dưới')
+            prefix = f'[[TABLE: {identifier} | {caption}]]\n' if caption else ''
+            headers = [item.replace('|', '\\|') for item in headers]
+            content = '| ' + ' | '.join(headers) + ' |\n| ' + ' | '.join(['---'] * len(headers)) + ' |\n'
+            content += ('| ' + ' | '.join([''] * len(headers)) + ' |\n') * rows
+            self._insert_markdown_block(prefix + content)
+
+        return self._show_form(
+            'Chèn bảng',
+            {
+                'columns': 'Các cột (cách nhau bằng ;)',
+                'rows': 'Số hàng dữ liệu',
+                'caption': 'Tên bảng (nếu có)',
+                'id': 'Mã tham chiếu bảng',
+            },
+            {'rows': '3'},
+            insert,
+            'Chèn',
+        )
+
+    def insert_reference(self):
+        identifier = simpledialog.askstring('Tham chiếu', 'Mã của hình, bảng hoặc tiêu đề:', parent=self)
+        if identifier and self.current_file:
+            if not re.fullmatch(r'[A-Za-z][A-Za-z0-9_]{0,39}', identifier):
+                messagebox.showerror('Tham chiếu', 'Mã chỉ dùng chữ/số/dấu gạch dưới và bắt đầu bằng chữ.', parent=self)
+                return
+            self.editor_text.insert('insert', f'[[REF: {identifier}]]')
+
+    def add_citation(self):
+        if not self.current_file:
+            return
+
+        def insert(values):
+            identifier = values['id']
+            if not re.fullmatch(r'[A-Za-z][A-Za-z0-9_\-]*', identifier) or not values['title']:
+                raise ValueError('Cần mã nguồn hợp lệ và tên tài liệu')
+            config = self._get_workspace_config()
+            relative = config.bibliography or 'references.json'
+            if Path(relative).suffix.lower() != '.json':
+                raise ValueError('Form này dùng CSL JSON. Với BibTeX/CSL YAML, chỉnh file nguồn đang dùng.')
+            path = self.project_path / relative
+            references = json.loads(path.read_text(encoding='utf-8')) if path.exists() else []
+            if not isinstance(references, list):
+                raise ValueError('File nguồn phải chứa danh sách CSL JSON')
+            if any(item.get('id') == identifier for item in references):
+                self.editor_text.insert('insert', f'[@{identifier}]')
+                return
+            source = {'id': identifier, 'type': 'webpage' if values['url'] else 'book', 'title': values['title']}
+            if values['author']:
+                source['author'] = [{'literal': values['author']}]
+            if values['year']:
+                year = int(values['year'])
+                if year < 1:
+                    raise ValueError('Năm phải lớn hơn 0; để trống khi chưa biết')
+                source['issued'] = {'date-parts': [[year]]}
+            if values['url']:
+                source['URL'] = values['url']
+            references.append(source)
+            atomic_write(path, json.dumps(references, ensure_ascii=False, indent=2))
+            config.bibliography = relative
+            config.save(self.project_path / 'config.yaml')
+            self.editor_text.insert('insert', f'[@{identifier}]')
+            self._edit_revision += 1
+            self._pdf_is_stale = True
+
+        return self._show_form(
+            'Nguồn trích dẫn',
+            {
+                'id': 'Mã nguồn',
+                'title': 'Tên tài liệu',
+                'author': 'Tác giả',
+                'year': 'Năm (trống nếu chưa biết)',
+                'url': 'Đường dẫn nguồn',
+            },
+            {},
+            insert,
+            'Lưu và chèn',
+        )
+
+    def insert_equation(self):
+        equation = simpledialog.askstring('Công thức Word', 'Nhập công thức LaTeX:', parent=self)
+        if equation and self.current_file:
+            self._insert_markdown_block('$$\n' + equation + '\n$$')
+
+    def check_document(self):
+        if not self.save_current_file():
+            return
+        try:
+            _text, entries = self.assembler.assemble_with_metadata()
+            issues = project_issues(self._get_workspace_config(), entries, self.project_path)
+            for entry in entries:
+                for line in entry.content.splitlines():
+                    image = parse_markdown_image_line(line)
+                    if (
+                        image
+                        and not DocxHelpers.resolve_media_path(self.project_path, entry.path, image.path).is_file()
+                    ):
+                        issues.append(f'{entry.filename}: thiếu ảnh {image.path}')
+        except Exception as exc:
+            issues = [str(exc)]
+        if issues:
+            messagebox.showwarning('Kiểm tra nguồn', '\n'.join(issues[:30]), parent=self)
+        else:
+            messagebox.showinfo(
+                'Kiểm tra nguồn', 'Chưa thấy lỗi đầu vào. Bản Word/PDF được kiểm tra tiếp khi xuất.', parent=self
+            )
+
+    def recover_draft(self):
+        recovery = self.project_path / '.recovery'
+        selected = filedialog.askopenfilename(
+            title='Chọn bản phục hồi', initialdir=recovery, filetypes=[('Bản soạn', '*.md')], parent=self
+        )
+        if not selected or not self.current_file:
+            return
+        path = Path(selected).resolve()
+        if not path.is_relative_to(recovery.resolve()):
+            messagebox.showerror('Phục hồi', 'Chọn file trong thư mục phục hồi của dự án.', parent=self)
+            return
+        if path.name != self.current_file.name and path.parent.name != self.current_file.name:
+            messagebox.showwarning('Phục hồi', 'Chọn bản phục hồi của chương đang mở.', parent=self)
+            return
+        content = path.read_text(encoding='utf-8')
+        if not messagebox.askyesno(
+            'Phục hồi',
+            'Thay nội dung chương đang mở bằng bản đã chọn? Bản hiện tại được giữ trong lịch sử phục hồi.',
+            parent=self,
+        ):
+            return
+        self._read_current_file_into_editor()
+        self.editor_text.delete('1.0', 'end')
+        self.editor_text.insert('1.0', content)
+        self.editor_text.edit_modified(True)
+        self._set_status('Đã nạp bản phục hồi để so sánh và lưu')
 
     def _build_preview(self):
-        ttk.Label(self.preview_frame, text='Assembled Preview').pack(anchor='w', padx=8, pady=(8, 4))
+        ttk.Label(self.preview_frame, text='Xem trước nội dung — chia trang ước lượng').pack(
+            anchor='w', padx=8, pady=(8, 4)
+        )
 
         if self._has_html_preview:
             self.preview_widget = self._html_frame_cls(self.preview_frame, messages_enabled=False)
@@ -256,19 +592,20 @@ class VisualBuilderWindow(tk.Toplevel):
         self.preview_widget.bind('<MouseWheel>', self._schedule_editor_sync)
         self.preview_widget.bind('<ButtonRelease-1>', self._schedule_editor_sync)
         self.preview_widget.bind('<KeyRelease>', self._schedule_editor_sync)
-        self.preview_widget.bind('<Configure>', self._schedule_editor_sync)
 
     def _configure_editor_tags(self):
-        self.editor_text.tag_configure('heading1', foreground='#1A3A5C', font=('Consolas', 11, 'bold'))
-        self.editor_text.tag_configure('heading2', foreground='#1F619E', font=('Consolas', 11, 'bold'))
-        self.editor_text.tag_configure('heading3', foreground='#2E86AB', font=('Consolas', 11, 'bold'))
-        self.editor_text.tag_configure('heading4', foreground='#449DD1', font=('Consolas', 11, 'bold'))
-        self.editor_text.tag_configure('bold', font=('Consolas', 11, 'bold'))
-        self.editor_text.tag_configure('italic', font=('Consolas', 11, 'italic'))
+        self.editor_text.tag_configure('heading1', foreground='#172b4d', font=('Segoe UI', 14, 'bold'))
+        self.editor_text.tag_configure('heading2', foreground='#2457d6', font=('Segoe UI', 12, 'bold'))
+        self.editor_text.tag_configure('heading3', foreground='#2457d6', font=('Segoe UI', 11, 'bold'))
+        self.editor_text.tag_configure('heading4', foreground='#2457d6', font=('Segoe UI', 11, 'bold'))
+        self.editor_text.tag_configure('bold', font=('Segoe UI', 11, 'bold'))
+        self.editor_text.tag_configure('italic', font=('Segoe UI', 11, 'italic'))
         self.editor_text.tag_configure('code', background='#f0f0f0', foreground='#9c2f52')
         self.editor_text.tag_configure('search_hit', background='#fff3a3')
 
     def _load_chapter_list(self, select_filename: str | None = None):
+        self._edit_revision += 1
+        self._pdf_is_stale = True
         current_name = select_filename or (self.current_file.name if self.current_file else None)
         self.chapter_filenames = self.assembler.get_chapter_filenames()
 
@@ -340,19 +677,22 @@ class VisualBuilderWindow(tk.Toplevel):
             return
 
         if self._is_dirty:
-            self.save_current_file()
+            if not self.save_current_file():
+                return
 
         self.current_file = file_path
         self.current_path_var.set(str(file_path.relative_to(self.project_path)))
         self._read_current_file_into_editor()
         self.refresh_preview()
-        self._set_status(f'Loaded {filename}')
+        self._set_status(f'Đã mở {filename}')
 
     def _read_current_file_into_editor(self):
         if not self.current_file:
             return
 
-        content = self.current_file.read_text(encoding='utf-8')
+        raw = self.current_file.read_bytes()
+        content = raw.decode('utf-8')
+        self._known_hashes[self.current_file] = hashlib.sha256(raw).hexdigest()
         self._suspend_change_events = True
         self.editor_text.delete('1.0', tk.END)
         self.editor_text.insert('1.0', content)
@@ -371,11 +711,13 @@ class VisualBuilderWindow(tk.Toplevel):
         if self.editor_text.edit_modified():
             self.editor_text.edit_modified(False)
             self._is_dirty = True
+            self._edit_revision += 1
+            self._pdf_is_stale = True
             self._refresh_title()
             self._schedule_autosave()
             self._schedule_preview_refresh()
             self._schedule_highlight()
-            self._set_status('Editing...')
+            self._set_status('Đang soạn…')
 
     def _schedule_autosave(self):
         if self._autosave_after_id is not None:
@@ -610,6 +952,7 @@ class VisualBuilderWindow(tk.Toplevel):
             caption=metadata['caption'].strip(),
             width=self._normalize_image_width(metadata['width']),
             align=self._normalize_image_align(metadata['align']),
+            identifier=metadata['identifier'],
         )
         self._insert_markdown_block(markdown)
         self._set_status(f'Inserted image {Path(selected_path).name}')
@@ -644,6 +987,7 @@ class VisualBuilderWindow(tk.Toplevel):
             caption=metadata['caption'].strip(),
             width=self._normalize_image_width(metadata['width']),
             align=self._normalize_image_align(metadata['align']),
+            identifier=metadata['identifier'],
         )
         self._insert_markdown_block(markdown)
         self._set_status(f'Inserted project image {Path(selected.relative_path).name}')
@@ -667,6 +1011,7 @@ class VisualBuilderWindow(tk.Toplevel):
             initial_caption=image.caption,
             initial_width=image.width,
             initial_align=image.align,
+            initial_identifier=image.identifier,
         )
         if metadata is None:
             return
@@ -677,6 +1022,7 @@ class VisualBuilderWindow(tk.Toplevel):
             caption=metadata['caption'].strip(),
             width=self._normalize_image_width(metadata['width']),
             align=self._normalize_image_align(metadata['align']),
+            identifier=metadata['identifier'],
         )
         self.editor_text.delete(line_start, line_end)
         self.editor_text.insert(line_start, updated)
@@ -690,15 +1036,22 @@ class VisualBuilderWindow(tk.Toplevel):
         self._set_status('Updated image properties')
 
     def _prompt_image_metadata(
-        self, *, title: str, initial_alt: str, initial_caption: str, initial_width: str, initial_align: str
+        self,
+        *,
+        title: str,
+        initial_alt: str,
+        initial_caption: str,
+        initial_width: str,
+        initial_align: str,
+        initial_identifier: str = '',
     ):
-        alt_text = simpledialog.askstring(title, 'Alternative text:', parent=self, initialvalue=initial_alt)
+        alt_text = simpledialog.askstring(title, 'Mô tả hình:', parent=self, initialvalue=initial_alt)
         if alt_text is None:
             return None
-        caption = simpledialog.askstring(title, 'Caption (optional):', parent=self, initialvalue=initial_caption)
+        caption = simpledialog.askstring(title, 'Tên hình (nếu có):', parent=self, initialvalue=initial_caption)
         if caption is None:
             return None
-        width = simpledialog.askstring(title, 'Width (%):', parent=self, initialvalue=initial_width)
+        width = simpledialog.askstring(title, 'Chiều rộng (%):', parent=self, initialvalue=initial_width)
         if width is None:
             return None
         align = simpledialog.askstring(
@@ -709,7 +1062,15 @@ class VisualBuilderWindow(tk.Toplevel):
         )
         if align is None:
             return None
-        return {'alt': alt_text, 'caption': caption, 'width': width, 'align': align}
+        identifier = simpledialog.askstring(
+            title, 'Mã tham chiếu hình (có thể để trống):', parent=self, initialvalue=initial_identifier
+        )
+        if identifier is None:
+            return None
+        if identifier and (not caption or not re.fullmatch(r'[A-Za-z][A-Za-z0-9_]{0,39}', identifier)):
+            messagebox.showerror(title, 'Mã cần tên hình và bắt đầu bằng chữ, chỉ dùng chữ/số/gạch dưới.', parent=self)
+            return None
+        return {'alt': alt_text, 'caption': caption, 'width': width, 'align': align, 'identifier': identifier}
 
     def _insert_markdown_block(self, markdown: str):
         insert_at = self.editor_text.index(tk.INSERT)
@@ -915,14 +1276,20 @@ class VisualBuilderWindow(tk.Toplevel):
             self._autosave_after_id = None
 
         if not self.current_file or not self._is_dirty:
-            return
+            return True
 
         content = self.editor_text.get('1.0', tk.END).rstrip('\n') + '\n'
-        self.current_file.write_text(content, encoding='utf-8')
+        try:
+            expected = self._known_hashes.get(self.current_file)
+            self._known_hashes[self.current_file] = save_chapter(self.current_file, content, expected)
+        except (ExternalEditError, OSError) as exc:
+            self._set_status(f'Chưa lưu: {exc}')
+            return False
         self._known_mtimes[self.current_file] = self.current_file.stat().st_mtime
         self._is_dirty = False
         self._refresh_title()
-        self._set_status(f'Saved {self.current_file.name}')
+        self._set_status(f'Đã lưu {self.current_file.name}')
+        return True
 
     def create_chapter(self):
         anchor_filename = self._get_selected_filename()
@@ -984,7 +1351,8 @@ class VisualBuilderWindow(tk.Toplevel):
             return
 
         if self._is_dirty:
-            self.save_current_file()
+            if not self.save_current_file():
+                return
 
         try:
             new_filename = self._rename_chapter_file(selected_filename, title)
@@ -1223,33 +1591,14 @@ class VisualBuilderWindow(tk.Toplevel):
         return slug or 'New_Item'
 
     def _build_scholarly_chapter_content(self, title: str) -> str:
+        config = self._get_workspace_config()
+        outline = config.chapter_outline if config and config.chapter_outline else ['Mục tiêu', 'Nội dung', 'Kết luận']
         return (
-            f'## {title}\n\n'
-            '### Research Question\n\n'
-            'State the central claim, scope, and why this section matters.\n\n'
-            '### Theoretical Basis\n\n'
-            'Define concepts, cite frameworks, and establish the analytical lens.\n\n'
-            '### Analysis\n\n'
-            'Develop the argument with evidence, examples, or system behavior.\n\n'
-            '### Discussion\n\n'
-            'Compare alternatives, identify tradeoffs, and address limitations.\n\n'
-            '### Conclusion\n\n'
-            'Summarize the contribution of this chapter and connect it to the next one.\n'
+            f'## {title}\n\n' + '\n\n'.join(f'### {heading}\n\n[Nhập nội dung vào đây]' for heading in outline) + '\n'
         )
 
     def _build_scholarly_subchapter_content(self, title: str, parent_title: str) -> str:
-        return (
-            f'### {title}\n\n'
-            f'This subchapter extends **{parent_title}**.\n\n'
-            '#### Claim\n\n'
-            'State the precise point being argued.\n\n'
-            '#### Evidence\n\n'
-            'Add data, examples, diagrams, or observed behavior.\n\n'
-            '#### Interpretation\n\n'
-            'Explain why the evidence supports the claim.\n\n'
-            '#### Interim Finding\n\n'
-            'Close the subsection with the result that should carry forward.\n'
-        )
+        return f'### {title}\n\nMục thuộc **{parent_title}**.\n\n[Nhập nội dung vào đây]\n'
 
     def _build_cover_frontmatter_content(self) -> str:
         config = self._get_workspace_config()
@@ -1263,7 +1612,7 @@ class VisualBuilderWindow(tk.Toplevel):
                 '**MSSV:** ...\n'
                 '**Thời gian:** Hà Nội, Tháng .../....\n'
             )
-        return '# Trang bìa\n\nĐiền thông tin trang bìa tại đây.\n'
+        return '[[COVER]]\n'
 
     def _get_workspace_config(self):
         config = self.assembler.get_config()
@@ -1277,7 +1626,9 @@ class VisualBuilderWindow(tk.Toplevel):
         merged.update(updates)
         config.settings = merged
         config.save(self.project_path / 'config.yaml')
-        self._set_status('Document settings saved')
+        self._edit_revision += 1
+        self._pdf_is_stale = True
+        self._set_status('Đã lưu bố cục tài liệu')
 
     def open_paragraph_settings(self):
         from src.core.docx_helpers import DocxHelpers
@@ -1773,33 +2124,90 @@ class VisualBuilderWindow(tk.Toplevel):
         else:
             self._apply_preview_scroll_fraction(target_fraction)
         self._forced_preview_fraction = None
-        self._set_status('Preview updated')
+        self._set_status('Đã cập nhật xem trước')
 
     def build_docx(self):
-        self.save_current_file()
+        self.start_export(('docx',))
 
-        try:
-            md_out_path = self.project_path / 'assembled.md'
-            self.assembler.save_assembled_for_export(md_out_path)
-
-            builder = DocxBuilder(self.project_path)
-            img_cache_dir = self.project_path / '.diagram_cache'
-            builder.build_from_markdown(str(md_out_path), img_cache_dir)
-
-            output_docx = self.project_path / f'{self.project_path.name}.docx'
-            builder.save(output_docx)
-        except Exception as exc:
-            messagebox.showerror('Build DOCX', str(exc), parent=self)
-            self._set_status(f'Build failed: {exc}')
+    def start_export(self, formats):
+        if self._export_running or not self.save_current_file():
             return
+        self._export_running = True
+        self.docx_export_button.state(['disabled'])
+        self.pdf_export_button.state(['disabled'])
+        self.export_progress.pack(side='right', padx=8)
+        self.export_progress.start(15)
+        self._set_status('Đang kiểm tra và xuất tài liệu… Bạn có thể tiếp tục soạn.')
+        project = self.project_path
+        mode = 'final' if self.final_export_var.get() else 'draft'
+        revision = self._edit_revision
+        mailbox = self._export_queue
 
-        self._set_status(f'Built {output_docx.name}')
-        messagebox.showinfo('Build DOCX', f'DOCX saved to:\n{output_docx}', parent=self)
+        def export():
+            try:
+                result = compile_document(
+                    project,
+                    formats=formats,
+                    mode=mode,
+                    docx_out=project / f'{project.name}.docx',
+                    md_out=project / 'assembled.md',
+                    cache_dir=project / '.diagram_cache',
+                )
+                mailbox.put((result, None, revision))
+            except Exception as exc:
+                mailbox.put((None, str(exc), revision))
+
+        threading.Thread(target=export, daemon=True, name='report-export').start()
+        self._export_poll_id = self.after(100, self._poll_export)
+
+    def _poll_export(self):
+        try:
+            result, error, revision = self._export_queue.get_nowait()
+        except queue.Empty:
+            self._export_poll_id = self.after(100, self._poll_export)
+            return
+        self._export_poll_id = None
+        self._export_running = False
+        self.export_progress.stop()
+        self.export_progress.pack_forget()
+        self.docx_export_button.state(['!disabled'])
+        self.pdf_export_button.state(['!disabled'])
+        if error:
+            self._set_status('Xuất chưa hoàn thành; bản trước được giữ nguyên')
+            messagebox.showerror('Xuất tài liệu', error, parent=self)
+            return
+        if result.compiled_pdf:
+            self._pdf_is_stale = revision != self._edit_revision
+            self._latest_pdf = Path(result.compiled_pdf)
+            self.pdf_view_button.state(['!disabled'])
+        details = f'Word: {result.compiled_docx}'
+        if result.compiled_pdf:
+            details += f'\nPDF: {result.compiled_pdf}'
+        if result.warnings:
+            details += '\n\nCảnh báo:\n' + '\n'.join(result.warnings[:20])
+        if self._pdf_is_stale:
+            details += '\n\nNội dung đã thay đổi sau khi bắt đầu xuất; xuất lại để lấy bản mới.'
+        self._set_status('Đã xuất bản ' + ('nộp' if result.mode == 'final' else 'nháp'))
+        messagebox.showinfo('Đã xuất tài liệu', details, parent=self)
+
+    def open_exported_pdf(self):
+        if not self._latest_pdf or not self._latest_pdf.is_file():
+            return
+        if self._pdf_is_stale:
+            messagebox.showwarning('Bản PDF trước', 'Nội dung đã thay đổi. Hãy xuất lại để có bản mới.', parent=self)
+        if os.name == 'nt':
+            os.startfile(self._latest_pdf)
+        else:
+            subprocess.Popen(['open' if sys.platform == 'darwin' else 'xdg-open', str(self._latest_pdf)])
 
     def clear_diagram_cache(self):
         import shutil
 
         img_cache_dir = self.project_path / '.diagram_cache'
+
+        if not img_cache_dir.resolve().is_relative_to(self.project_path.resolve()):
+            messagebox.showerror('Cache', 'Cache nằm ngoài dự án; không xóa.', parent=self)
+            return
 
         if not img_cache_dir.exists():
             messagebox.showinfo('Clear Cache', 'Diagram cache is already empty.', parent=self)
@@ -1836,6 +2244,8 @@ class VisualBuilderWindow(tk.Toplevel):
                     continue
 
                 self._known_mtimes[file_path] = current_mtime
+                self._edit_revision += 1
+                self._pdf_is_stale = True
                 if file_path != self.current_file:
                     self.refresh_preview()
                     continue
@@ -1854,10 +2264,17 @@ class VisualBuilderWindow(tk.Toplevel):
 
     def _refresh_title(self):
         dirty_suffix = ' *' if self._is_dirty else ''
-        self.title(f'Visual Builder - {self.project_path.name}{dirty_suffix}')
+        self.title(f'{self.project_path.name}{dirty_suffix} — Doc Automation Suite')
 
     def _on_close(self):
-        self.save_current_file()
+        if self._export_running:
+            messagebox.showwarning('Đang xuất', 'Chờ tác vụ xuất hoàn thành trước khi đóng cửa sổ.', parent=self)
+            return
+        if not self.save_current_file():
+            messagebox.showwarning(
+                'Chưa lưu an toàn', 'Giải quyết thay đổi bên ngoài hoặc phục hồi bản soạn trước khi đóng.', parent=self
+            )
+            return
         for after_id in (
             self._preview_after_id,
             self._autosave_after_id,

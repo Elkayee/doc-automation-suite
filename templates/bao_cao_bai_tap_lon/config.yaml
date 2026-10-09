@@ -1,0 +1,25 @@
+name: 'Báo cáo bài tập lớn'
+description: 'Mẫu học thuật có bìa, mục lục, chương, tài liệu tham khảo và phụ lục; chỉnh theo yêu cầu của trường.'
+type: academic
+docx_template: template.docx
+required_files: [F00_header.md, F01_toc.md, Ch01_Mo_Dau.md, Ch02_Co_So.md, Ch03_Phan_Tich.md, Ch04_Ket_Qua.md, Ch05_Ket_Luan.md, Ch06_Tham_Khao.md]
+metadata_fields:
+  title: Tên đề tài
+  organization: Trường
+  department: Khoa
+  subject: Môn học
+  supervisor: Giảng viên
+  author: Sinh viên/nhóm
+  class: Lớp
+  date: Ngày báo cáo
+required_metadata: [title, author, organization]
+chapter_outline: [Mục tiêu, Cơ sở và phương pháp, Phân tích, Kết quả, Kết luận]
+settings:
+  font_name: Times New Roman
+  font_size: 14
+  line_spacing_mode: multiple
+  line_spacing_value: 1.5
+  special_indent: first_line
+  special_indent_by_cm: 1.27
+  numbered_captions: true
+  report_fields: true

@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from pathlib import Path
 
+from src.core.file_io import atomic_write
+
 
 @dataclass
 class ChapterAssemblyEntry:
@@ -31,6 +33,12 @@ class DocumentAssembler:
         if not self.chapters_dir.exists():
             raise FileNotFoundError(f'Chapters directory missing in {self.workspace_dir}')
         return config
+
+    def validate_required_chapters(self):
+        config = self._ensure_workspace()
+        missing = [f for f in config.required_files if not (self.chapters_dir / f).is_file()]
+        if missing:
+            raise FileNotFoundError('Thiếu chương bắt buộc: ' + ', '.join(missing))
 
     def get_chapter_filenames(self) -> list[str]:
         config = self._ensure_workspace()
@@ -68,7 +76,7 @@ class DocumentAssembler:
         config.save(self.config_path)
 
     def assemble_with_metadata(self) -> tuple[str, list[ChapterAssemblyEntry]]:
-        self._ensure_workspace()
+        self.validate_required_chapters()
 
         parts: list[str] = []
         entries: list[ChapterAssemblyEntry] = []
@@ -114,13 +122,11 @@ class DocumentAssembler:
     def save_assembled(self, output_path: Path) -> tuple[str, list[str]]:
         final_md, processed_files = self.assemble_markdown()
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(output_path, 'w', encoding='utf-8') as f:
-            f.write(final_md)
+        atomic_write(output_path, final_md)
         return final_md, processed_files
 
     def save_assembled_for_export(self, output_path: Path) -> tuple[str, list[str]]:
         final_md, processed_files = self.assemble_markdown_for_export()
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(output_path, 'w', encoding='utf-8') as f:
-            f.write(final_md)
+        atomic_write(output_path, final_md)
         return final_md, processed_files

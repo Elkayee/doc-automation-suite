@@ -1,9 +1,10 @@
 [project]
 name = "doc-automation-suite"
-version = "0.1.0"
+version = "0.2.0"
 description = "Toolkit for document processing and office automation"
 requires-python = ">=3.10"
 dependencies = [
+    "pyyaml>=6.0",
     "requests>=2.31.0",
     "python-docx>=1.1.0",
     "tkinterweb>=3.23.0",
@@ -24,7 +25,8 @@ dev = [
     "ruff>=0.4.0",
     "pre-commit>=3.7.0",
     "pytest>=8.2.0",
-    "pytest-cov>=5.0.0"
+    "pytest-cov>=5.0.0",
+    "pyinstaller>=6.22.3",
 ]
 
 [tool.ruff]

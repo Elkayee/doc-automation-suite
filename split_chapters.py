@@ -11,7 +11,8 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-sys.stdout.reconfigure(encoding='utf-8')
+if sys.stdout is not None:
+    sys.stdout.reconfigure(encoding='utf-8')
 
 BAD_CHARS = '\\/:*?"<>|'
 
