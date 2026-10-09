@@ -1,0 +1,16 @@
+{
+  "scope": "Use the supplied PTIT cover for the essay template, add individual/group project choices, substitute metadata without losing Word formatting, and deliver a separate verified Windows 0.2.2 bundle.",
+  "coupling": "TemplateManager and Dashboard discover YAML templates; DocxBuilder loads editable Word templates; the shared export snapshots inputs and preserves prior outputs; PyInstaller bundles templates and both renderer programs.",
+  "acceptance": "Both choices appear in the existing selector. DOCX/PDF contain the correct cover exactly once, correct author data, original logo and layout, and black text. Missing required metadata rejects final output. Original cover and existing projects stay intact. Real EXE, isolated full suite, source GUI and rendered-page inspection have separate evidence.",
+  "evidence": "Clean git baseline. Cover_Ptit.docx is 101107 bytes with a five-row table, five member slots and word/media/image1.emf. Current tieu_luan_nd30 has a blank style template and sample header with a fake author/date. TemplateManager already copies DOCX and boilerplate; Dashboard already lists all template names. Shared export already validates required_metadata and preserves source snapshots. DocxBuilder currently applies page settings to the first section, which would alter the supplied cover margins.",
+  "requirements_confirmed": true,
+  "risks": {
+    "security": false,
+    "data": true,
+    "public_contract": true,
+    "architecture": false,
+    "production": false,
+    "routing": false
+  },
+  "risk_details": "Authoritative Word layout contains an EMF logo and formatted text split into many runs. Rebuilding or clearing paragraphs can lose source content/relationships or corrupt author replacement. Export must preserve previous files and missing-value semantics. The default essay template becomes PTIT-specific with two authoring variants; frozen GUI/CLI must agree with source behavior."
+}

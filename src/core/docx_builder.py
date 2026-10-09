@@ -20,6 +20,7 @@ from src.core.report_fields import (
     add_report_cover,
     configure_styles,
     end_bookmark,
+    fill_template_cover,
     set_page_numbering,
     start_body_section,
     start_bookmark,
@@ -36,7 +37,7 @@ class DocxBuilder:
         self.warnings = []
         self.academic = None
         configure_styles(self.doc, self.config)
-        if self.config and self.config.settings.get('report_fields'):
+        if self.config and self.config.settings.get('report_fields') and not self.config.settings.get('template_cover'):
             set_page_numbering(self.doc.sections[0])
 
     def _get_config(self):
@@ -54,7 +55,14 @@ class DocxBuilder:
             template_path = self.workspace_dir / self.config.docx_template
             if template_path.exists():
                 doc = Document(str(template_path))
-                DocxHelpers.apply_page_settings(doc, page_settings)
+                if self.config.settings.get('template_cover'):
+                    fill_template_cover(doc, self.config)
+                    section = doc.add_section(WD_SECTION_START.NEW_PAGE)
+                    section.different_first_page_header_footer = False
+                    DocxHelpers.apply_section_settings(section, page_settings)
+                    set_page_numbering(section, fmt='lowerRoman')
+                else:
+                    DocxHelpers.apply_page_settings(doc, page_settings)
                 return doc
         doc = Document()
         DocxHelpers.apply_page_settings(doc, page_settings)
@@ -306,6 +314,9 @@ class DocxBuilder:
             if line.strip() == '[[COVER]]':
                 if not self.config:
                     raise ValueError('Trang bìa cần config.yaml')
+                if self.config.settings.get('template_cover'):
+                    i += 1
+                    continue
                 for paragraph in self.doc.sections[-1].footer.paragraphs:
                     paragraph.clear()
                 add_report_cover(self.doc, self.config)

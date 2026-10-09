@@ -143,6 +143,29 @@ def add_report_cover(doc, config):
     set_page_numbering(section, fmt='lowerRoman')
 
 
+def fill_template_cover(doc, config):
+    """Fill editable cover text, including placeholders split across Word runs."""
+    for paragraph in doc.element.xpath('.//w:p'):
+        positions = []
+        text = ''
+        for node in paragraph.xpath('.//w:t'):
+            positions.append((node, len(text), len(node.text or '')))
+            text += node.text or ''
+        for match in reversed(list(re.finditer(r'\{\{([a-zA-Z0-9_]+)\}\}', text))):
+            key = match.group(1)
+            value = config.metadata.get(key)
+            if not value:
+                label = config.metadata_fields.get(key, key)
+                value = f'[Chưa nhập {label}]' if key in config.required_metadata else ''
+            for node, start, length in positions:
+                if start < match.end() and start + length > match.start():
+                    left = max(0, match.start() - start)
+                    right = min(length, match.end() - start)
+                    replacement = value if start <= match.start() < start + length else ''
+                    node.text = node.text[:left] + replacement + node.text[right:]
+                    node.set(qn('xml:space'), 'preserve')
+
+
 def add_reference_runs(paragraph, text, references, write_text):
     if '[[REF:' not in text:
         write_text(paragraph, text)

@@ -4,7 +4,7 @@ import os
 import sys
 from pathlib import Path
 
-VERSION = '0.2.1'
+VERSION = '0.2.2'
 
 
 def resource_root() -> Path:

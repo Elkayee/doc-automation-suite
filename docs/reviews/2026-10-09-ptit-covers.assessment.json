@@ -1,0 +1,48 @@
+{
+  "policy": "jev-task-routing-v2",
+  "task": {
+    "repo": "D:\\doc-automation-suite",
+    "spec_file": "D:\\doc-automation-suite\\docs\\superpowers\\specs\\2026-10-09-ptit-covers.md",
+    "context_file": "D:\\doc-automation-suite\\docs\\superpowers\\specs\\2026-10-09-ptit-covers.context.json",
+    "spec_sha256": "4ab3e3b442f52e3c3c97e190358504aa331ce8896d7d22288a068929dbd591c1",
+    "context_sha256": "16e3a8bd95e94322ecb23e55c62cc05beb66b4e230be41011531c387d3e43345",
+    "spec": "# PTIT essay covers\n\nAuthorized by the user's requests: use `dist/DocAutomationSuite-0.2.1/Cover_Ptit.docx` for essays\nand offer both group and individual assignments. The supplied file is the authoritative layout\nsource.\n\nProvide two choices in the existing project template selector. Keep the current `tieu_luan_nd30`\nidentifier for the group template; add an individual template. Preserve the source cover, its table,\nlogo, margins and editable Word text. Replace sample text with metadata fields. The group cover\nretains five member slots from the source; the individual cover shows student name, student ID and\nclass. Missing required values remain missing, warn in drafts and reject final exports. Keep the\nshared export core, atomic publication and explicit black text.\n\nExisting projects remain unchanged. Build a separate local 0.2.2 distribution so the original 0.2.1\nfolder and supplied cover remain intact. No publication or merge.\n\nAcceptance: create both project types, fill metadata and export real DOCX/PDF. Check that the cover\noccurs once, the selected assignment type and authors are correct, the original logo bytes/table\nsurvive and body text starts after the cover. Inspect rendered pages and the actual template\nselector. Test a split Word placeholder, missing required metadata and preservation of previous\noutput on failure. The instruments must reject a group cover mislabeled as individual,\nunfilled/stale author text, a missing logo and an altered source file. Run focused tests, the full\nsuite in an isolated copy, Ruff and owned Markdown/JSON formatting. Verify the new EXE from another\nworking directory with isolated user data and record hashes and bundled renderer paths. Frozen input\nremains NOT_EVALUATED if Windows prevents input automation.\n",
+    "context": {
+      "scope": "Use the supplied PTIT cover for the essay template, add individual/group project choices, substitute metadata without losing Word formatting, and deliver a separate verified Windows 0.2.2 bundle.",
+      "coupling": "TemplateManager and Dashboard discover YAML templates; DocxBuilder loads editable Word templates; the shared export snapshots inputs and preserves prior outputs; PyInstaller bundles templates and both renderer programs.",
+      "acceptance": "Both choices appear in the existing selector. DOCX/PDF contain the correct cover exactly once, correct author data, original logo and layout, and black text. Missing required metadata rejects final output. Original cover and existing projects stay intact. Real EXE, isolated full suite, source GUI and rendered-page inspection have separate evidence.",
+      "evidence": "Clean git baseline. Cover_Ptit.docx is 101107 bytes with a five-row table, five member slots and word/media/image1.emf. Current tieu_luan_nd30 has a blank style template and sample header with a fake author/date. TemplateManager already copies DOCX and boilerplate; Dashboard already lists all template names. Shared export already validates required_metadata and preserves source snapshots. DocxBuilder currently applies page settings to the first section, which would alter the supplied cover margins.",
+      "requirements_confirmed": true,
+      "risks": {
+        "security": false,
+        "data": true,
+        "public_contract": true,
+        "architecture": false,
+        "production": false,
+        "routing": false
+      },
+      "risk_details": "Authoritative Word layout contains an EMF logo and formatted text split into many runs. Rebuilding or clearing paragraphs can lose source content/relationships or corrupt author replacement. Export must preserve previous files and missing-value semantics. The default essay template becomes PTIT-specific with two authoring variants; frozen GUI/CLI must agree with source behavior."
+    }
+  },
+  "assessed_at": "2026-10-09T13:57:16.311Z",
+  "status": "APPROVED",
+  "difficulty": "hard",
+  "jev": null,
+  "review": {
+    "by": "codex-control",
+    "reason": "Control confirms the final formatted contract against Word run replacement, source logo/margins, corrected inherited cover indentation, separate template selection, 114 passing isolated tests and real DOCX/PDF evidence. Preserve the source and use direct Codex; no Dely Run or dispatch.",
+    "reviewed_at": "2026-10-09T13:57:17.094Z",
+    "source": "control-evidence",
+    "confidence_threshold": "NOT_EVALUATED"
+  },
+  "route": {
+    "workflow": "direct",
+    "primary": {
+      "harness": "codex",
+      "model": "gpt-6.1-sol",
+      "effort": "xhigh"
+    },
+    "fallback": []
+  },
+  "hard_exclusions": ["data", "public_contract"]
+}

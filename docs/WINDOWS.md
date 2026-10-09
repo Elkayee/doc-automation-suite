@@ -15,6 +15,12 @@ thật. Xem trước trong trình soạn là bố cục ước lượng.
 Bản 0.2.1 xuất chữ báo cáo màu đen, gồm tiêu đề, nội dung, bảng, chú thích, mục lục, liên kết và
 header/footer. Dự án có sẵn cũng được áp dụng khi xuất lại.
 
+Bản 0.2.2 có hai lựa chọn ở **Tạo báo cáo mới → Mẫu tài liệu**: **Tiểu luận PTIT – Bài tập nhóm** và
+**Tiểu luận PTIT – Bài tập cá nhân**. Bìa dựa trên `Cover_Ptit.docx` đã cung cấp. Trong **Thông tin
+báo cáo**, mẫu nhóm nhận số nhóm và tối đa 5 thành viên (họ tên - MSSV); mẫu cá nhân nhận họ tên và
+mã sinh viên. Các thông tin có dấu \* cần điền trước khi xuất bản nộp. Dự án tiểu luận đã tạo bằng
+bản cũ giữ mẫu cũ; tạo dự án mới để dùng bìa PTIT.
+
 Dự án mới ở `%LOCALAPPDATA%\DocAutomationSuite\workspaces`. **Thư mục tài liệu** mở nơi lưu. **Mở dự
 án** nhận dự án có config.yaml và chapters. Có thể sao lưu cả thư mục dự án hoặc chuyển nó sang máy
 khác. Thay bản ứng dụng không xóa dự án. Nhật ký lỗi ở

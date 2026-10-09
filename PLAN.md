@@ -3,6 +3,21 @@
 Cập nhật: 2026-10-09. Người dùng đã yêu cầu triển khai toàn bộ hướng nghiên cứu và cập nhật PLAN.md,
 TASK.md, AGENTS.md theo tiến độ.
 
+## Bìa tiểu luận PTIT
+
+Hoàn thành cục bộ: hai lựa chọn tiểu luận PTIT bài tập nhóm/cá nhân dùng bố cục Cover_Ptit.docx đã
+cung cấp. Giữ logo, lề và thụt dòng gốc; điền metadata trong Word; không in hướng dẫn nội bộ hoặc
+tạo bìa trùng. Bìa nguồn và dự án cũ giữ nguyên. Control duyệt Hard theo chính sách bốn mức; triển
+khai/rà soát trực tiếp, không Dely Run.
+
+114 tests đạt trong bản sao riêng; Ruff, lockfile và formatter đạt. Đã xem source GUI và Word/PDF 3
+trang, chữ đen, TOC cập nhật. EXE 0.2.2 mở từ cwd khác; frozen CLI tạo/xuất cả hai mẫu và API xuất
+cá nhân đạt. ZIP có 20.854 mục (20.853 file kê trong manifest và manifest), tất cả khớp hash. Frozen
+GUI input đầy đủ vẫn NOT_EVALUATED.
+
+Phạm vi: [PTIT covers](docs/superpowers/specs/2026-10-09-ptit-covers.md). Review:
+[PTIT covers](docs/reviews/2026-10-09-ptit-covers.md).
+
 ## Màu chữ khi xuất
 
 Yêu cầu: báo cáo xuất Word/PDF chỉ dùng chữ đen. Áp dụng ở bước lưu DOCX chung, bao gồm màu trực

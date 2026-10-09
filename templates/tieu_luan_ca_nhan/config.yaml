@@ -1,5 +1,5 @@
-name: "Tiểu luận PTIT – Bài tập nhóm"
-description: "Bìa từ Cover_Ptit.docx, danh sách tối đa 5 thành viên; nội dung tiểu luận Times New Roman."
+name: "Tiểu luận PTIT – Bài tập cá nhân"
+description: "Bìa cá nhân từ Cover_Ptit.docx, họ tên và mã sinh viên; nội dung tiểu luận Times New Roman."
 type: "report"
 docx_template: "template.docx"
 required_files:
@@ -16,14 +16,10 @@ metadata_fields:
   subject: Học phần
   supervisor: Giảng viên hướng dẫn
   class: Lớp học phần
-  group: Số nhóm
-  member_1: Thành viên 1 (Họ tên - MSSV)
-  member_2: Thành viên 2 (Họ tên - MSSV)
-  member_3: Thành viên 3 (Họ tên - MSSV)
-  member_4: Thành viên 4 (Họ tên - MSSV)
-  member_5: Thành viên 5 (Họ tên - MSSV)
+  author: Họ tên sinh viên
+  student_id: Mã sinh viên
   date: Địa điểm, tháng/năm
-required_metadata: [title, subject, supervisor, class, group, member_1, date]
+required_metadata: [title, subject, supervisor, class, author, student_id, date]
 settings:
   font_name: "Times New Roman"
   font_size: 14

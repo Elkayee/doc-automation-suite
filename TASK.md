@@ -3,6 +3,27 @@
 Cập nhật: 2026-10-09. Phạm vi trong [PLAN.md](PLAN.md). Đã triển khai nâng cấp và build ứng dụng
 Windows cục bộ; chưa publish/merge. Giới hạn kiểm tra ghi riêng ở dưới.
 
+## Bìa tiểu luận PTIT
+
+- P01 DONE: Cover_Ptit.docx 101.107 byte, bảng 5 hàng/logo EMF; assessment v2 và Control review
+  Hard. Bìa nguồn giữ nguyên hash.
+- P02 DONE: mẫu nhóm/cá nhân, metadata qua Word runs, giữ lề/thụt dòng gốc; thiếu thông tin được
+  cảnh báo trong nháp và chặn bản nộp; legacy giữ mẫu cũ.
+- P03 DONE: 114 tests, 1 warning baseline, 11,49 giây trong bản sao
+  doc-suite-ptit-r2-tests-\_ggxcfge; Ruff/lockfile/formatter đạt. Word/PDF 3 trang, chữ đen/TOC cập
+  nhật; đã xem bìa/mục lục/nội dung và source GUI. Hồi quy từ chối bìa lệch thụt dòng, hướng dẫn nội
+  bộ bị in, bìa trùng; mutation probes từ chối sai loại bìa/tác giả và thiếu logo.
+- P04 DONE: EXE/ZIP 0.2.2 riêng; frozen CLI tạo/xuất nhóm/cá nhân, API xuất cá nhân và startup GUI
+  từ cwd khác đạt. ZIP 633,316,772 byte, 20.854 mục (20.853 file kê trong manifest và manifest) khớp
+  hash. Giữ bản 0.2.1 và bìa nguồn. Full frozen GUI input vẫn NOT_EVALUATED; lần thử trên candidate
+  trước trả input chưa xác minh. Bằng chứng source GUI/frozen startup/CLI/API được ghi riêng.
+
+GUI SHA-256: 94c06249520839540c2ccfd68729f916d3ab77e7d8e635db0c37b311cd70c9c4. ZIP SHA-256:
+1a1cde987199d214e7f00698dc5f02c155482dbcbce934f1b6ce72b14b96c5f2. Bằng chứng:
+artifacts/windows-acceptance/ptit-final-r2/source-verification.json, frozen-verification.json,
+release-verification.json và ảnh bìa/form/mục lục. Review:
+[PTIT covers](docs/reviews/2026-10-09-ptit-covers.md).
+
 ## Windows EXE (yêu cầu tiếp theo)
 
 Yêu cầu chữ đen đã hoàn thành: B01 DONE (hồi quy direct/theme/link/header/footer/footnote và bảo
