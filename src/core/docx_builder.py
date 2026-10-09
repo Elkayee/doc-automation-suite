@@ -528,6 +528,7 @@ class DocxBuilder:
         output_path.parent.mkdir(parents=True, exist_ok=True)
         try:
             buffer = BytesIO()
+            DocxHelpers.use_black_text(self.doc)
             self.doc.save(buffer)
             atomic_write(output_path, buffer.getvalue())
         except PermissionError as exc:

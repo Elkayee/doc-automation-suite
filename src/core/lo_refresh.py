@@ -44,6 +44,10 @@ def main():
             for index in range(indexes.getCount()):
                 indexes.getByIndex(index).update()
             document.refresh()
+        for family_name in ('ParagraphStyles', 'CharacterStyles'):
+            family = document.StyleFamilies.getByName(family_name)
+            for name in family.getElementNames():
+                family.getByName(name).CharColor = 0
         output = Path(output)
         document.storeAsURL((output / 'refreshed.docx').as_uri(), (
             property_value('FilterName', 'Office Open XML Text'), property_value('Overwrite', True),

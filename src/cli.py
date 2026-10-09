@@ -15,13 +15,13 @@ from src.core.file_io import atomic_write
 from src.core.project_paths import workspace_path
 from src.core.renderers import renderer_status
 from src.core.template_manager import TemplateManager
-from src.core.runtime import data_root, resource_root
+from src.core.runtime import VERSION, data_root, resource_root
 
 BASE_DIR = resource_root()
 
 
 @click.group()
-@click.version_option(version="0.2.0")
+@click.version_option(version=VERSION)
 def cli():
     """Doc Automation Suite CLI toolkit."""
     for stream in (sys.stdout, sys.stderr):

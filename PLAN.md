@@ -3,6 +3,14 @@
 Cập nhật: 2026-10-09. Người dùng đã yêu cầu triển khai toàn bộ hướng nghiên cứu và cập nhật PLAN.md,
 TASK.md, AGENTS.md theo tiến độ.
 
+## Màu chữ khi xuất
+
+Yêu cầu: báo cáo xuất Word/PDF chỉ dùng chữ đen. Áp dụng ở bước lưu DOCX chung, bao gồm màu trực
+tiếp/theme trong mẫu, style, bảng, hyperlink, header/footer và field. Kiểm tra hồi quy mẫu nhiều màu
+và bảo toàn nguồn đạt; 1.422 glyph PDF trên 4 trang đều đen, DOCX chỉ 000000. Bản 0.2.1 đã build
+riêng vì 0.2.0 đang mở; ZIP/hash toàn bộ file đạt. Trạng thái: hoàn thành. Review:
+docs/reviews/2026-10-09-black-text-export.md.
+
 ## Bản ứng dụng Windows
 
 Yêu cầu mới: EXE hoàn chỉnh và giao diện chỉn chu. Phạm vi ở

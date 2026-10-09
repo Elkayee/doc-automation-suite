@@ -22,6 +22,10 @@ input check remains NOT_EVALUATED.
 
 ## Data and exports
 
+- Report exports use explicit black font color (000000) throughout Word text/styles, including
+  inherited/theme colors, headings, captions, tables, links and headers/footers. Preserve source
+  templates and text/field semantics. Verify rendered PDF text colors; heading-only checks are
+  insufficient.
 - Use src/core/export.py for GUI, CLI, API and batch export orchestration. Standalone legacy
   Markdown without config.yaml retains its basic draft conversion path; legacy workspaces with
   config use the shared core.

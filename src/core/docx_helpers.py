@@ -1,11 +1,13 @@
 import re
 import unicodedata
+from itertools import chain
 from pathlib import Path
 
 from docx.enum.section import WD_ORIENTATION
 from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT, WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK
-from docx.oxml import OxmlElement
+from docx.opc.oxml import serialize_part_xml
+from docx.oxml import OxmlElement, parse_xml
 from docx.oxml.ns import qn
 from docx.shared import Cm, Emu, Inches, Pt, RGBColor
 
@@ -21,6 +23,28 @@ COLOR_H4 = RGBColor(0x44, 0x9D, 0xD1)
 
 
 class DocxHelpers:
+    @staticmethod
+    def use_black_text(doc):
+        for part in doc.part.package.parts:
+            name = str(part.partname)
+            if not name.startswith('/word/') or not name.endswith('.xml'):
+                continue
+            root = getattr(part, 'element', None)
+            raw_part = root is None
+            if raw_part:
+                root = parse_xml(part.blob)
+            for parent in chain(root.iter(qn('w:r')), root.iter(qn('w:style'))):
+                parent.get_or_add_rPr()
+            changed = False
+            for properties in root.iter(qn('w:rPr')):
+                color = properties.get_or_add_color()
+                color.set(qn('w:val'), '000000')
+                for attribute in ['themeColor', 'themeTint', 'themeShade']:
+                    color.attrib.pop(qn('w:' + attribute), None)
+                changed = True
+            if raw_part and changed:
+                part._blob = serialize_part_xml(root)
+
     EXAM_COVER_LEGACY_TEXT_MAP = {
         'HOC VIEN CONG NGHE BUU CHINH VIEN THONG': 'HỌC VIỆN CÔNG NGHỆ BƯU CHÍNH VIỄN THÔNG',
         'KHOA CONG NGHE THONG TIN 1': 'KHOA CÔNG NGHỆ THÔNG TIN 1',

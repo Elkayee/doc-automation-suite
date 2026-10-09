@@ -5,6 +5,10 @@ Windows cục bộ; chưa publish/merge. Giới hạn kiểm tra ghi riêng ở 
 
 ## Windows EXE (yêu cầu tiếp theo)
 
+Yêu cầu chữ đen đã hoàn thành: B01 DONE (hồi quy direct/theme/link/header/footer/footnote và bảo
+toàn mẫu); B02 DONE (DOCX chỉ 000000, 1.422 glyph PDF đen trên 4 trang); B03 DONE (EXE/ZIP 0.2.1
+riêng và hash toàn bộ file đạt).
+
 | ID  | Công việc                            | Trạng thái    | Bằng chứng                                                                                                             |
 | --- | ------------------------------------ | ------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | W01 | Phạm vi/định tuyến/đường dẫn runtime | DONE          | Control duyệt Hard; tests đường dẫn source/frozen/Unicode và ưu tiên renderer nội bộ                                   |
@@ -80,3 +84,22 @@ lock check và formatter file sở hữu đạt.
 
 W05 vẫn NOT_EVALUATED; giới hạn này được giữ rõ trong Windows review. Bản portable là kết quả build
 cục bộ, chưa publish/merge.
+
+## Bản 0.2.1 — chữ đen khi xuất
+
+EXE: dist/DocAutomationSuite-0.2.1/DocAutomationSuite.exe. ZIP:
+dist/DocAutomationSuite-0.2.1-win64.zip.
+
+GUI SHA-256: 2652b31c5a5ace3cb7458bfb2ec346f32bd0b47bde1c42564617169993064d39. CLI SHA-256:
+b2902ae9a5b5467d560d73b2da574906d2a0b9b1701ff8829f860d197248a75e.
+
+ZIP SHA-256: fdf8377eb93a0c99572109ba26daa68c6164fa948efe2edfb21f4637b2cd9b09; 20849 file khớp
+manifest, 633035027 byte.
+
+Bằng chứng: artifacts/windows-acceptance/black-text-verification.json, black-text-release.json và
+black-text-report.docx/pdf. Review: docs/reviews/2026-10-09-black-text-export.md.
+
+Hồi quy mới baseline-red rồi PASS. Suite trước bump version: 109 passed, 1 warning; sau bump: 108
+passed, 1 native-display skipped, 1 warning (doc-suite-upgrade-tests-dgasv93z/pytest-upgrade.txt).
+Ruff, lockfile và formatter file sở hữu đạt. Giới hạn frozen GUI input W05 giữ NOT_EVALUATED; màu
+chữ đã kiểm chứng bằng CLI đóng gói thật.

@@ -1,7 +1,7 @@
 # Doc Automation Suite cho Windows
 
-Giải nén toàn bộ ZIP, mở thư mục DocAutomationSuite và chạy **DocAutomationSuite.exe**. Giữ EXE cùng
-thư mục \_internal; không cần cài Python, LibreOffice hoặc Pandoc.
+Giải nén toàn bộ ZIP, mở thư mục ứng dụng vừa giải nén và chạy **DocAutomationSuite.exe**. Giữ EXE
+cùng thư mục \_internal; không cần cài Python, LibreOffice hoặc Pandoc.
 
 Chọn **Bài tập lớn**, **Báo cáo công sở** hoặc **Biên bản**, nhập tên dự án rồi tạo. Trong trình
 soạn, mở **Thông tin báo cáo** để nhập thông tin bìa. Chọn chương bên trái, soạn nội dung ở giữa và
@@ -11,6 +11,9 @@ dung; Ctrl+B/I định dạng.
 **Kiểm tra** hiển thị nội dung còn thiếu. **Bản nộp** yêu cầu hoàn thiện thông tin và chương bắt
 buộc. **Xuất Word + PDF** tạo hai file trong thư mục dự án; **Xem PDF đã xuất** mở bản dàn trang
 thật. Xem trước trong trình soạn là bố cục ước lượng.
+
+Bản 0.2.1 xuất chữ báo cáo màu đen, gồm tiêu đề, nội dung, bảng, chú thích, mục lục, liên kết và
+header/footer. Dự án có sẵn cũng được áp dụng khi xuất lại.
 
 Dự án mới ở `%LOCALAPPDATA%\DocAutomationSuite\workspaces`. **Thư mục tài liệu** mở nơi lưu. **Mở dự
 án** nhận dự án có config.yaml và chapters. Có thể sao lưu cả thư mục dự án hoặc chuyển nó sang máy

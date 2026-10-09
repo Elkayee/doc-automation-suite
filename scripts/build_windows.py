@@ -32,7 +32,7 @@ def main():
     if os.name != 'nt':
         raise SystemExit('Windows builds must run on Windows.')
     root = Path(__file__).resolve().parents[1]
-    bundle = root / 'dist/DocAutomationSuite'
+    bundle = root / f'dist/DocAutomationSuite-{VERSION}'
     if (root / 'dist').resolve() != root / 'dist' or bundle.resolve() != bundle:
         raise SystemExit('Build destination must not redirect outside the project dist directory.')
     tools = Path(os.environ['LOCALAPPDATA']) / 'DocAutomationSuite/tools'

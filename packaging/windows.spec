@@ -1,9 +1,12 @@
 # Build both entrypoints against one dependency graph and one resource folder.
 from pathlib import Path
+import sys
 
 from PyInstaller.utils.hooks import collect_all
 
 root = Path(SPECPATH).parent
+sys.path.insert(0, str(root))
+from src.core.runtime import VERSION
 datas = [
     (str(root / 'templates'), 'templates'),
     (str(root / 'assets'), 'assets'),
@@ -27,4 +30,4 @@ gui = EXE(pyz, gui_scripts, [], exclude_binaries=True, name='DocAutomationSuite'
           console=False, icon=str(root / 'assets/app.ico'), upx=False)
 cli = EXE(pyz, cli_scripts, [], exclude_binaries=True, name='DocAutomationCLI',
           console=True, icon=str(root / 'assets/app.ico'), upx=False)
-bundle = COLLECT(gui, cli, a.binaries, a.datas, name='DocAutomationSuite', upx=False)
+bundle = COLLECT(gui, cli, a.binaries, a.datas, name=f'DocAutomationSuite-{VERSION}', upx=False)

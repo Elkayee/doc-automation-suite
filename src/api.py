@@ -16,14 +16,14 @@ from src.core.logger import logger
 from src.core.template_manager import TemplateManager
 from src.core.project_paths import workspace_path
 from src.core.renderers import renderer_status
-from src.core.runtime import data_root, resource_root
+from src.core.runtime import VERSION, data_root, resource_root
 
 BASE_DIR = resource_root()
 
 app = FastAPI(
     title='Doc Automation Suite API',
     description='REST API interface for document assembly and automated rendering pipelines.',
-    version='0.2.0',
+    version=VERSION,
 )
 
 
@@ -50,7 +50,7 @@ class CreateRequest(BaseModel):
 
 @app.get('/')
 def read_root():
-    return {'status': 'online', 'service': 'Doc Automation Suite API', 'version': '0.2.0', 'documentation': '/docs'}
+    return {'status': 'online', 'service': 'Doc Automation Suite API', 'version': VERSION, 'documentation': '/docs'}
 
 
 @app.get('/capabilities')

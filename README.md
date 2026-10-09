@@ -1,14 +1,14 @@
 # Doc Automation Suite
 
 Ứng dụng soạn văn bản, báo cáo bài tập lớn và báo cáo công sở bằng Python/Tkinter. Nội dung lưu
-trong Markdown; cấu hình/mẫu trong YAML và DOCX. Phiên bản nâng cấp: 0.2.0.
+trong Markdown; cấu hình/mẫu trong YAML và DOCX. Phiên bản nâng cấp: 0.2.1.
 
 ## Mở ứng dụng
 
-**Bản Windows portable:** giải nén toàn bộ `dist/DocAutomationSuite-0.2.0-win64.zip`, mở thư mục
-DocAutomationSuite rồi chạy **DocAutomationSuite.exe**. Giữ EXE cùng thư mục \_internal. Gói có sẵn
-Python, mẫu và renderer Word/PDF. Dự án lưu ở `%LOCALAPPDATA%\DocAutomationSuite\workspaces`, tách
-khỏi thư mục ứng dụng. [Hướng dẫn Windows/CLI/API](docs/WINDOWS.md).
+**Bản Windows portable:** giải nén toàn bộ `dist/DocAutomationSuite-0.2.1-win64.zip`, mở thư mục
+DocAutomationSuite-0.2.1 rồi chạy **DocAutomationSuite.exe**. Giữ EXE cùng thư mục \_internal. Gói
+có sẵn Python, mẫu và renderer Word/PDF. Dự án lưu ở `%LOCALAPPDATA%\DocAutomationSuite\workspaces`,
+tách khỏi thư mục ứng dụng. [Hướng dẫn Windows/CLI/API](docs/WINDOWS.md).
 
 **Chạy từ mã nguồn:** trên Windows, chạy `launch.bat`. Lần đầu script tạo môi trường và cài
 dependency; những lần sau mở ứng dụng trực tiếp. Để cài đúng lockfile với uv:
