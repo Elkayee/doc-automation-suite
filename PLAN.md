@@ -1,7 +1,20 @@
 # Kế hoạch nâng cấp phần mềm văn bản và báo cáo
 
-Cập nhật: 2026-10-09. Người dùng đã yêu cầu triển khai toàn bộ hướng nghiên cứu và cập nhật PLAN.md,
+Cập nhật: 2026-10-13. Người dùng đã yêu cầu triển khai toàn bộ hướng nghiên cứu và cập nhật PLAN.md,
 TASK.md, AGENTS.md theo tiến độ.
+
+## Trạng thái delivery (2026-10-13)
+
+GitHub `main` hiện ở `f13810fa5ca2d01154a910acef251c81d85621f2`; remote chỉ có nhánh `main`. PR #367
+(`feat/report-authoring-upgrade`) đã merge ngày 2026-10-09 với merge commit
+`4c78df058c46ae6005e1fd8302b2968c63d78bec`. CI run `37959971437` trên `main` này có `ubuntu-latest`
+SUCCESS và `windows-latest` FAILURE tại bước tests; đây là baseline CI từ trước đợt audit Nghị
+định 30. Các kết quả 108/114 tests và kiểm tra GUI bên dưới là bằng chứng cục bộ riêng, không phải
+kết quả CI đó.
+
+Audit Nghị định 30 được commit ở source branch thành `e494c33a5933ee9551248f237ef260ea95aae861` và
+đã merge giữ ancestry vào candidate cục bộ `docs/nd30-audit`, dựa trên `main` hiện tại. Candidate
+chưa được push; Codex Control còn review và xử lý publication.
 
 ## Bìa tiểu luận PTIT
 
@@ -17,6 +30,19 @@ GUI input đầy đủ vẫn NOT_EVALUATED.
 
 Phạm vi: [PTIT covers](docs/superpowers/specs/2026-10-09-ptit-covers.md). Review:
 [PTIT covers](docs/reviews/2026-10-09-ptit-covers.md).
+
+## Rà soát văn bản hành chính theo Nghị định 30
+
+Yêu cầu 2026-10-09: đối chiếu Nghị định 30/2020/NĐ-CP và hướng dẫn tạo lập văn bản hành chính. Đã
+hoàn thành rà nguồn chính thức, source/mẫu, GUI source và ba DOCX/PDF xuất thật trong bản sao cô
+lập. Kết luận: chưa đáp ứng đầy đủ; thiếu thể thức đầu/cuối, sai số trang và một số font/cỡ tiêu đề;
+final vẫn chấp nhận mẫu thiếu thành phần hoặc cố ý sai định dạng.
+
+Khổ/lề mặc định, lời văn và màu đen đạt trên mẫu thử. Kiểm tra cục bộ: 108 passed, 1 skipped, 1
+warning; Ruff PASS. EXE đóng gói và nghiệp vụ ký/phát hành/lưu trữ chưa được kiểm tra lần này. Đề
+xuất sửa và bằng chứng ở [review Nghị định 30](docs/reviews/2026-10-09-nd30-compliance.md). Tại
+phiên rà soát ngày 2026-10-09, chỉ tài liệu được cập nhật; đề xuất chưa triển khai hoặc publish.
+Prettier ba tài liệu của phiên rà soát và `git diff --check` PASS.
 
 ## Màu chữ khi xuất
 
@@ -84,7 +110,8 @@ docs/reviews/2026-10-09-report-authoring-upgrade.md. Full npm run lint vẫn có
 - Task-routing đã được Control duyệt Hard: Codex trực tiếp; không mở Dely Run.
 - Quy tắc AGENTS thay thế đã nhận; đánh giá được chạy lại bằng chính sách bốn mức
   jev-task-routing-v2 của script đang cài.
-- Nhánh làm việc: feat/report-authoring-upgrade; chưa yêu cầu push/merge.
+- Ghi nhận ngày 2026-10-09: nhánh làm việc `feat/report-authoring-upgrade` chưa yêu cầu push/merge;
+  trạng thái publication hiện tại được cập nhật ở đầu tài liệu.
 - Tài liệu nghiên cứu là đầu vào được bảo toàn; báo cáo trong workspaces không được dùng cho các
   phép thử mất dữ liệu.
 - Renderer được chuẩn bị ở thư mục tools của tài khoản hiện tại, kiểm tra hash gói vendor trước khi
