@@ -3,6 +3,19 @@
 Cập nhật: 2026-10-09. Người dùng đã yêu cầu triển khai toàn bộ hướng nghiên cứu và cập nhật PLAN.md,
 TASK.md, AGENTS.md theo tiến độ.
 
+## Rà soát văn bản hành chính theo Nghị định 30
+
+Yêu cầu 2026-10-09: đối chiếu Nghị định 30/2020/NĐ-CP và hướng dẫn tạo lập văn bản hành chính. Đã
+hoàn thành rà nguồn chính thức, source/mẫu, GUI source và ba DOCX/PDF xuất thật trong bản sao cô
+lập. Kết luận: chưa đáp ứng đầy đủ; thiếu thể thức đầu/cuối, sai số trang và một số font/cỡ tiêu đề;
+final vẫn chấp nhận mẫu thiếu thành phần hoặc cố ý sai định dạng.
+
+Khổ/lề mặc định, lời văn và màu đen đạt trên mẫu thử. Kiểm tra cục bộ: 108 passed, 1 skipped, 1
+warning; Ruff PASS. EXE đóng gói và nghiệp vụ ký/phát hành/lưu trữ chưa được kiểm tra lần này. Đề
+xuất sửa và bằng chứng ở [review Nghị định 30](docs/reviews/2026-10-09-nd30-compliance.md). Phiên
+này chỉ rà soát và cập nhật tài liệu; chưa triển khai đề xuất, commit hoặc publish. Prettier ba tài
+liệu của phiên rà soát và `git diff --check` PASS.
+
 ## Màu chữ khi xuất
 
 Yêu cầu: báo cáo xuất Word/PDF chỉ dùng chữ đen. Áp dụng ở bước lưu DOCX chung, bao gồm màu trực
