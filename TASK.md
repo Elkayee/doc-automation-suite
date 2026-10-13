@@ -1,7 +1,19 @@
 # Công việc triển khai
 
-Cập nhật: 2026-10-09. Phạm vi trong [PLAN.md](PLAN.md). Đã triển khai nâng cấp và build ứng dụng
-Windows cục bộ; chưa publish/merge. Giới hạn kiểm tra ghi riêng ở dưới.
+Cập nhật: 2026-10-13. Phạm vi trong [PLAN.md](PLAN.md). Kết quả build/acceptance Windows bên dưới
+được ghi nhận cục bộ; giới hạn kiểm tra và lịch sử publication được tách riêng.
+
+## Trạng thái delivery (2026-10-13)
+
+GitHub `main` hiện ở `f13810fa5ca2d01154a910acef251c81d85621f2`; remote chỉ có nhánh `main`. PR #367
+(`feat/report-authoring-upgrade`) đã merge ngày 2026-10-09 với merge commit
+`4c78df058c46ae6005e1fd8302b2968c63d78bec`. CI run `37959971437` trên commit này: `ubuntu-latest`
+SUCCESS; `windows-latest` FAILURE tại bước tests. Đây là baseline remote hiện có. Các test 108/114
+và GUI/frozen checks trong phần lịch sử dưới đây là bằng chứng cục bộ, không phải kết quả CI.
+
+Audit Nghị định 30 source commit `e494c33a5933ee9551248f237ef260ea95aae861` đã được merge giữ
+ancestry vào candidate cục bộ `docs/nd30-audit`, dựa trên `main` hiện tại. Candidate chưa push;
+Codex Control review và xử lý publication. Không có thay đổi source app.
 
 ## Bìa tiểu luận PTIT
 
@@ -23,6 +35,28 @@ GUI SHA-256: 94c06249520839540c2ccfd68729f916d3ab77e7d8e635db0c37b311cd70c9c4. Z
 artifacts/windows-acceptance/ptit-final-r2/source-verification.json, frozen-verification.json,
 release-verification.json và ảnh bìa/form/mục lục. Review:
 [PTIT covers](docs/reviews/2026-10-09-ptit-covers.md).
+
+## Rà soát Nghị định 30/2020/NĐ-CP
+
+Phạm vi người dùng xác nhận: văn bản hành chính. Source baseline:
+`7b4b3d6e14c20a352d1a4c8e35868329cf95ed76` (0.2.1). Đây là rà soát, chưa sửa chức năng/mẫu.
+
+| ID     | Công việc                                  | Trạng thái    | Bằng chứng                                                                                                                          |
+| ------ | ------------------------------------------ | ------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| N30-01 | Đối chiếu nguồn chính thức/Phụ lục I-III   | DONE          | Checklist Điều 8-9, khổ/lề/font/đoạn/số trang và các thành phần thể thức; phân biệt phạm vi Phụ lục VI                              |
+| N30-02 | Kiểm tra source, mẫu và GUI source         | DONE          | 61 file source/mẫu khớp hash bản sao; editor/form thật; metadata chưa bao phủ thành phần hành chính                                 |
+| N30-03 | Xuất/đọc DOCX/PDF và thử đầu vào sai       | DONE          | 3 mẫu final thành công, warnings rỗng; mẫu Arial 10/lề 1 cm/dòng 2 vẫn được chấp nhận; PDF có số trang ở footer và font tiêu đề sai |
+| N30-04 | Kiểm tra phần mềm hiện có                  | DONE          | 108 passed, 1 skipped, 1 warning trong bản sao; Ruff src/tests PASS; không coi test hiện có là nghiệm thu Nghị định 30              |
+| N30-05 | Kiểm tra lại EXE và nghiệp vụ ký/phát hành | NOT_EVALUATED | Không có dist/EXE ở worktree hiện tại; GUI source được ghi riêng; nghiệp vụ ký số/phát hành/lưu trữ ngoài phạm vi trình soạn thảo   |
+
+Kết luận tuân thủ thể thức hành chính: **FAIL**. Khổ/lề mặc định, định dạng lời văn và màu chữ đen:
+PASS trên mẫu thử. Chi tiết phát hiện, hash, bản xuất và đề xuất xử lý:
+[review Nghị định 30](docs/reviews/2026-10-09-nd30-compliance.md).
+
+Bằng chứng cục bộ:
+`C:/Users/Home33/AppData/Local/Temp/doc-suite-nd30-audit-g1nx50q9/audit-evidence`. Tại phiên rà soát
+ngày 2026-10-09, các đề xuất khắc phục chưa triển khai và chưa commit/push/publish. Prettier review,
+PLAN.md/TASK.md và `git diff --check` PASS; chỉ ba tài liệu này thay đổi.
 
 ## Windows EXE (yêu cầu tiếp theo)
 
@@ -87,8 +121,9 @@ dashboard.png, native-authoring.png và packaged-academic.docx/pdf.
   cần xem trang thật. Không hứa pixel-identical Word/LibreOffice.
 - FastAPI/Starlette TestClient có warning httpx không làm fail suite; API dành cho phạm vi cục bộ,
   chưa có cấu hình xác thực nhiều người dùng.
-- Nhánh feat/report-authoring-upgrade có thay đổi cục bộ; đã build bản portable Windows, chưa
-  push/remote CI, merge hoặc publish. Output nghiệm thu dùng dữ liệu mẫu.
+- Tại thời điểm nghiệm thu bản portable, nhánh `feat/report-authoring-upgrade` còn thay đổi cục bộ
+  và chưa push/merge. PR #367 sau đó đã merge; CI baseline và trạng thái candidate hiện tại ghi ở
+  đầu tài liệu. Output nghiệm thu dùng dữ liệu mẫu.
 
 ## Kết quả bản Windows cuối
 
@@ -103,8 +138,8 @@ Suite mới nhất: 108 passed, 1 warning, 5,63 giây; log ở
 C:/Users/Home33/AppData/Local/Temp/doc-suite-upgrade-tests-d_strq65/pytest-upgrade.txt. Ruff, uv
 lock check và formatter file sở hữu đạt.
 
-W05 vẫn NOT_EVALUATED; giới hạn này được giữ rõ trong Windows review. Bản portable là kết quả build
-cục bộ, chưa publish/merge.
+W05 vẫn NOT_EVALUATED; giới hạn này được giữ rõ trong Windows review. Bản portable được nghiệm thu
+cục bộ trước khi PR #367 merge; remote CI sau merge được ghi riêng ở đầu tài liệu.
 
 ## Bản 0.2.1 — chữ đen khi xuất
 
